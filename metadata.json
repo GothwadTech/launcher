@@ -1,6 +1,6 @@
 {
   "name": "Gothwad Launcher",
-  "description": "A lightweight, one-screen launcher for Android TV and Google TV.",
+  "description": "A high-performance universal launcher for Android TV and Desktop PC with instant loading and multi-input support.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
