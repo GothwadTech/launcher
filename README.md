@@ -1,22 +1,104 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Gothwad Launcher
 
-# Run and deploy your AI Studio app
+<p align="center">
+  <b>A high-performance, lightweight universal launcher tailored for Android TV and Desktop PC environments.</b>
+</p>
 
-This contains everything you need to run your app locally.
+<p align="center">
+  <img src="https://img.shields.io/badge/Platform-Android%20TV%20%7C%20PC-blue?style=flat-square" alt="Platform" />
+  <img src="https://img.shields.io/badge/Min%20SDK-21%20(Lollipop)-green?style=flat-square" alt="Min SDK" />
+  <img src="https://img.shields.io/badge/Target%20SDK-34%20(Android%2014)-orange?style=flat-square" alt="Target SDK" />
+  <img src="https://img.shields.io/badge/Language-Kotlin-purple?style=flat-square" alt="Kotlin" />
+  <img src="https://img.shields.io/badge/UI-Jetpack%20Compose%20%2F%20Material%203-blueviolet?style=flat-square" alt="Compose" />
+  <img src="https://img.shields.io/badge/License-Apache%202.0-lightgrey?style=flat-square" alt="License" />
+</p>
 
-View your app in AI Studio: https://ai.studio/apps/3cca70ec-386b-4e8c-b977-0b97f63831bc
+---
 
-## Run Locally
+## 🌟 Overview
 
-**Prerequisites:**  [Android Studio](https://developer.android.com/studio)
+**Gothwad Launcher** is an ultra-fast, modern Android launcher designed from the ground up for both large TV screens (10-foot experience) and desktop/large tablet layouts. Built with **Jetpack Compose** and Android TV Material guidelines, it delivers zero-lag navigation, rich visual aesthetics, and extensive customization without bloat.
 
+---
 
-1. Open Android Studio
-2. Select **Open** and choose the directory containing this project
-3. Allow Android Studio to fix any incompatibilities as it imports the project.
-4. Create a file named `.env` in the project directory and set `GEMINI_API_KEY` in that file to your Gemini API key (see `.env.example` for an example)
-5. Remove this line from the app's `build.gradle.kts` file: `signingConfig = signingConfigs.getByName("debugConfig")`
-6. Run the app on an emulator or physical device
-7. If you have already published your app in AI Studio, please [request upload key reset](https://support.google.com/googleplay/android-developer/answer/9842756#zippy=%2Crequest-an-upload-key-reset) in Google Play Console.
+## ✨ Features
+
+### 📺 Dual Mode Interface
+- **Android TV Mode**: Optimized for D-pad navigation, high-contrast focus indicators, leanback cards, and seamless remote control support.
+- **PC / Desktop Mode**: Features a desktop launcher with taskbar, system tray, quick toggles, and flexible icon arrangements suited for Android boxes, tablets, and mouse/keyboard navigation.
+
+### 🎬 Dynamic Aerial & Video Wallpapers
+- High-definition live video wallpapers and 4K aerial screensavers powered by **Media3 (ExoPlayer)**.
+- Integrated background media control with automatic pause/resume on app launch.
+
+### 🎙️ Quick Search & Voice Integration
+- Instant app indexing and rapid fuzzy search.
+- Voice search modal with direct voice recognition support (`RecognizerIntent`).
+
+### 🌤️ Live Weather & Quick Dashboard
+- Real-time weather display with automatic location detection and condition icons.
+- Quick Dashboard for network status, storage insights, and fast access to system settings.
+
+### 🔒 Privacy & App Security
+- Built-in App Locker with PIN protection.
+- Hide sensitive apps from the main grid with quick unhide settings.
+
+### ⚡ Performance & Optimization
+- **Baseline Profile** bundled for instant cold startup and jank-free scrolling.
+- Pure Kotlin DSL and lightweight DataStore persistence.
+- ProGuard and R8 rules pre-configured for minimal APK size.
+
+---
+
+## 🛠️ Tech Stack
+
+- **UI Framework:** Jetpack Compose (1.7+), Android TV Material 3 (`androidx.tv:tv-material`), Material 3 (`androidx.compose.material3`)
+- **Language:** Kotlin 2.0+ with Coroutines & StateFlow
+- **Video & Media Engine:** AndroidX Media3 ExoPlayer (`media3-exoplayer`, `media3-datasource-okhttp`)
+- **Continuous Corners:** AndroidX Graphics Shapes (`androidx.graphics:graphics-shapes`) for smooth squircle cards
+- **Storage & State:** AndroidX Preferences DataStore, Kotlinx Serialization
+- **Performance:** AndroidX ProfileInstaller with AOT Baseline Profiles
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- **Android Studio Ladybug (2024.2+)** or later
+- **JDK 17**
+- Android SDK with Platform 34 installed
+
+### Building Locally
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/gothwadtech/launcher.git
+   cd launcher
+   ```
+
+2. **Build Debug APK:**
+   ```bash
+   ./gradlew assembleDebug
+   ```
+   The generated APK will be available in:
+   `app/build/outputs/apk/debug/app-debug.apk`
+
+3. **Build Release APK & App Bundle (AAB):**
+   ```bash
+   ./gradlew assembleRelease bundleRelease
+   ```
+
+---
+
+## 🤖 CI / CD (GitHub Actions)
+
+This repository includes automated workflows in `.github/workflows/`:
+- **`build_apk.yml`**: Automatically builds, packages, and signs Debug and Release APKs + Play Store AAB bundles on every push or manual dispatch.
+- **`release.yml`**: Automates GitHub Releases with version tagging and direct downloadable release APKs.
+
+---
+
+## 📄 License
+
+This project is licensed under the Apache License 2.0. See the LICENSE file for details.
+

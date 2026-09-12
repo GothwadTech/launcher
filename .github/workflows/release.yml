@@ -35,8 +35,13 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Make Gradle Executable
-        run: chmod +x ./gradlew
+      - name: Validate and Prepare Gradle Wrapper
+        run: |
+          if [ ! -f "gradle/wrapper/gradle-wrapper.jar" ]; then
+            echo "gradle-wrapper.jar not found, generating wrapper..."
+            gradle wrapper --gradle-version 8.10.2 || true
+          fi
+          chmod +x ./gradlew
 
       - name: Determine Version Code and Name
         id: versioning
