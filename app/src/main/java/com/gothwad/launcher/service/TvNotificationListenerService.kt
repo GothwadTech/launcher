@@ -143,7 +143,11 @@ class TvNotificationListenerService : NotificationListenerService() {
                 val appInfo = runCatching { pm.getApplicationInfo(sbn.packageName, 0) }.getOrNull()
                 val appName = appInfo?.let { pm.getApplicationLabel(it).toString() } ?: sbn.packageName
                 val iconBitmap: ImageBitmap? = runCatching {
-                    val drawable = appInfo?.loadIcon(pm) ?: n.smallIcon?.loadDrawable(this)
+                    val drawable = appInfo?.loadIcon(pm) ?: if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                        n.smallIcon?.loadDrawable(this)
+                    } else {
+                        null
+                    }
                     drawable?.let { toImageBitmap(it) }
                 }.getOrNull()
 
