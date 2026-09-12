@@ -21,6 +21,12 @@ android {
     // secrets). Absent locally and on F-Droid, so this config stays inert there.
     val ciKeystore = System.getenv("KEYSTORE_FILE")
     signingConfigs {
+        create("debugConfig") {
+            storeFile = file("${rootDir}/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
         if (ciKeystore != null) {
             create("ci") {
                 storeFile = file(ciKeystore)
@@ -32,6 +38,9 @@ android {
     }
 
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("debugConfig")
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
