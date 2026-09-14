@@ -89,7 +89,6 @@ import com.gothwad.launcher.ui.AppIcons
 import com.gothwad.launcher.ui.LocalCornerRadius
 import com.gothwad.launcher.ui.SmoothCornerShape
 import com.gothwad.launcher.ui.StatusBar
-import com.gothwad.launcher.ui.view.TvNativeAppGrid
 import kotlinx.coroutines.launch
 
 @OptIn(
@@ -319,18 +318,55 @@ fun TvLauncherScreen(
                     }
                 }
                 else -> {
-                    // High-performance Android View RecyclerView with shared ViewPool & DiffUtil
-                    TvNativeAppGrid(
-                        modifier = Modifier.fillMaxSize(),
-                        categorized = categorized,
-                        config = config,
-                        accent = accent,
-                        cardWidth = cardWidth,
-                        gap = gap,
-                        movePkg = movePkg,
-                        onLaunchApp = onLaunchApp,
-                        onAppMenu = onAppMenu,
-                    )
+                    val density = LocalDensity.current
+                    val cardHeightPx = with(density) { (cardWidth * 9f / 16f).toPx() }
+                    val peekPx = cardHeightPx * 0.15f
+                    val labelPx = with(density) { if (config.showCategoryNames) 34.dp.toPx() else 0f }
+                    val pivotPx = peekPx + labelPx
+                    val vPivot = remember(pivotPx) {
+                        object : androidx.compose.foundation.gestures.BringIntoViewSpec {
+                            override fun calculateScrollDistance(offset: Float, size: Float, containerSize: Float): Float =
+                                offset - pivotPx
+                        }
+                    }
+
+                    CompositionLocalProvider(LocalBringIntoViewSpec provides vPivot) {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .focusRestorer(),
+                            contentPadding = PaddingValues(
+                                top = with(density) { pivotPx.toDp() },
+                                bottom = with(density) { peekPx.toDp() } + 16.dp,
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(18.dp),
+                        ) {
+                            items(categorized.size, key = { categorized[it].first.id }) { rowIndex ->
+                                val (cat, catApps) = categorized[rowIndex]
+                                Column(Modifier.fillMaxWidth()) {
+                                    if (config.showCategoryNames) {
+                                        Text(
+                                            text = cat.name,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = Color.White.copy(alpha = 0.7f),
+                                            modifier = Modifier.padding(horizontal = 48.dp, vertical = 4.dp),
+                                        )
+                                    }
+                                    CarouselSection(
+                                        catApps = catApps,
+                                        config = config,
+                                        accent = accent,
+                                        movePkg = movePkg,
+                                        moveFocus = moveFocus,
+                                        cardWidth = cardWidth,
+                                        gap = gap,
+                                        onLaunch = onLaunchApp,
+                                        onMenu = onAppMenu,
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

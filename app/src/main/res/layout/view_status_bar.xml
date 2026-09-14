@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/status_bar_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:clipChildren="false"
+    android:clipToPadding="false"
+    android:paddingHorizontal="40dp"
+    android:paddingTop="18dp"
+    android:paddingBottom="8dp">
+
+    <!-- Left Cluster: Control Center, Search, Voice, BT, Weather -->
+    <LinearLayout
+        android:id="@+id/cluster_left"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_centerVertical="true"
+        android:background="@drawable/bg_glass_cluster"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="4dp">
+
+        <ImageButton
+            android:id="@+id/btn_dashboard"
+            style="@style/Widget.LiteTV.StatusButton"
+            android:contentDescription="@string/cd_dashboard"
+            android:padding="7dp" />
+
+        <ImageButton
+            android:id="@+id/btn_search"
+            style="@style/Widget.LiteTV.StatusButton"
+            android:layout_marginStart="4dp"
+            android:contentDescription="@string/cd_search"
+            android:padding="7dp" />
+
+        <ImageButton
+            android:id="@+id/btn_voice_search"
+            style="@style/Widget.LiteTV.StatusButton"
+            android:layout_marginStart="4dp"
+            android:contentDescription="@string/cd_voice_search"
+            android:padding="7dp" />
+
+        <LinearLayout
+            android:id="@+id/layout_bluetooth_pill"
+            style="@style/Widget.LiteTV.StatusPill"
+            android:layout_width="wrap_content"
+            android:layout_marginStart="4dp"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/img_bluetooth"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:contentDescription="@string/cd_bluetooth" />
+
+            <TextView
+                android:id="@+id/tv_bt_battery"
+                style="@style/TextAppearance.LiteTV.LabelSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:textColor="@color/text_primary" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/layout_weather_pill"
+            style="@style/Widget.LiteTV.StatusPill"
+            android:layout_width="wrap_content"
+            android:layout_marginStart="4dp">
+
+            <ImageView
+                android:id="@+id/img_weather"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:contentDescription="@string/cd_weather" />
+
+            <TextView
+                android:id="@+id/tv_weather_temp"
+                style="@style/TextAppearance.LiteTV.TitleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="--°"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Right Cluster: Active Media, VPN, Network, Notifications, Settings, Date, Clock -->
+    <LinearLayout
+        android:id="@+id/cluster_right"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_centerVertical="true"
+        android:background="@drawable/bg_glass_cluster"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="4dp">
+
+        <ImageButton
+            android:id="@+id/btn_bg_media"
+            style="@style/Widget.LiteTV.StatusButton"
+            android:contentDescription="Background Media"
+            android:padding="7dp"
+            android:visibility="gone" />
+
+        <ImageButton
+            android:id="@+id/btn_vpn"
+            style="@style/Widget.LiteTV.StatusButton"
+            android:layout_marginStart="4dp"
+            android:contentDescription="@string/cd_vpn"
+            android:padding="7dp"
+            android:visibility="gone" />
+
+        <ImageButton
+            android:id="@+id/btn_network"
+            style="@style/Widget.LiteTV.StatusButton"
+            android:layout_marginStart="4dp"
+            android:contentDescription="@string/cd_network"
+            android:padding="7dp" />
+
+        <!-- Notification Bell with Badge / Warning Dot -->
+        <FrameLayout
+            android:id="@+id/layout_notification"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp">
+
+            <ImageButton
+                android:id="@+id/btn_notifications"
+                style="@style/Widget.LiteTV.StatusButton"
+                android:contentDescription="@string/cd_notifications"
+                android:padding="7dp" />
+
+            <!-- Unread Count Badge -->
+            <TextView
+                android:id="@+id/tv_notification_badge"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_gravity="top|end"
+                android:layout_marginTop="2dp"
+                android:layout_marginEnd="2dp"
+                android:background="@drawable/bg_status_icon_button"
+                android:backgroundTint="@color/status_notification_badge"
+                android:gravity="center"
+                android:textColor="@color/text_primary"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <!-- Warning dot if listener service permission not granted -->
+            <View
+                android:id="@+id/view_notification_dot"
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:layout_gravity="top|end"
+                android:layout_marginTop="4dp"
+                android:layout_marginEnd="4dp"
+                android:background="@drawable/bg_status_icon_button"
+                android:backgroundTint="@color/status_warning"
+                android:visibility="gone" />
+        </FrameLayout>
+
+        <ImageButton
+            android:id="@+id/btn_settings"
+            style="@style/Widget.LiteTV.StatusButton"
+            android:layout_marginStart="4dp"
+            android:contentDescription="@string/cd_settings"
+            android:padding="7dp" />
+
+        <View
+            android:id="@+id/divider_clock"
+            android:layout_width="1dp"
+            android:layout_height="20dp"
+            android:layout_marginHorizontal="10dp"
+            android:background="@color/surface_glass_border" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical|end"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_clock"
+                style="@style/TextAppearance.LiteTV.Clock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+            <TextView
+                android:id="@+id/tv_date"
+                style="@style/TextAppearance.LiteTV.Date"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+</RelativeLayout>

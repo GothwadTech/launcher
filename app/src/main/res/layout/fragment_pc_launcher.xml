@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/pc_launcher_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/black">
+
+    <!-- Wallpaper Layer -->
+    <ImageView
+        android:id="@+id/img_wallpaper"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:contentDescription="@null"
+        android:visibility="gone" />
+
+    <!-- Desktop Scrim -->
+    <View
+        android:id="@+id/view_desktop_scrim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#20000000" />
+
+    <!-- Desktop Icons Grid (RecyclerView) -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler_desktop_grid"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginBottom="48dp"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:paddingStart="24dp"
+        android:paddingTop="28dp"
+        android:paddingEnd="24dp"
+        android:paddingBottom="24dp" />
+
+    <!-- Bottom Taskbar -->
+    <RelativeLayout
+        android:id="@+id/layout_taskbar"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_gravity="bottom"
+        android:background="#E6181B22"
+        android:paddingHorizontal="8dp">
+
+        <!-- Top Border Separator -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_alignParentTop="true"
+            android:background="#26FFFFFF" />
+
+        <!-- Left Side: Start + Search -->
+        <LinearLayout
+            android:id="@+id/layout_taskbar_left"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_alignParentStart="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageButton
+                android:id="@+id/btn_start"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:background="@drawable/bg_dialog_button"
+                android:contentDescription="Start Menu"
+                android:padding="8dp" />
+
+            <ImageButton
+                android:id="@+id/btn_search"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:layout_marginStart="4dp"
+                android:background="@drawable/bg_dialog_button"
+                android:contentDescription="@string/cd_search"
+                android:padding="8dp" />
+        </LinearLayout>
+
+        <!-- Right Side: Tray (Notifications, TV mode, Settings, Clock) -->
+        <LinearLayout
+            android:id="@+id/layout_taskbar_tray"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_alignParentEnd="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageButton
+                android:id="@+id/btn_notifications"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="@drawable/bg_dialog_button"
+                android:contentDescription="@string/notifications_title"
+                android:padding="8dp" />
+
+            <ImageButton
+                android:id="@+id/btn_tv_mode"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginStart="4dp"
+                android:background="@drawable/bg_dialog_button"
+                android:contentDescription="Switch to TV Mode"
+                android:padding="8dp" />
+
+            <ImageButton
+                android:id="@+id/btn_settings"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginStart="4dp"
+                android:background="@drawable/bg_dialog_button"
+                android:contentDescription="@string/settings_title"
+                android:padding="8dp" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_marginStart="8dp"
+                android:gravity="center_vertical|end"
+                android:orientation="vertical"
+                android:paddingHorizontal="6dp">
+
+                <TextView
+                    android:id="@+id/tv_taskbar_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_taskbar_date"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#99FFFFFF"
+                    android:textSize="10sp" />
+            </LinearLayout>
+
+            <!-- Show Desktop Peek Button -->
+            <View
+                android:id="@+id/btn_show_desktop"
+                android:layout_width="6dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="4dp"
+                android:background="#33FFFFFF" />
+        </LinearLayout>
+
+    </RelativeLayout>
+
+</FrameLayout>

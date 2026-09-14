@@ -73,11 +73,10 @@
             android:visibility="gone">
 
             <ImageView
+                android:id="@+id/img_lock_badge"
                 android:layout_width="14dp"
                 android:layout_height="14dp"
                 android:layout_gravity="center"
-                android:src="@drawable/ic_lock_white_18dp"
-                android:tint="#FFFFD54F"
                 android:contentDescription="Locked" />
         </FrameLayout>
 

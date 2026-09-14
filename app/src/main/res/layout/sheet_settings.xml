@@ -1,0 +1,858 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#E6000000"
+    android:padding="24dp">
+
+    <LinearLayout
+        android:layout_width="920dp"
+        android:layout_height="560dp"
+        android:layout_gravity="center"
+        android:background="@drawable/bg_dialog_rounded"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <!-- Top Header Bar -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:id="@+id/img_settings_header_icon"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:background="@drawable/bg_dialog_button"
+                    android:padding="6dp"
+                    android:contentDescription="Settings" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:text="@string/settings_title"
+                    android:textColor="#FFFFFF"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <ImageButton
+                android:id="@+id/btn_close_settings"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:background="@drawable/bg_dialog_button"
+                android:contentDescription="Close"
+                android:padding="8dp" />
+        </RelativeLayout>
+
+        <!-- Main Body: Two Columns (Left = Navigation, Right = Content Pane) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginTop="16dp"
+            android:baselineAligned="false"
+            android:orientation="horizontal">
+
+            <!-- Left Navigation Menu (ScrollView for TV remote navigation) -->
+            <ScrollView
+                android:layout_width="240dp"
+                android:layout_height="match_parent"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:id="@+id/layout_settings_nav"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <Button
+                        android:id="@+id/nav_wallpaper"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:layout_marginBottom="4dp"
+                        android:background="@drawable/bg_dialog_button"
+                        android:gravity="start|center_vertical"
+                        android:paddingHorizontal="14dp"
+                        android:text="Wallpaper"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp" />
+
+                    <Button
+                        android:id="@+id/nav_display"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:layout_marginBottom="4dp"
+                        android:background="@drawable/bg_dialog_button"
+                        android:gravity="start|center_vertical"
+                        android:paddingHorizontal="14dp"
+                        android:text="Display &amp; Appearance"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp" />
+
+                    <Button
+                        android:id="@+id/nav_statusbar"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:layout_marginBottom="4dp"
+                        android:background="@drawable/bg_dialog_button"
+                        android:gravity="start|center_vertical"
+                        android:paddingHorizontal="14dp"
+                        android:text="Status Bar"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp" />
+
+                    <Button
+                        android:id="@+id/nav_apps"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:layout_marginBottom="4dp"
+                        android:background="@drawable/bg_dialog_button"
+                        android:gravity="start|center_vertical"
+                        android:paddingHorizontal="14dp"
+                        android:text="Apps &amp; Layout"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp" />
+
+                    <Button
+                        android:id="@+id/nav_security"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:layout_marginBottom="4dp"
+                        android:background="@drawable/bg_dialog_button"
+                        android:gravity="start|center_vertical"
+                        android:paddingHorizontal="14dp"
+                        android:text="Security &amp; PIN"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp" />
+
+                    <Button
+                        android:id="@+id/nav_experience"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:layout_marginBottom="4dp"
+                        android:background="@drawable/bg_dialog_button"
+                        android:gravity="start|center_vertical"
+                        android:paddingHorizontal="14dp"
+                        android:text="Launcher Mode"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp" />
+
+                    <Button
+                        android:id="@+id/nav_permissions"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:layout_marginBottom="4dp"
+                        android:background="@drawable/bg_dialog_button"
+                        android:gravity="start|center_vertical"
+                        android:paddingHorizontal="14dp"
+                        android:text="System Permissions"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp" />
+
+                    <Button
+                        android:id="@+id/nav_about"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:layout_marginBottom="4dp"
+                        android:background="@drawable/bg_dialog_button"
+                        android:gravity="start|center_vertical"
+                        android:paddingHorizontal="14dp"
+                        android:text="About &amp; Reset"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp" />
+                </LinearLayout>
+            </ScrollView>
+
+            <View
+                android:layout_width="1dp"
+                android:layout_height="match_parent"
+                android:layout_marginHorizontal="16dp"
+                android:background="#1AFFFFFF" />
+
+            <!-- Right Content Pane (Scrollable settings options for selected tab) -->
+            <ScrollView
+                android:id="@+id/scroll_settings_content"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:scrollbars="vertical">
+
+                <FrameLayout
+                    android:id="@+id/container_settings_pages"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <!-- 1. Wallpaper Page -->
+                    <LinearLayout
+                        android:id="@+id/page_wallpaper"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Wallpaper Presets"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:orientation="horizontal">
+
+                            <Button
+                                android:id="@+id/btn_wp_preset_0"
+                                android:layout_width="0dp"
+                                android:layout_height="44dp"
+                                android:layout_marginEnd="4dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_dialog_button"
+                                android:text="Midnight"
+                                android:textColor="#FFFFFF"
+                                android:textSize="12sp" />
+
+                            <Button
+                                android:id="@+id/btn_wp_preset_1"
+                                android:layout_width="0dp"
+                                android:layout_height="44dp"
+                                android:layout_marginHorizontal="2dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_dialog_button"
+                                android:text="Aurora"
+                                android:textColor="#FFFFFF"
+                                android:textSize="12sp" />
+
+                            <Button
+                                android:id="@+id/btn_wp_preset_2"
+                                android:layout_width="0dp"
+                                android:layout_height="44dp"
+                                android:layout_marginHorizontal="2dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_dialog_button"
+                                android:text="Sunset"
+                                android:textColor="#FFFFFF"
+                                android:textSize="12sp" />
+
+                            <Button
+                                android:id="@+id/btn_wp_preset_3"
+                                android:layout_width="0dp"
+                                android:layout_height="44dp"
+                                android:layout_marginHorizontal="2dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_dialog_button"
+                                android:text="Deep"
+                                android:textColor="#FFFFFF"
+                                android:textSize="12sp" />
+
+                            <Button
+                                android:id="@+id/btn_wp_preset_4"
+                                android:layout_width="0dp"
+                                android:layout_height="44dp"
+                                android:layout_marginStart="4dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_dialog_button"
+                                android:text="Charcoal"
+                                android:textColor="#FFFFFF"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="20dp"
+                            android:text="Custom Photo"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <Button
+                            android:id="@+id/btn_pick_photo"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:layout_marginTop="10dp"
+                            android:background="@drawable/bg_dialog_button"
+                            android:gravity="start|center_vertical"
+                            android:paddingHorizontal="16dp"
+                            android:text="Pick Custom Wallpaper Image…"
+                            android:textColor="#FFFFFF"
+                            android:textSize="13sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="20dp"
+                            android:text="Dimming"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:orientation="horizontal">
+
+                            <Button
+                                android:id="@+id/btn_dim_off"
+                                android:layout_width="0dp"
+                                android:layout_height="44dp"
+                                android:layout_marginEnd="4dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_dialog_button"
+                                android:text="Off"
+                                android:textColor="#FFFFFF"
+                                android:textSize="12sp" />
+
+                            <Button
+                                android:id="@+id/btn_dim_top_bottom"
+                                android:layout_width="0dp"
+                                android:layout_height="44dp"
+                                android:layout_marginHorizontal="2dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_dialog_button"
+                                android:text="Edges"
+                                android:textColor="#FFFFFF"
+                                android:textSize="12sp" />
+
+                            <Button
+                                android:id="@+id/btn_dim_full"
+                                android:layout_width="0dp"
+                                android:layout_height="44dp"
+                                android:layout_marginStart="4dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_dialog_button"
+                                android:text="Full"
+                                android:textColor="#FFFFFF"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- 2. Display Page -->
+                    <LinearLayout
+                        android:id="@+id/page_display"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Layout Mode"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:orientation="horizontal">
+
+                            <Button
+                                android:id="@+id/btn_layout_carousel"
+                                android:layout_width="0dp"
+                                android:layout_height="44dp"
+                                android:layout_marginEnd="4dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_dialog_button"
+                                android:text="Carousel"
+                                android:textColor="#FFFFFF"
+                                android:textSize="12sp" />
+
+                            <Button
+                                android:id="@+id/btn_layout_grid"
+                                android:layout_width="0dp"
+                                android:layout_height="44dp"
+                                android:layout_marginHorizontal="2dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_dialog_button"
+                                android:text="Grid"
+                                android:textColor="#FFFFFF"
+                                android:textSize="12sp" />
+
+                            <Button
+                                android:id="@+id/btn_layout_dock"
+                                android:layout_width="0dp"
+                                android:layout_height="44dp"
+                                android:layout_marginStart="4dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_dialog_button"
+                                android:text="Dock"
+                                android:textColor="#FFFFFF"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="20dp"
+                            android:text="Icon Size"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:orientation="horizontal">
+
+                            <Button
+                                android:id="@+id/btn_size_s"
+                                android:layout_width="0dp"
+                                android:layout_height="44dp"
+                                android:layout_marginEnd="4dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_dialog_button"
+                                android:text="Small"
+                                android:textColor="#FFFFFF"
+                                android:textSize="12sp" />
+
+                            <Button
+                                android:id="@+id/btn_size_normal"
+                                android:layout_width="0dp"
+                                android:layout_height="44dp"
+                                android:layout_marginHorizontal="2dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_dialog_button"
+                                android:text="Normal"
+                                android:textColor="#FFFFFF"
+                                android:textSize="12sp" />
+
+                            <Button
+                                android:id="@+id/btn_size_l"
+                                android:layout_width="0dp"
+                                android:layout_height="44dp"
+                                android:layout_marginStart="4dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_dialog_button"
+                                android:text="Large"
+                                android:textColor="#FFFFFF"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="20dp"
+                            android:text="Card Roundness"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:orientation="horizontal">
+
+                            <Button
+                                android:id="@+id/btn_round_s"
+                                android:layout_width="0dp"
+                                android:layout_height="44dp"
+                                android:layout_marginEnd="4dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_dialog_button"
+                                android:text="Subtle"
+                                android:textColor="#FFFFFF"
+                                android:textSize="12sp" />
+
+                            <Button
+                                android:id="@+id/btn_round_m"
+                                android:layout_width="0dp"
+                                android:layout_height="44dp"
+                                android:layout_marginHorizontal="2dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_dialog_button"
+                                android:text="Rounded"
+                                android:textColor="#FFFFFF"
+                                android:textSize="12sp" />
+
+                            <Button
+                                android:id="@+id/btn_round_full"
+                                android:layout_width="0dp"
+                                android:layout_height="44dp"
+                                android:layout_marginStart="4dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_dialog_button"
+                                android:text="Pill"
+                                android:textColor="#FFFFFF"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- 3. Status Bar Page -->
+                    <LinearLayout
+                        android:id="@+id/page_statusbar"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <CheckBox
+                            android:id="@+id/chk_show_statusbar"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:buttonTint="#4C8DFF"
+                            android:text="Show Status Bar"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp" />
+
+                        <CheckBox
+                            android:id="@+id/chk_clock_24h"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:buttonTint="#4C8DFF"
+                            android:text="24-Hour Clock Format"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp" />
+
+                        <CheckBox
+                            android:id="@+id/chk_show_weather"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:buttonTint="#4C8DFF"
+                            android:text="Show Weather Widget"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp" />
+
+                        <CheckBox
+                            android:id="@+id/chk_show_vpn"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:buttonTint="#4C8DFF"
+                            android:text="Show VPN Status Button"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp" />
+
+                        <CheckBox
+                            android:id="@+id/chk_show_quick_dashboard"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:buttonTint="#4C8DFF"
+                            android:text="Show Quick Dashboard Icon"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp" />
+
+                        <CheckBox
+                            android:id="@+id/chk_show_ad_shield"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:buttonTint="#4C8DFF"
+                            android:text="Show Background Ad Shield Indicator"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+
+                    <!-- 4. Apps Page -->
+                    <LinearLayout
+                        android:id="@+id/page_apps"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <CheckBox
+                            android:id="@+id/chk_show_app_labels"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:buttonTint="#4C8DFF"
+                            android:text="Show App Name Labels Under Icons"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp" />
+
+                        <CheckBox
+                            android:id="@+id/chk_auto_launch_search"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:buttonTint="#4C8DFF"
+                            android:text="Auto-launch Single Search Result"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:text="Hidden Apps Vault"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_hidden_count"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="0 hidden apps in secret vault"
+                            android:textColor="#80FFFFFF"
+                            android:textSize="13sp" />
+
+                        <Button
+                            android:id="@+id/btn_unhide_all"
+                            android:layout_width="wrap_content"
+                            android:layout_height="40dp"
+                            android:layout_marginTop="8dp"
+                            android:background="@drawable/bg_dialog_button"
+                            android:paddingHorizontal="16dp"
+                            android:text="Unhide All Apps"
+                            android:textColor="#FF5252"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <!-- 5. Security Page -->
+                    <LinearLayout
+                        android:id="@+id/page_security"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Device Lock PIN"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <CheckBox
+                            android:id="@+id/chk_device_lock"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:buttonTint="#4C8DFF"
+                            android:text="Require PIN to Access Home Screen"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp" />
+
+                        <Button
+                            android:id="@+id/btn_setup_device_pin"
+                            android:layout_width="wrap_content"
+                            android:layout_height="40dp"
+                            android:background="@drawable/bg_dialog_button"
+                            android:paddingHorizontal="16dp"
+                            android:text="Change Device Lock PIN"
+                            android:textColor="#4C8DFF"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="20dp"
+                            android:text="App Lock PIN"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <CheckBox
+                            android:id="@+id/chk_app_lock"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:buttonTint="#4C8DFF"
+                            android:text="Require PIN to Launch Locked Apps"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp" />
+
+                        <Button
+                            android:id="@+id/btn_setup_app_pin"
+                            android:layout_width="wrap_content"
+                            android:layout_height="40dp"
+                            android:background="@drawable/bg_dialog_button"
+                            android:paddingHorizontal="16dp"
+                            android:text="Change App Lock PIN"
+                            android:textColor="#4C8DFF"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="20dp"
+                            android:text="Secret Code Vault"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_secret_code_status"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="Secret keyword: none"
+                            android:textColor="#99FFFFFF"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <!-- 6. Launcher Experience Page -->
+                    <LinearLayout
+                        android:id="@+id/page_experience"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Launcher Mode"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <Button
+                            android:id="@+id/btn_switch_mode"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:layout_marginTop="8dp"
+                            android:background="@drawable/bg_dialog_button"
+                            android:gravity="start|center_vertical"
+                            android:paddingHorizontal="16dp"
+                            android:text="Switch Experience Mode (TV / PC)…"
+                            android:textColor="#FFFFFF"
+                            android:textSize="13sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="20dp"
+                            android:text="Setup Wizard"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <Button
+                            android:id="@+id/btn_rerun_wizard"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:layout_marginTop="8dp"
+                            android:background="@drawable/bg_dialog_button"
+                            android:gravity="start|center_vertical"
+                            android:paddingHorizontal="16dp"
+                            android:text="Re-run Initial Setup Wizard…"
+                            android:textColor="#FFFFFF"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <!-- 7. Permissions Page -->
+                    <LinearLayout
+                        android:id="@+id/page_permissions"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <Button
+                            android:id="@+id/btn_perm_home"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:layout_marginBottom="8dp"
+                            android:background="@drawable/bg_dialog_button"
+                            android:gravity="start|center_vertical"
+                            android:paddingHorizontal="16dp"
+                            android:text="Default Home App Settings"
+                            android:textColor="#FFFFFF"
+                            android:textSize="13sp" />
+
+                        <Button
+                            android:id="@+id/btn_perm_accessibility"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:layout_marginBottom="8dp"
+                            android:background="@drawable/bg_dialog_button"
+                            android:gravity="start|center_vertical"
+                            android:paddingHorizontal="16dp"
+                            android:text="Accessibility Service (Home Key Detection)"
+                            android:textColor="#FFFFFF"
+                            android:textSize="13sp" />
+
+                        <Button
+                            android:id="@+id/btn_perm_notifications"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:layout_marginBottom="8dp"
+                            android:background="@drawable/bg_dialog_button"
+                            android:gravity="start|center_vertical"
+                            android:paddingHorizontal="16dp"
+                            android:text="Notification Listener Access"
+                            android:textColor="#FFFFFF"
+                            android:textSize="13sp" />
+
+                        <Button
+                            android:id="@+id/btn_perm_android_settings"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:background="@drawable/bg_dialog_button"
+                            android:gravity="start|center_vertical"
+                            android:paddingHorizontal="16dp"
+                            android:text="Open System Android TV Settings"
+                            android:textColor="#FFFFFF"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <!-- 8. About Page -->
+                    <LinearLayout
+                        android:id="@+id/page_about"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Gothwad Launcher v1.0"
+                            android:textColor="#FFFFFF"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:text="@string/about_desc"
+                            android:textColor="#B3FFFFFF"
+                            android:textSize="13sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:text="@string/about_license"
+                            android:textColor="#80FFFFFF"
+                            android:textSize="12sp" />
+
+                        <Button
+                            android:id="@+id/btn_reset_defaults"
+                            android:layout_width="wrap_content"
+                            android:layout_height="44dp"
+                            android:layout_marginTop="20dp"
+                            android:background="@drawable/bg_dialog_button"
+                            android:paddingHorizontal="20dp"
+                            android:text="Reset to Defaults"
+                            android:textColor="#FF5252"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                </FrameLayout>
+            </ScrollView>
+
+        </LinearLayout>
+
+    </LinearLayout>
+</FrameLayout>

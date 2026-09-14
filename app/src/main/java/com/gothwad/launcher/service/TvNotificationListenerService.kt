@@ -20,6 +20,7 @@ data class TvNotificationItem(
     val packageName: String,
     val appName: String,
     val appIcon: ImageBitmap? = null,
+    val nativeBitmap: Bitmap? = null,
     val title: String,
     val text: String,
     val subText: String? = null,
@@ -142,14 +143,15 @@ class TvNotificationListenerService : NotificationListenerService() {
 
                 val appInfo = runCatching { pm.getApplicationInfo(sbn.packageName, 0) }.getOrNull()
                 val appName = appInfo?.let { pm.getApplicationLabel(it).toString() } ?: sbn.packageName
-                val iconBitmap: ImageBitmap? = runCatching {
+                val nativeBmp: Bitmap? = runCatching {
                     val drawable = appInfo?.loadIcon(pm) ?: if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
                         n.smallIcon?.loadDrawable(this)
                     } else {
                         null
                     }
-                    drawable?.let { toImageBitmap(it) }
+                    drawable?.let { toNativeBitmap(it) }
                 }.getOrNull()
+                val iconBitmap: ImageBitmap? = nativeBmp?.asImageBitmap()
 
                 val subText = extras.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString()
                 val isClearable = sbn.isClearable
@@ -160,6 +162,7 @@ class TvNotificationListenerService : NotificationListenerService() {
                         packageName = sbn.packageName,
                         appName = appName,
                         appIcon = iconBitmap,
+                        nativeBitmap = nativeBmp,
                         title = title.ifBlank { appName },
                         text = text,
                         subText = subText,
@@ -174,7 +177,7 @@ class TvNotificationListenerService : NotificationListenerService() {
         }
     }
 
-    private fun toImageBitmap(drawable: Drawable): ImageBitmap? {
+    private fun toNativeBitmap(drawable: Drawable): Bitmap {
         val width = if (drawable.intrinsicWidth > 0) drawable.intrinsicWidth else 64
         val height = if (drawable.intrinsicHeight > 0) drawable.intrinsicHeight else 64
         val targetW = width.coerceIn(32, 96)
@@ -183,15 +186,19 @@ class TvNotificationListenerService : NotificationListenerService() {
         if (drawable is BitmapDrawable && drawable.bitmap != null) {
             val src = drawable.bitmap
             if (src.width <= 96 && src.height <= 96) {
-                return src.asImageBitmap()
+                return src
             }
-            return Bitmap.createScaledBitmap(src, targetW, targetH, true).asImageBitmap()
+            return Bitmap.createScaledBitmap(src, targetW, targetH, true)
         }
 
         val bmp = Bitmap.createBitmap(targetW, targetH, Bitmap.Config.ARGB_8888)
         val canvas = android.graphics.Canvas(bmp)
         drawable.setBounds(0, 0, canvas.width, canvas.height)
         drawable.draw(canvas)
-        return bmp.asImageBitmap()
+        return bmp
+    }
+
+    private fun toImageBitmap(drawable: Drawable): ImageBitmap? {
+        return toNativeBitmap(drawable).asImageBitmap()
     }
 }

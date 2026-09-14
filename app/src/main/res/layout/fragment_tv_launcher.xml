@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/tv_launcher_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/black"
+    android:clipChildren="false"
+    android:clipToPadding="false">
+
+    <!-- Wallpaper Layer -->
+    <ImageView
+        android:id="@+id/img_wallpaper"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:contentDescription="@null"
+        android:visibility="gone" />
+
+    <!-- Top and Bottom Readability Gradient Scrims -->
+    <View
+        android:id="@+id/view_scrim_top"
+        android:layout_width="match_parent"
+        android:layout_height="140dp"
+        android:layout_gravity="top"
+        android:background="#8C000000" />
+
+    <View
+        android:id="@+id/view_scrim_bottom"
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:layout_gravity="bottom"
+        android:background="#66000000" />
+
+    <!-- Primary Vertical Categories RecyclerView (scrolls under persistent status bar) -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler_categories"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:paddingTop="80dp"
+        android:paddingBottom="48dp"
+        android:descendantFocusability="afterDescendants" />
+
+</FrameLayout>
