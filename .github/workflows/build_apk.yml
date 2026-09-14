@@ -77,9 +77,9 @@ jobs:
       - name: Sign Release APK & AAB
         env:
           KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 || secrets.KEYSTORE_BASE64 }}
-          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASSWORD || 'android123' }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS || '' }}
-          KEY_PASS: ${{ secrets.KEY_PASSWORD || 'android123' }}
+          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.KEY_PASSWORD }}
           V_NAME: ${{ steps.versioning.outputs.v_name }}
         run: |
           echo "Locating generated Release APK, Debug APK, and AAB..."
@@ -95,22 +95,20 @@ jobs:
             echo "Successfully included Debug APK: output_release/GothwadLauncher-v${V_NAME}-Debug.apk"
           fi
 
-          # Store keystore in secure temporary location outside release outputs
-          KS_PATH="/tmp/gothwad_release_key.jks"
-          
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "Using Permanent Keystore from GitHub Secrets..."
-            echo "$KEYSTORE_BASE64" | base64 -d > "$KS_PATH"
-          else
-            echo "⚠️ No GitHub Secret found! Generating temporary keystore..."
-            DEFAULT_ALIAS="${KEY_ALIAS:-gothwad_launcher_key}"
-            keytool -genkey -v \
-              -keystore "$KS_PATH" \
-              -keyalg RSA -keysize 2048 -validity 10000 \
-              -alias "$DEFAULT_ALIAS" \
-              -dname "CN=Gothwad TV Launcher, OU=AppDev, O=Gothwad, C=IN" \
-              -storepass "$KEYSTORE_PASS" -keypass "$KEY_PASS"
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "❌ Error: RELEASE_KEYSTORE_BASE64 secret is missing in GitHub Repository Secrets!"
+            echo "Please add RELEASE_KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, and KEY_PASSWORD to GitHub Secrets."
+            exit 1
           fi
+
+          if [ -z "$KEYSTORE_PASS" ]; then
+            echo "❌ Error: KEYSTORE_PASSWORD secret is missing in GitHub Repository Secrets!"
+            exit 1
+          fi
+
+          KS_PATH="/tmp/gothwad_release_key.jks"
+          echo "Decoding permanent release keystore from GitHub Secrets..."
+          echo "$KEYSTORE_BASE64" | base64 -d > "$KS_PATH"
 
           # Dynamically detect exact Alias name from the keystore
           DETECTED_ALIAS=$(keytool -list -v -keystore "$KS_PATH" -storepass "$KEYSTORE_PASS" 2>/dev/null | grep -i "Alias name:" | head -n 1 | sed 's/.*Alias name: //I' | tr -d '\r' | xargs)
