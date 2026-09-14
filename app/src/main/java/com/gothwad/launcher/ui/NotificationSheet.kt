@@ -24,7 +24,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -71,9 +70,9 @@ fun NotificationSheet(
     val notifications by NotificationManagerBridge.notifications.collectAsStateWithLifecycle()
     var hasPermission by remember { mutableStateOf(NotificationManagerBridge.isNotificationAccessGranted(context)) }
 
-    val bgMedia by produceState(initialValue = BackgroundMediaState()) {
-        BackgroundMediaTracker.backgroundMediaFlow(context).collect { value = it }
-    }
+    val bgMedia by remember(context) {
+        BackgroundMediaTracker.backgroundMediaFlow(context)
+    }.collectAsStateWithLifecycle(initialValue = BackgroundMediaState())
 
     // Re-check permission if user returned from system settings
     LaunchedEffect(Unit) {

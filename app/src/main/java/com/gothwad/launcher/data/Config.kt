@@ -18,8 +18,6 @@ import androidx.compose.ui.unit.dp
 val GAP_SIZES: List<Dp> = listOf(4.dp, 10.dp, 16.dp, 24.dp, 32.dp)
 /** Card icon size steps — 5 levels. */
 val ICON_SIZES: List<Dp> = listOf(120.dp, 150.dp, 190.dp, 230.dp, 270.dp)
-/** Video wallpaper playback speeds (index stored in config.videoSpeed). */
-val VIDEO_SPEEDS: List<Float> = listOf(0.25f, 0.5f, 0.75f, 1f)
 /** Icon corner roundness steps (index stored in config.cornerRadius). */
 val CORNER_RADII: List<Dp> = listOf(0.dp, 4.dp, 10.dp, 18.dp, 28.dp)
 /** Manual whole-UI scale steps (config.uiScale 1..5). <1 = more compact. */
@@ -49,15 +47,6 @@ data class LauncherConfig(
     val knownApps: Set<String> = emptySet(),
     val wallpaper: Int = 1, // Aurora
     val useCustomWallpaper: Boolean = false,
-    /** video wallpaper: persisted content-URI of a local video, looped muted */
-    val videoUri: String = "",
-    val useVideoWallpaper: Boolean = false,
-    /** built-in aerials source */
-    val useBuiltinAerials: Boolean = false,
-    /** which built-in collection (index into BuiltinAerials.SOURCES; 0 = all) */
-    val builtinSource: Int = 0,
-    /** video wallpaper playback speed: index into VIDEO_SPEEDS */
-    val videoSpeed: Int = 3, // 1x
     val accent: Int = 0,
     val h24: Boolean = true,
     val showHidden: Boolean = false,

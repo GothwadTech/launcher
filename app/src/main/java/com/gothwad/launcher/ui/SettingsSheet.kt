@@ -41,7 +41,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -143,35 +142,9 @@ fun SettingsSheet(
                 store.update {
                     it.copy(
                         useCustomWallpaper = true,
-                        useVideoWallpaper = false,
-                        useBuiltinAerials = false,
                     )
                 }
                 onWallpaperChanged()
-            }
-        }
-    }
-
-    // Video wallpaper: keep a persistable read grant and stream in place —
-    // aerial files are hundreds of MB, never copied.
-    val videoPicker = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            runCatching {
-                context.contentResolver.takePersistableUriPermission(
-                    uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
-                )
-            }
-            scope.launch {
-                store.update {
-                    it.copy(
-                        videoUri = uri.toString(),
-                        useVideoWallpaper = true,
-                        useCustomWallpaper = false,
-                        useBuiltinAerials = false,
-                    )
-                }
             }
         }
     }
@@ -240,25 +213,8 @@ fun SettingsSheet(
                     )
                     SettingsScreen.Wallpaper -> WallpaperScreen(
                         config = config,
-                        onSelectBuiltinAerials = {
-                            scope.launch {
-                                store.update {
-                                    it.copy(
-                                        useBuiltinAerials = true,
-                                        useVideoWallpaper = false,
-                                        useCustomWallpaper = false,
-                                    )
-                                }
-                            }
-                        },
-                        onSelectBuiltinSource = { v ->
-                            scope.launch { store.update { it.copy(builtinSource = v) } }
-                        },
                         onSetScrim = { v ->
                             scope.launch { store.update { it.copy(scrimMode = v) } }
-                        },
-                        onSetSpeed = { v ->
-                            scope.launch { store.update { it.copy(videoSpeed = v) } }
                         },
                         onPreset = { i ->
                             scope.launch {
@@ -266,18 +222,12 @@ fun SettingsSheet(
                                     it.copy(
                                         wallpaper = i,
                                         useCustomWallpaper = false,
-                                        useVideoWallpaper = false,
-                                        useBuiltinAerials = false,
                                     )
                                 }
                             }
                         },
                         onPickPhoto = {
                             runCatching { photoPicker.launch(arrayOf("image/*")) }
-                                .onFailure { Actions.toast(context, context.getString(R.string.toast_no_picker)) }
-                        },
-                        onPickVideo = {
-                            runCatching { videoPicker.launch(arrayOf("video/*")) }
                                 .onFailure { Actions.toast(context, context.getString(R.string.toast_no_picker)) }
                         },
                     )
@@ -1363,18 +1313,14 @@ private fun RenameDialog(
 
 /**
  * ONE row per background mode, checkmark = active. Selecting any mode turns
- * the others off. Two groups: Static (color, photo) and Video (aerials, video).
+ * the others off. Options: Static (color gradient, photo).
  */
 @Composable
 private fun WallpaperScreen(
     config: LauncherConfig,
-    onSelectBuiltinAerials: () -> Unit,
-    onSelectBuiltinSource: (Int) -> Unit,
     onSetScrim: (Int) -> Unit,
-    onSetSpeed: (Int) -> Unit,
     onPreset: (Int) -> Unit,
     onPickPhoto: () -> Unit,
-    onPickVideo: () -> Unit,
 ) {
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
@@ -1386,8 +1332,7 @@ private fun WallpaperScreen(
             modifier = Modifier.padding(bottom = 12.dp, start = 8.dp),
         )
         val f = initialFocus()
-        val staticActive = !config.useBuiltinAerials &&
-            !config.useVideoWallpaper && !config.useCustomWallpaper
+        val staticActive = !config.useCustomWallpaper
 
         // Dimming — how much the wallpaper is darkened for icon readability.
         // Applies to any background; "Top & bottom" keeps the centre clear.
@@ -1447,57 +1392,6 @@ private fun WallpaperScreen(
             leadingContent = { Icon(AppIcons.Image, contentDescription = null) },
             trailingContent = { CheckMark(checked = config.useCustomWallpaper) },
         )
-
-        /* ---------------- VIDEO: built-in aerials + your own video ---------------- */
-        SectionLabel(stringResource(R.string.wp_section_video))
-
-        // Built-in aerial videos
-        SettingsItem(
-            selected = false, onClick = onSelectBuiltinAerials,
-            headlineContent = { Text(stringResource(R.string.builtin_aerials)) },
-            supportingContent = { Text(stringResource(R.string.builtin_aerials_sub)) },
-            leadingContent = { Icon(AppIcons.Play, contentDescription = null) },
-            trailingContent = { CheckMark(checked = config.useBuiltinAerials) },
-        )
-        if (config.useBuiltinAerials) {
-            val sourceNames = listOf(
-                stringResource(R.string.aerial_src_all),
-                stringResource(R.string.aerial_src_apple),
-                stringResource(R.string.aerial_src_amazon),
-                stringResource(R.string.aerial_src_comm1),
-                stringResource(R.string.aerial_src_comm2),
-            )
-            val idx = config.builtinSource.coerceIn(0, sourceNames.size - 1)
-            SelectorRow(
-                label = stringResource(R.string.aerial_src_label),
-                value = sourceNames[idx],
-                steps = sourceNames.size,
-                current = idx,
-                onSelect = { v -> onSelectBuiltinSource(v) },
-            )
-        }
-
-        // A video file of your own
-        SettingsItem(
-            selected = false, onClick = onPickVideo,
-            headlineContent = { Text(stringResource(R.string.pick_video)) },
-            supportingContent = { Text(stringResource(R.string.pick_video_sub)) },
-            leadingContent = { Icon(AppIcons.Image, contentDescription = null) },
-            trailingContent = { CheckMark(checked = config.useVideoWallpaper) },
-        )
-
-        // Playback speed — applies to aerials and your own video.
-        run {
-            val labels = listOf("0.25×", "0.5×", "0.75×", "1×")
-            val idx = config.videoSpeed.coerceIn(0, labels.size - 1)
-            SelectorRow(
-                label = stringResource(R.string.speed_label),
-                value = labels[idx],
-                steps = labels.size,
-                current = idx,
-                onSelect = { v -> onSetSpeed(v) },
-            )
-        }
     }
 }
 

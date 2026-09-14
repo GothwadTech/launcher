@@ -20,7 +20,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
@@ -207,15 +206,13 @@ private fun BackgroundMediaStatusIcon(
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1.15f),
     ) {
         Box(
-            modifier = Modifier
-                .size(34.dp)
-                .graphicsLayer { alpha = alphaAnim },
+            modifier = Modifier.size(34.dp),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = if (media.isStockAdCandidate) AppIcons.Shield else AppIcons.Equalizer,
                 contentDescription = if (media.isStockAdCandidate) "Background Ad Detected" else "Background Audio Playing",
-                tint = if (media.isStockAdCandidate) Color(0xFFFF7043) else Color(0xFF81D4FA),
+                tint = (if (media.isStockAdCandidate) Color(0xFFFF7043) else Color(0xFF81D4FA)).copy(alpha = alphaAnim),
                 modifier = Modifier.size(18.dp),
             )
         }

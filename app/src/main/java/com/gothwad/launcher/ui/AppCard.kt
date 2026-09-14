@@ -71,7 +71,8 @@ fun AppCard(
     // it, using a short time window that expires on its own (a sticky flag
     // would eat the next legitimate press, since the release is delivered to
     // the menu's window and never comes back to this card).
-    val cardShape = SmoothCornerShape(LocalCornerRadius.current)
+    val currentCornerRadius = LocalCornerRadius.current
+    val cardShape = remember(currentCornerRadius) { SmoothCornerShape(currentCornerRadius) }
     val interactionSource = remember { MutableInteractionSource() }
     val isHovered by interactionSource.collectIsHoveredAsState()
     val isFocused by interactionSource.collectIsFocusedAsState()
@@ -100,10 +101,14 @@ fun AppCard(
             .width(cardWidth)
             .pointerHoverIcon(PointerIcon.Hand)
             .hoverable(interactionSource)
-            .graphicsLayer {
-                scaleX = hoverScale
-                scaleY = hoverScale
-            }
+            .then(
+                if (hoverScale != 1.0f) {
+                    Modifier.graphicsLayer {
+                        scaleX = hoverScale
+                        scaleY = hoverScale
+                    }
+                } else Modifier
+            )
             .pointerInput(Unit) {
                 awaitPointerEventScope {
                     while (true) {
@@ -146,7 +151,7 @@ fun AppCard(
         ),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1.10f),
         glow = ClickableSurfaceDefaults.glow(
-            focusedGlow = Glow(elevationColor = Color.Black.copy(alpha = 0.5f), elevation = 8.dp)
+            focusedGlow = Glow.None
         ),
         border = ClickableSurfaceDefaults.border(
             border = if (isHovered && !isFocused) Border(BorderStroke(2.dp, accent.copy(alpha = 0.8f)), shape = cardShape)
@@ -167,9 +172,7 @@ fun AppCard(
                     bitmap = app.banner,
                     contentDescription = app.label,
                     contentScale = ContentScale.Crop,
-                    // Own render layer: the focus scale animation transforms the
-                    // cached layer instead of re-drawing (re-sampling) the bitmap.
-                    modifier = Modifier.fillMaxSize().graphicsLayer { },
+                    modifier = Modifier.fillMaxSize(),
                 )
             } else {
                 // Banner-less apps: give the flat tile depth with a subtle sheen

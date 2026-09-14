@@ -61,7 +61,7 @@
     <string name="item_display">Display</string>
     <string name="item_display_sub">Layout mode, names, icon size, spacing</string>
     <string name="item_wallpaper">Wallpaper</string>
-    <string name="item_wallpaper_sub">Static color or photo, or a live video</string>
+    <string name="item_wallpaper_sub">Static color or photo</string>
     <string name="item_statusbar">Status bar</string>
     <string name="item_statusbar_sub">Visibility, clock format, VPN app</string>
     <string name="item_language">Language</string>

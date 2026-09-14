@@ -175,21 +175,23 @@ class TvNotificationListenerService : NotificationListenerService() {
     }
 
     private fun toImageBitmap(drawable: Drawable): ImageBitmap? {
-        val bitmap: Bitmap = if (drawable is BitmapDrawable && drawable.bitmap != null) {
-            drawable.bitmap
-        } else {
-            val width = if (drawable.intrinsicWidth > 0) drawable.intrinsicWidth else 64
-            val height = if (drawable.intrinsicHeight > 0) drawable.intrinsicHeight else 64
-            val bmp = Bitmap.createBitmap(
-                width.coerceIn(32, 128),
-                height.coerceIn(32, 128),
-                Bitmap.Config.ARGB_8888
-            )
-            val canvas = android.graphics.Canvas(bmp)
-            drawable.setBounds(0, 0, canvas.width, canvas.height)
-            drawable.draw(canvas)
-            bmp
+        val width = if (drawable.intrinsicWidth > 0) drawable.intrinsicWidth else 64
+        val height = if (drawable.intrinsicHeight > 0) drawable.intrinsicHeight else 64
+        val targetW = width.coerceIn(32, 96)
+        val targetH = height.coerceIn(32, 96)
+
+        if (drawable is BitmapDrawable && drawable.bitmap != null) {
+            val src = drawable.bitmap
+            if (src.width <= 96 && src.height <= 96) {
+                return src.asImageBitmap()
+            }
+            return Bitmap.createScaledBitmap(src, targetW, targetH, true).asImageBitmap()
         }
-        return bitmap.asImageBitmap()
+
+        val bmp = Bitmap.createBitmap(targetW, targetH, Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(bmp)
+        drawable.setBounds(0, 0, canvas.width, canvas.height)
+        drawable.draw(canvas)
+        return bmp.asImageBitmap()
     }
 }

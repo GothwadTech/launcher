@@ -62,14 +62,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -96,11 +94,9 @@ import com.gothwad.launcher.data.ConfigStore
 import com.gothwad.launcher.data.LauncherConfig
 import com.gothwad.launcher.data.MODE_TV
 import com.gothwad.launcher.data.NetStatus
-import com.gothwad.launcher.data.VIDEO_SPEEDS
 import com.gothwad.launcher.data.WeatherData
 import com.gothwad.launcher.service.TvNotificationItem
 import com.gothwad.launcher.ui.AppIcons
-import com.gothwad.launcher.ui.VideoWallpaper
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -118,7 +114,6 @@ fun PcLauncherScreen(
     notifications: List<TvNotificationItem>,
     wallpaperSharp: ImageBitmap?,
     presetBrush: Brush,
-    aerialWallpaper: String?,
     onOpenSettings: () -> Unit,
     onOpenSearch: () -> Unit,
     onOpenDashboard: () -> Unit,
@@ -176,17 +171,7 @@ fun PcLauncherScreen(
             }
     ) {
         // 1. Wallpaper
-        val videoSpeed = VIDEO_SPEEDS[config.videoSpeed.coerceIn(0, VIDEO_SPEEDS.size - 1)]
-        if (aerialWallpaper != null && net.connected) {
-            VideoWallpaper(
-                uri = aerialWallpaper,
-                speed = videoSpeed,
-                loop = false,
-                coverBrush = presetBrush,
-            )
-        } else if (config.useVideoWallpaper && config.videoUri.isNotEmpty()) {
-            VideoWallpaper(uri = config.videoUri, speed = videoSpeed, loop = true, coverBrush = presetBrush)
-        } else if (wallpaperSharp != null) {
+        if (wallpaperSharp != null) {
             Image(
                 bitmap = wallpaperSharp,
                 contentDescription = null,
@@ -396,7 +381,6 @@ private fun DesktopIconItem(
             modifier = Modifier
                 .size(54.dp)
                 .scale(if (isHighlighted) 1.06f else 1f)
-                .shadow(4.dp, RoundedCornerShape(12.dp))
                 .clip(RoundedCornerShape(12.dp))
                 .background(Color.White.copy(alpha = 0.08f)),
             contentAlignment = Alignment.Center,
@@ -752,8 +736,7 @@ private fun StartMenuPopup(
     Surface(
         modifier = Modifier
             .width(520.dp)
-            .height(540.dp)
-            .shadow(24.dp, RoundedCornerShape(16.dp)),
+            .height(540.dp),
         shape = RoundedCornerShape(16.dp),
         color = Color(0xF7181A22),
         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)),

@@ -84,14 +84,12 @@ object AppRepository {
         val pm = context.packageManager
         val cacheDir = File(context.filesDir, "iconcache").apply { mkdirs() }
 
-        // Raster banners to the pixel size they actually paint at in big-icon
-        // mode, so a 720p box stays lean and a 4K/hi-density UI stays crisp —
-        // no fixed size that's wrong on some tier. 270dp = the largest card
-        // (ICON_SIZES last). The banner's graphicsLayer caps sampling at the
-        // layout size, so focus-zoom needs no extra headroom. Clamp: never
-        // below the 320px spec, capped so an extreme density can't blow up RAM.
+        // Raster banners to the pixel size they actually paint at in the UI.
+        // On TV, default card width is 190dp and max is 270dp. Capping at 480px
+        // gives sharp 1:1 pixel mapping on 1080p TV panels without wasting
+        // memory on oversized 720px decodes (saving >50% RAM per banner).
         val density = context.resources.displayMetrics.density
-        val bannerW = (270 * density).toInt().coerceIn(320, 720)
+        val bannerW = (230 * density).toInt().coerceIn(320, 480)
         val bannerH = bannerW * 9 / 16
         val validCacheNames = java.util.Collections.synchronizedSet(HashSet<String>())
 
@@ -122,7 +120,7 @@ object AppRepository {
                 // Size is baked into the name: a density change (or the earlier
                 // fixed-size caches) regenerates instead of loading a stale size.
                 val bannerName = "$pkg-$stamp-b$bannerW.webp"
-                val iconName = "$pkg-$stamp-i128.webp"
+                val iconName = "$pkg-$stamp-i96.webp"
 
                 previous?.get(pkg)?.takeIf { it.stamp == stamp }?.let { cached ->
                     if (cached.banner != null) validCacheNames.add(bannerName)
@@ -143,9 +141,9 @@ object AppRepository {
                         }.getOrNull()
                     }
                 val icon = if (banner == null) {
-                    // 128px: sharp on the fallback tile even on 4K panels.
+                    // 96px: sharp on the fallback tile (drawn <= 48dp), saving 44% memory vs 128px.
                     cachedBitmap(cacheDir, iconName, Bitmap.Config.ARGB_8888) {
-                        runCatching { ri.loadIcon(pm)?.toBitmap(128, 128) }.getOrNull()
+                        runCatching { ri.loadIcon(pm)?.toBitmap(96, 96) }.getOrNull()
                     }
                 } else null
                 if (banner != null) validCacheNames.add(bannerName)

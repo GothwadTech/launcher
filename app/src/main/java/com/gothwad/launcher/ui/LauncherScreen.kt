@@ -51,18 +51,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -97,7 +93,6 @@ import com.gothwad.launcher.data.LauncherConfig
 import com.gothwad.launcher.data.MODE_PC
 import com.gothwad.launcher.data.MODE_TV
 import com.gothwad.launcher.data.UI_SCALES
-import com.gothwad.launcher.data.VIDEO_SPEEDS
 import com.gothwad.launcher.ui.pc.PcLauncherScreen
 import com.gothwad.launcher.ui.tv.TvLauncherScreen
 import com.gothwad.launcher.data.NetStatus
@@ -242,15 +237,9 @@ fun LauncherApp(rescanTick: Int) {
             activity?.recreate()
         }
     }
-    // The SurfaceView video wallpaper needs a transparent window to show through;
-    // every other mode draws an opaque wallpaper, so keep the window opaque then
-    // (a transparent window would let whatever is behind the home leak through).
-    val videoWallpaper = config.useBuiltinAerials ||
-        (config.useVideoWallpaper && config.videoUri.isNotEmpty())
-    LaunchedEffect(activity, videoWallpaper) {
+    LaunchedEffect(activity) {
         activity?.window?.setBackgroundDrawable(
-            if (videoWallpaper) null
-            else android.graphics.drawable.ColorDrawable(android.graphics.Color.BLACK)
+            android.graphics.drawable.ColorDrawable(android.graphics.Color.BLACK)
         )
     }
 
@@ -311,9 +300,9 @@ fun LauncherApp(rescanTick: Int) {
     var isDeviceUnlocked by remember { mutableStateOf(false) }
     var appToUnlock by remember { mutableStateOf<AppEntry?>(null) }
 
-    val backgroundMedia by produceState(initialValue = com.gothwad.launcher.data.BackgroundMediaState()) {
-        com.gothwad.launcher.data.BackgroundMediaTracker.backgroundMediaFlow(context).collect { value = it }
-    }
+    val backgroundMedia by remember(context) {
+        com.gothwad.launcher.data.BackgroundMediaTracker.backgroundMediaFlow(context)
+    }.collectAsStateWithLifecycle(initialValue = com.gothwad.launcher.data.BackgroundMediaState())
 
     // Bump on every ON_RESUME so the clock/date refresh immediately after
     // sleep — they normally only tick on minute boundaries via produceState.
@@ -594,47 +583,6 @@ fun LauncherApp(rescanTick: Int) {
         WALLPAPERS[config.wallpaper.coerceIn(0, WALLPAPERS.size - 1)].brush()
     }
 
-    // ----- Built-in aerial videos: the manifests ship with the launcher, so
-    // there's no external dependency — pick one, rotate every 10 minutes. -----
-    val aerialWallpaper by produceState<String?>(
-        initialValue = null,
-        config.useBuiltinAerials, config.builtinSource, wallpaperVersion,
-    ) {
-        if (!config.useBuiltinAerials) {
-            value = null
-            return@produceState
-        }
-        // NOTE: value is intentionally NOT reset here — when the collection
-        // changes, the previous video keeps playing until the new one is
-        // picked, instead of flashing back to the preset background.
-        val aerials = withContext(Dispatchers.IO) {
-            com.gothwad.launcher.data.BuiltinAerials.load(context, config.builtinSource)
-        }
-        if (aerials.isEmpty()) return@produceState
-        // Pick one, different from the current so the uri always changes (which
-        // drives the fade out→in). The next is chosen when this clip ENDS
-        // (onEnded bumps wallpaperVersion, re-running this) — a continuous
-        // shuffle. A 10-min safety timer also advances very long clips.
-        val current = value
-        var next = aerials.random()
-        if (aerials.size > 1) while (next == current) next = aerials.random()
-        value = next
-        delay(10 * 60_000L)
-        wallpaperVersion++
-    }
-
-    // Aerials stream from a CDN. Right after the TV powers on, the network/DNS
-    // isn't up yet, so the first clip fails to load — show the gradient instead
-    // of a black screen, and retry: quickly once the network reconnects,
-    // otherwise backing off, until a clip streams.
-    var aerialError by remember { mutableStateOf(false) }
-    LaunchedEffect(aerialError, net.connected) {
-        if (!aerialError) return@LaunchedEffect
-        delay(if (net.connected) 2500L else 6000L)
-        aerialError = false
-        wallpaperVersion++
-    }
-
     val corner: Dp = CORNER_RADII[config.cornerRadius.coerceIn(0, CORNER_RADII.size - 1)]
     Box(Modifier.fillMaxSize()) {
     ScaledUi(uiScale) {
@@ -656,7 +604,6 @@ fun LauncherApp(rescanTick: Int) {
                     notifications = notifications,
                     wallpaperSharp = wallpaperSharp,
                     presetBrush = presetBrush,
-                    aerialWallpaper = aerialWallpaper,
                     onOpenSettings = { showSettings = true },
                     onOpenSearch = { showSearchDialog = true },
                     onOpenDashboard = { showDashboard = true },
@@ -681,7 +628,6 @@ fun LauncherApp(rescanTick: Int) {
                     wallpaperSharp = wallpaperSharp,
                     wallpaperBlurred = wallpaperBlurred,
                     presetBrush = presetBrush,
-                    aerialWallpaper = aerialWallpaper,
                     onOpenSettings = { showSettings = true },
                     onOpenSearch = { showSearchDialog = true },
                     onOpenVoiceSearch = { showVoiceSearch = true },
@@ -820,5 +766,16 @@ fun LauncherApp(rescanTick: Int) {
     }
     }
     }
+}
+
+private fun decodeDownsampled(file: File, maxWidth: Int): android.graphics.Bitmap? {
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    BitmapFactory.decodeFile(file.absolutePath, bounds)
+    val width = bounds.outWidth
+    if (width <= 0) return null
+    var sample = 1
+    while (width / (sample * 2) >= maxWidth) sample *= 2
+    val opts = BitmapFactory.Options().apply { inSampleSize = sample }
+    return BitmapFactory.decodeFile(file.absolutePath, opts)
 }
 

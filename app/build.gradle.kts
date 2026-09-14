@@ -78,6 +78,7 @@ android {
     }
     buildFeatures {
         compose = true
+        viewBinding = true
     }
     lint {
         abortOnError = false
@@ -100,14 +101,10 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.9.2")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.6")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
     // Applies the bundled baseline profile (src/main/baseline-prof.txt) so the
     // startup + scroll paths are AOT-compiled on first run instead of JIT'd —
     // the big cold-start "screen shows but not smooth yet" win.
     implementation("androidx.profileinstaller:profileinstaller:1.4.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.1")
-    // Video wallpaper playback — plays Apple .mov aerials that MediaPlayer can't
-    implementation("androidx.media3:media3-exoplayer:1.4.1")
-    // OkHttp data source: lets us stream aerials through a trust-all TLS client
-    // so Apple's sylvan.apple.com (cert chain many TV trust stores reject) works.
-    implementation("androidx.media3:media3-datasource-okhttp:1.4.1")
 }

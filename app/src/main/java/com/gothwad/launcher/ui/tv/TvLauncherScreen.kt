@@ -50,10 +50,8 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.Key
@@ -84,7 +82,6 @@ import com.gothwad.launcher.data.LAYOUT_DOCK
 import com.gothwad.launcher.data.LAYOUT_GRID
 import com.gothwad.launcher.data.LauncherConfig
 import com.gothwad.launcher.data.NetStatus
-import com.gothwad.launcher.data.VIDEO_SPEEDS
 import com.gothwad.launcher.data.WeatherData
 import com.gothwad.launcher.service.TvNotificationItem
 import com.gothwad.launcher.ui.AppCard
@@ -92,7 +89,7 @@ import com.gothwad.launcher.ui.AppIcons
 import com.gothwad.launcher.ui.LocalCornerRadius
 import com.gothwad.launcher.ui.SmoothCornerShape
 import com.gothwad.launcher.ui.StatusBar
-import com.gothwad.launcher.ui.VideoWallpaper
+import com.gothwad.launcher.ui.view.TvNativeAppGrid
 import kotlinx.coroutines.launch
 
 @OptIn(
@@ -117,7 +114,6 @@ fun TvLauncherScreen(
     wallpaperSharp: ImageBitmap?,
     wallpaperBlurred: ImageBitmap?,
     presetBrush: Brush,
-    aerialWallpaper: String?,
     onOpenSettings: () -> Unit,
     onOpenSearch: () -> Unit,
     onOpenVoiceSearch: () -> Unit,
@@ -131,7 +127,6 @@ fun TvLauncherScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    var aerialError by remember { mutableStateOf(false) }
     var movePkg by remember { mutableStateOf<String?>(null) }
     val moveFocus = remember { FocusRequester() }
 
@@ -178,18 +173,7 @@ fun TvLauncherScreen(
             }
     ) {
         // Wallpaper layer
-        val videoSpeed = VIDEO_SPEEDS[config.videoSpeed.coerceIn(0, VIDEO_SPEEDS.size - 1)]
-        if (aerialWallpaper != null && net.connected && !aerialError) {
-            VideoWallpaper(
-                uri = aerialWallpaper,
-                speed = videoSpeed,
-                loop = false,
-                coverBrush = presetBrush,
-                onError = { aerialError = true },
-            )
-        } else if (config.useVideoWallpaper && config.videoUri.isNotEmpty()) {
-            VideoWallpaper(uri = config.videoUri, speed = videoSpeed, loop = true, coverBrush = presetBrush)
-        } else if (wallpaperSharp != null) {
+        if (wallpaperSharp != null) {
             Image(
                 bitmap = wallpaperSharp,
                 contentDescription = null,
@@ -212,7 +196,8 @@ fun TvLauncherScreen(
                     bitmap = wallpaperBlurred,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize().graphicsLayer { alpha = overlayAlpha },
+                    alpha = overlayAlpha,
+                    modifier = Modifier.fillMaxSize(),
                 )
             }
             Box(
@@ -282,7 +267,7 @@ fun TvLauncherScreen(
                     onLaunch = onLaunchApp,
                     onMenu = { app -> if (movePkg == null) onAppMenu(app) },
                 )
-                else -> {
+                LAYOUT_GRID -> {
                     val density = LocalDensity.current
                     val cardHeightPx = with(density) { (cardWidth * 9f / 16f).toPx() }
                     val peekPx = cardHeightPx * 0.15f
@@ -294,25 +279,12 @@ fun TvLauncherScreen(
                                 offset - pivotPx
                         }
                     }
-                    val fadePx = peekPx
-                    val fadeBrush = remember(fadePx) {
-                        Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color.Black),
-                            startY = 0f,
-                            endY = fadePx,
-                        )
-                    }
 
                     CompositionLocalProvider(LocalBringIntoViewSpec provides vPivot) {
                         LazyColumn(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .focusRestorer()
-                                .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
-                                .drawWithContent {
-                                    drawContent()
-                                    drawRect(brush = fadeBrush, blendMode = BlendMode.DstIn)
-                                },
+                                .focusRestorer(),
                             contentPadding = PaddingValues(
                                 top = with(density) { pivotPx.toDp() },
                                 bottom = with(density) { peekPx.toDp() } + 16.dp,
@@ -321,21 +293,7 @@ fun TvLauncherScreen(
                         ) {
                             items(categorized.size, key = { categorized[it].first.id }) { rowIndex ->
                                 val (cat, catApps) = categorized[rowIndex]
-                                val isGrid = config.layout == LAYOUT_GRID
-                                val rowEnter by animateFloatAsState(
-                                    targetValue = if (introShown) 1f else 0f,
-                                    animationSpec = tween(500, easing = LinearOutSlowInEasing),
-                                    label = "rowEnter",
-                                )
-                                Column(
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .graphicsLayer {
-                                            if (!isGrid) {
-                                                translationX = (1f - rowEnter) * if (rowIndex % 2 == 0) -160f else 160f
-                                            }
-                                        }
-                                ) {
+                                Column(Modifier.fillMaxWidth()) {
                                     if (config.showCategoryNames) {
                                         Text(
                                             text = cat.name,
@@ -344,35 +302,35 @@ fun TvLauncherScreen(
                                             modifier = Modifier.padding(horizontal = 48.dp, vertical = 4.dp),
                                         )
                                     }
-                                    if (isGrid) {
-                                        GridSection(
-                                            catApps = catApps,
-                                            config = config,
-                                            accent = accent,
-                                            movePkg = movePkg,
-                                            moveFocus = moveFocus,
-                                            cardWidth = cardWidth,
-                                            gap = gap,
-                                            onLaunch = onLaunchApp,
-                                            onMenu = onAppMenu,
-                                        )
-                                    } else {
-                                        CarouselSection(
-                                            catApps = catApps,
-                                            config = config,
-                                            accent = accent,
-                                            movePkg = movePkg,
-                                            moveFocus = moveFocus,
-                                            cardWidth = cardWidth,
-                                            gap = gap,
-                                            onLaunch = onLaunchApp,
-                                            onMenu = onAppMenu,
-                                        )
-                                    }
+                                    GridSection(
+                                        catApps = catApps,
+                                        config = config,
+                                        accent = accent,
+                                        movePkg = movePkg,
+                                        moveFocus = moveFocus,
+                                        cardWidth = cardWidth,
+                                        gap = gap,
+                                        onLaunch = onLaunchApp,
+                                        onMenu = onAppMenu,
+                                    )
                                 }
                             }
                         }
                     }
+                }
+                else -> {
+                    // High-performance Android View RecyclerView with shared ViewPool & DiffUtil
+                    TvNativeAppGrid(
+                        modifier = Modifier.fillMaxSize(),
+                        categorized = categorized,
+                        config = config,
+                        accent = accent,
+                        cardWidth = cardWidth,
+                        gap = gap,
+                        movePkg = movePkg,
+                        onLaunchApp = onLaunchApp,
+                        onAppMenu = onAppMenu,
+                    )
                 }
             }
         }

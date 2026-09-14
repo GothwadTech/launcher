@@ -45,4 +45,12 @@ class SmoothCornerShape(
         return if (path != null) Outline.Generic(path)
         else Outline.Rectangle(Rect(0f, 0f, size.width, size.height))
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is SmoothCornerShape) return false
+        return radius == other.radius && smoothing == other.smoothing
+    }
+
+    override fun hashCode(): Int = 31 * radius.hashCode() + smoothing.hashCode()
 }
