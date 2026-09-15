@@ -24,6 +24,7 @@ import com.gothwad.launcher.data.CategoryCfg
 import com.gothwad.launcher.data.ConfigStore
 import com.gothwad.launcher.data.GAP_SIZES
 import com.gothwad.launcher.data.ICON_SIZES
+import com.gothwad.launcher.data.LAYOUT_GRID
 import com.gothwad.launcher.data.LauncherConfig
 import com.gothwad.launcher.databinding.FragmentTvLauncherBinding
 import com.gothwad.launcher.ui.ACCENTS
@@ -64,13 +65,29 @@ class TvLauncherFragment : Fragment() {
         observeData()
     }
 
+    private fun calculateCardDimensions(isGrid: Boolean, gapPx: Int, density: Float): Pair<Int, Int> {
+        return if (isGrid) {
+            val screenWidthPx = resources.displayMetrics.widthPixels
+            val horizontalPaddingPx = (48 * 2 * density).toInt() // 48dp on each side
+            val columns = 6
+            val availableWidthPx = screenWidthPx - horizontalPaddingPx - ((columns - 1) * gapPx)
+            val cardWidth = (availableWidthPx / columns).coerceAtLeast((100 * density).toInt())
+            val cardHeight = (cardWidth * 9f / 16f).toInt()
+            Pair(cardWidth, cardHeight)
+        } else {
+            val defaultWidthDp = ICON_SIZES.getOrElse(currentConfig.iconScale.coerceIn(0, ICON_SIZES.size - 1)) { ICON_SIZES[2] }
+            val widthPx = (defaultWidthDp * density).toInt()
+            val heightPx = (widthPx * 9f / 16f).toInt()
+            Pair(widthPx, heightPx)
+        }
+    }
+
     private fun setupRecyclerView() {
         val density = resources.displayMetrics.density
-        val defaultWidthDp = ICON_SIZES.getOrElse(currentConfig.iconScale.coerceIn(0, ICON_SIZES.size - 1)) { ICON_SIZES[2] }
-        val defaultWidthPx = (defaultWidthDp * density).toInt()
-        val defaultHeightPx = (defaultWidthPx * 9f / 16f).toInt()
+        val isGrid = currentConfig.layout == LAYOUT_GRID
+        val gapPx = (GAP_SIZES.getOrElse(currentConfig.spacing.coerceIn(0, GAP_SIZES.size - 1)) { GAP_SIZES[2] } * density).toInt()
+        val (defaultWidthPx, defaultHeightPx) = calculateCardDimensions(isGrid, gapPx, density)
         val defaultRadiusPx = (CORNER_RADII.getOrElse(currentConfig.cornerRadius.coerceIn(0, CORNER_RADII.size - 1)) { CORNER_RADII[2] } * density)
-        val defaultGapPx = (GAP_SIZES.getOrElse(currentConfig.spacing.coerceIn(0, GAP_SIZES.size - 1)) { GAP_SIZES[2] } * density).toInt()
         val accentColor = ACCENTS.getOrElse(currentConfig.accent.coerceIn(0, ACCENTS.size - 1)) { ACCENTS[0] }
         val accentArgb = accentColor
 
@@ -79,10 +96,11 @@ class TvLauncherFragment : Fragment() {
             cardWidthPx = defaultWidthPx,
             cardHeightPx = defaultHeightPx,
             cornerRadiusPx = defaultRadiusPx,
-            gapPx = defaultGapPx,
+            gapPx = gapPx,
             accentColor = accentArgb,
             showCategoryNames = currentConfig.showCategoryNames,
             showAppLabels = currentConfig.showAppLabels,
+            isGridMode = isGrid,
             lockedPackages = currentConfig.lockedApps,
             movingPackage = null,
             onLaunchApp = { app ->
@@ -223,11 +241,10 @@ class TvLauncherFragment : Fragment() {
 
     private fun updateDimensionsAndStyling() {
         val density = resources.displayMetrics.density
-        val widthDp = ICON_SIZES.getOrElse(currentConfig.iconScale.coerceIn(0, ICON_SIZES.size - 1)) { ICON_SIZES[2] }
-        val widthPx = (widthDp * density).toInt()
-        val heightPx = (widthPx * 9f / 16f).toInt()
-        val radiusPx = (CORNER_RADII.getOrElse(currentConfig.cornerRadius.coerceIn(0, CORNER_RADII.size - 1)) { CORNER_RADII[2] } * density)
+        val isGrid = currentConfig.layout == LAYOUT_GRID
         val gapPx = (GAP_SIZES.getOrElse(currentConfig.spacing.coerceIn(0, GAP_SIZES.size - 1)) { GAP_SIZES[2] } * density).toInt()
+        val (widthPx, heightPx) = calculateCardDimensions(isGrid, gapPx, density)
+        val radiusPx = (CORNER_RADII.getOrElse(currentConfig.cornerRadius.coerceIn(0, CORNER_RADII.size - 1)) { CORNER_RADII[2] } * density)
         val accentColor = ACCENTS.getOrElse(currentConfig.accent.coerceIn(0, ACCENTS.size - 1)) { ACCENTS[0] }
         val accentArgb = accentColor
 
@@ -239,6 +256,7 @@ class TvLauncherFragment : Fragment() {
             accent = accentArgb,
             categoryNames = currentConfig.showCategoryNames,
             appLabels = currentConfig.showAppLabels,
+            gridMode = isGrid,
             locked = currentConfig.lockedApps,
             moving = null
         )

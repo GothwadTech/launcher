@@ -19,6 +19,7 @@ class AppCardAdapter(
     private var cornerRadiusPx: Float,
     private var accentColor: Int,
     private var showLabels: Boolean,
+    private var isGridMode: Boolean = true,
     private var lockedPackages: Set<String> = emptySet(),
     private var movingPackage: String? = null,
     private val onLaunchApp: (AppEntry) -> Unit,
@@ -36,16 +37,18 @@ class AppCardAdapter(
         radiusPx: Float,
         accent: Int,
         labels: Boolean,
+        gridMode: Boolean = true,
         locked: Set<String>,
         moving: String?,
     ) {
-        val sizeChanged = cardWidthPx != widthPx || cardHeightPx != heightPx
+        val sizeChanged = cardWidthPx != widthPx || cardHeightPx != heightPx || isGridMode != gridMode
         val visualChanged = cornerRadiusPx != radiusPx || accentColor != accent || showLabels != labels
         cardWidthPx = widthPx
         cardHeightPx = heightPx
         cornerRadiusPx = radiusPx
         accentColor = accent
         showLabels = labels
+        isGridMode = gridMode
         lockedPackages = locked
         movingPackage = moving
         if (sizeChanged || visualChanged) {
@@ -260,10 +263,11 @@ class AppCardAdapter(
         }
 
         fun bind(app: AppEntry) {
-            // Apply dimensions
-            val lp = itemView.layoutParams ?: ViewGroup.LayoutParams(cardWidthPx, cardHeightPx)
-            if (lp.width != cardWidthPx || lp.height != cardHeightPx) {
-                lp.width = cardWidthPx
+            // Apply dimensions: MATCH_PARENT in grid mode so 6 columns fit exactly, fixed width in carousel
+            val targetWidth = if (isGridMode) ViewGroup.LayoutParams.MATCH_PARENT else cardWidthPx
+            val lp = itemView.layoutParams ?: ViewGroup.LayoutParams(targetWidth, cardHeightPx)
+            if (lp.width != targetWidth || lp.height != cardHeightPx) {
+                lp.width = targetWidth
                 lp.height = cardHeightPx
                 itemView.layoutParams = lp
             }

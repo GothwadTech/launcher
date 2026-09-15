@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -38,6 +39,7 @@ class TvCategoryAdapter(
     private var accentColor: Int,
     private var showCategoryNames: Boolean,
     private var showAppLabels: Boolean,
+    private var isGridMode: Boolean = true,
     private var lockedPackages: Set<String> = emptySet(),
     private var movingPackage: String? = null,
     private val onLaunchApp: (AppEntry) -> Unit,
@@ -52,6 +54,7 @@ class TvCategoryAdapter(
         accent: Int,
         categoryNames: Boolean,
         appLabels: Boolean,
+        gridMode: Boolean = true,
         locked: Set<String>,
         moving: String?,
     ) {
@@ -62,6 +65,7 @@ class TvCategoryAdapter(
         accentColor = accent
         showCategoryNames = categoryNames
         showAppLabels = appLabels
+        isGridMode = gridMode
         lockedPackages = locked
         movingPackage = moving
         notifyDataSetChanged()
@@ -86,6 +90,7 @@ class TvCategoryAdapter(
             cornerRadiusPx = cornerRadiusPx,
             accentColor = accentColor,
             showLabels = showAppLabels,
+            isGridMode = isGridMode,
             lockedPackages = lockedPackages,
             movingPackage = movingPackage,
             onLaunchApp = onLaunchApp,
@@ -99,12 +104,29 @@ class TvCategoryAdapter(
                 parent: RecyclerView,
                 state: RecyclerView.State
             ) {
-                outRect.right = gapPx
+                val position = parent.getChildAdapterPosition(view)
+                if (position == RecyclerView.NO_POSITION) return
+
+                if (isGridMode) {
+                    val spanCount = 6
+                    val column = position % spanCount
+                    outRect.left = column * gapPx / spanCount
+                    outRect.right = gapPx - (column + 1) * gapPx / spanCount
+                    outRect.bottom = gapPx
+                } else {
+                    outRect.left = 0
+                    outRect.right = gapPx
+                    outRect.bottom = 0
+                }
             }
         }
 
         init {
-            val layoutManager = LinearLayoutManager(itemView.context, LinearLayoutManager.HORIZONTAL, false)
+            val layoutManager = if (isGridMode) {
+                GridLayoutManager(itemView.context, 6)
+            } else {
+                LinearLayoutManager(itemView.context, LinearLayoutManager.HORIZONTAL, false)
+            }
             binding.recyclerCarousel.layoutManager = layoutManager
             binding.recyclerCarousel.setRecycledViewPool(recycledViewPool)
             binding.recyclerCarousel.adapter = appAdapter
@@ -119,12 +141,24 @@ class TvCategoryAdapter(
                 binding.txtCategoryTitle.visibility = View.GONE
             }
 
+            // Ensure correct LayoutManager based on gridMode
+            if (isGridMode) {
+                if (binding.recyclerCarousel.layoutManager !is GridLayoutManager) {
+                    binding.recyclerCarousel.layoutManager = GridLayoutManager(itemView.context, 6)
+                }
+            } else {
+                if (binding.recyclerCarousel.layoutManager !is LinearLayoutManager || binding.recyclerCarousel.layoutManager is GridLayoutManager) {
+                    binding.recyclerCarousel.layoutManager = LinearLayoutManager(itemView.context, LinearLayoutManager.HORIZONTAL, false)
+                }
+            }
+
             appAdapter.updateConfig(
                 widthPx = cardWidthPx,
                 heightPx = cardHeightPx,
                 radiusPx = cornerRadiusPx,
                 accent = accentColor,
                 labels = showAppLabels,
+                gridMode = isGridMode,
                 locked = lockedPackages,
                 moving = movingPackage,
             )

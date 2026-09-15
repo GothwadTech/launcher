@@ -2,13 +2,13 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="54dp"
-    android:layout_marginBottom="4dp"
+    android:layout_marginBottom="0dp"
     android:background="@drawable/bg_settings_row"
     android:clickable="true"
     android:focusable="true"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingHorizontal="14dp">
+    android:paddingHorizontal="24dp">
 
     <ImageView
         android:id="@+id/img_app_icon"
