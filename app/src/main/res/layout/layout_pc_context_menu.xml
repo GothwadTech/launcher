@@ -1,0 +1,370 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="260dp"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_pc_context_menu"
+    android:elevation="16dp"
+    android:orientation="vertical"
+    android:padding="6dp">
+
+    <!-- Header / Context Title -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="30dp"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="10dp">
+
+        <ImageView
+            android:id="@+id/img_menu_header_icon"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:text="Desktop Options"
+            android:textColor="#9AA0A6"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginVertical="3dp"
+        android:background="#20FFFFFF" />
+
+    <!-- 1. PC UI Scale Option -->
+    <LinearLayout
+        android:id="@+id/item_pc_ui_scale"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:background="@drawable/bg_pc_menu_item"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp">
+
+        <ImageView
+            android:id="@+id/img_icon_scale"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="PC UI Scale (DPI)"
+            android:textColor="#EEEEEE"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/tv_current_scale_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="85%"
+            android:textColor="#4FA7FA"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/img_arrow_scale"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_marginStart="4dp"
+            android:contentDescription="@null" />
+    </LinearLayout>
+
+    <!-- 2. Icon Size Option -->
+    <LinearLayout
+        android:id="@+id/item_icon_size"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:background="@drawable/bg_pc_menu_item"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp">
+
+        <ImageView
+            android:id="@+id/img_icon_size"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="Desktop Icon Size"
+            android:textColor="#EEEEEE"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/tv_current_icon_size_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Medium"
+            android:textColor="#8AB4F8"
+            android:textSize="11sp" />
+
+        <ImageView
+            android:id="@+id/img_arrow_icon_size"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_marginStart="4dp"
+            android:contentDescription="@null" />
+    </LinearLayout>
+
+    <!-- 3. Desktop Spacing Option -->
+    <LinearLayout
+        android:id="@+id/item_desktop_spacing"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:background="@drawable/bg_pc_menu_item"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp">
+
+        <ImageView
+            android:id="@+id/img_icon_spacing"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="Grid Spacing"
+            android:textColor="#EEEEEE"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/tv_current_spacing_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Normal"
+            android:textColor="#9AA0A6"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- 4. Toggle Show Labels Option -->
+    <LinearLayout
+        android:id="@+id/item_toggle_labels"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:background="@drawable/bg_pc_menu_item"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp">
+
+        <ImageView
+            android:id="@+id/img_icon_labels"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="Show App Labels"
+            android:textColor="#EEEEEE"
+            android:textSize="13sp" />
+
+        <ImageView
+            android:id="@+id/img_check_labels"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:contentDescription="@null" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginVertical="3dp"
+        android:background="#20FFFFFF" />
+
+    <!-- 5. Sort Desktop Icons -->
+    <LinearLayout
+        android:id="@+id/item_sort_desktop"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:background="@drawable/bg_pc_menu_item"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp">
+
+        <ImageView
+            android:id="@+id/img_icon_sort"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="Sort Icons"
+            android:textColor="#EEEEEE"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/tv_current_sort_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Custom"
+            android:textColor="#8AB4F8"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- 6. Taskbar / Toolbar Settings -->
+    <LinearLayout
+        android:id="@+id/item_taskbar_settings"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:background="@drawable/bg_pc_menu_item"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp">
+
+        <ImageView
+            android:id="@+id/img_icon_taskbar"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="Taskbar Settings"
+            android:textColor="#EEEEEE"
+            android:textSize="13sp" />
+
+        <ImageView
+            android:id="@+id/img_arrow_taskbar"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:contentDescription="@null" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginVertical="3dp"
+        android:background="#20FFFFFF" />
+
+    <!-- 7. Refresh Desktop -->
+    <LinearLayout
+        android:id="@+id/item_refresh_desktop"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:background="@drawable/bg_pc_menu_item"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp">
+
+        <ImageView
+            android:id="@+id/img_icon_refresh"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="Refresh"
+            android:textColor="#EEEEEE"
+            android:textSize="13sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="F5"
+            android:textColor="#66FFFFFF"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- 8. Wallpaper & Personalize -->
+    <LinearLayout
+        android:id="@+id/item_personalize"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:background="@drawable/bg_pc_menu_item"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp">
+
+        <ImageView
+            android:id="@+id/img_icon_personalize"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="Personalize (Wallpaper)"
+            android:textColor="#EEEEEE"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <!-- 9. Full Settings -->
+    <LinearLayout
+        android:id="@+id/item_open_settings"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:background="@drawable/bg_pc_menu_item"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp">
+
+        <ImageView
+            android:id="@+id/img_icon_settings"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="Launcher Settings"
+            android:textColor="#EEEEEE"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+</LinearLayout>

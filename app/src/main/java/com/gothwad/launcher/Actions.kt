@@ -54,6 +54,11 @@ object Actions {
             .onFailure { openSystemSettings(context) }
     }
 
+    fun openBluetoothSettings(context: Context) {
+        runCatching { context.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS)) }
+            .onFailure { openSystemSettings(context) }
+    }
+
     fun openVpnSettings(context: Context) {
         runCatching { context.startActivity(Intent("android.settings.VPN_SETTINGS")) }
             .onFailure { openSystemSettings(context) }

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root_taskbar_pinned"
+    android:layout_width="38dp"
+    android:layout_height="38dp"
+    android:layout_marginHorizontal="2dp"
+    android:background="@drawable/bg_pc_pinned_app"
+    android:clickable="true"
+    android:focusable="true">
+
+    <ImageView
+        android:id="@+id/img_taskbar_pinned_icon"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_gravity="center"
+        android:scaleType="fitCenter"
+        android:contentDescription="@null" />
+
+    <TextView
+        android:id="@+id/tv_taskbar_pinned_fallback"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:textColor="#FFFFFF"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
+
+    <!-- Active Indicator Bar -->
+    <View
+        android:id="@+id/view_pinned_indicator"
+        android:layout_width="14dp"
+        android:layout_height="2.5dp"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="2dp"
+        android:background="#4FA7FA"
+        android:visibility="visible" />
+
+</FrameLayout>

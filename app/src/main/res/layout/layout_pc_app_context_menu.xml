@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="240dp"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_pc_context_menu"
+    android:elevation="16dp"
+    android:orientation="vertical"
+    android:padding="6dp">
+
+    <!-- Header: App Icon & Name -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="10dp">
+
+        <ImageView
+            android:id="@+id/img_app_header_icon"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:id="@+id/tv_app_header_label"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="App Name"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginVertical="3dp"
+        android:background="#20FFFFFF" />
+
+    <!-- 1. Open App -->
+    <LinearLayout
+        android:id="@+id/item_app_open"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:background="@drawable/bg_pc_menu_item"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp">
+
+        <ImageView
+            android:id="@+id/img_action_open"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="Open"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- 2. Pin / Unpin from Taskbar -->
+    <LinearLayout
+        android:id="@+id/item_app_pin_taskbar"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:background="@drawable/bg_pc_menu_item"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp">
+
+        <ImageView
+            android:id="@+id/img_action_pin"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:id="@+id/tv_action_pin"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="Pin to Taskbar"
+            android:textColor="#EEEEEE"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <!-- 3. Rename Shortcut -->
+    <LinearLayout
+        android:id="@+id/item_app_rename"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:background="@drawable/bg_pc_menu_item"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp">
+
+        <ImageView
+            android:id="@+id/img_action_rename"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="Rename Shortcut"
+            android:textColor="#EEEEEE"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <!-- 4. Hide from Desktop -->
+    <LinearLayout
+        android:id="@+id/item_app_hide"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:background="@drawable/bg_pc_menu_item"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp">
+
+        <ImageView
+            android:id="@+id/img_action_hide"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="Hide from Desktop"
+            android:textColor="#EEEEEE"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginVertical="3dp"
+        android:background="#20FFFFFF" />
+
+    <!-- 5. App Info -->
+    <LinearLayout
+        android:id="@+id/item_app_info"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:background="@drawable/bg_pc_menu_item"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp">
+
+        <ImageView
+            android:id="@+id/img_action_info"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="App Info"
+            android:textColor="#EEEEEE"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <!-- 6. Uninstall App -->
+    <LinearLayout
+        android:id="@+id/item_app_uninstall"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:background="@drawable/bg_pc_menu_item"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp">
+
+        <ImageView
+            android:id="@+id/img_action_uninstall"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="Uninstall"
+            android:textColor="#FF6B6B"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+</LinearLayout>

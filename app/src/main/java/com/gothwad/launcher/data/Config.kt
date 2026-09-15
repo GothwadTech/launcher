@@ -82,6 +82,17 @@ data class LauncherConfig(
     val hideAppsPin: String = "",
     /** launcher mode: 0 = TV, 1 = PC Desktop */
     val launcherMode: Int = MODE_TV,
+    // ----- PC Desktop settings -----
+    val pcUiScale: Float = 0.85f,
+    val pcIconSize: Int = 44,
+    val pcShowLabels: Boolean = true,
+    val pcDesktopOrder: List<String> = emptyList(),
+    val pcCustomLabels: Map<String, String> = emptyMap(),
+    val pcPinnedApps: List<String> = emptyList(),
+    val pcTaskbarHeight: Int = 44,
+    val pcTaskbarCenter: Boolean = false,
+    val pcGridSpacing: Int = 12,
+    val pcSortOrder: Int = 0,
 )
 
 const val MODE_TV = 0
