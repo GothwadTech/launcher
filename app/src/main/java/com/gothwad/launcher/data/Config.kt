@@ -10,16 +10,13 @@ import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import androidx.compose.runtime.Immutable
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 
-/** Spacing steps between cards — 5 levels. */
-val GAP_SIZES: List<Dp> = listOf(4.dp, 10.dp, 16.dp, 24.dp, 32.dp)
-/** Card icon size steps — 5 levels. */
-val ICON_SIZES: List<Dp> = listOf(120.dp, 150.dp, 190.dp, 230.dp, 270.dp)
-/** Icon corner roundness steps (index stored in config.cornerRadius). */
-val CORNER_RADII: List<Dp> = listOf(0.dp, 4.dp, 10.dp, 18.dp, 28.dp)
+/** Spacing steps between cards — 5 levels (in dp). */
+val GAP_SIZES: List<Float> = listOf(4f, 10f, 16f, 24f, 32f)
+/** Card icon size steps — 5 levels (in dp). */
+val ICON_SIZES: List<Float> = listOf(120f, 150f, 190f, 230f, 270f)
+/** Icon corner roundness steps (index stored in config.cornerRadius, in dp). */
+val CORNER_RADII: List<Float> = listOf(0f, 4f, 10f, 18f, 28f)
 /** Manual whole-UI scale steps (config.uiScale 1..5). <1 = more compact. */
 val UI_SCALES: List<Float> = listOf(0.75f, 0.9f, 1.0f, 1.15f, 1.3f)
 
@@ -29,7 +26,6 @@ data class CategoryCfg(
     val name: String,
 )
 
-@Immutable
 @Serializable
 data class LauncherConfig(
     val categories: List<CategoryCfg> = listOf(
@@ -58,86 +54,76 @@ data class LauncherConfig(
     val showVpnButton: Boolean = true,
     /** wrap the status-bar icons in the same glass panel as dock mode */
     val statusBarGlass: Boolean = true,
-    /** index into DATE_FORMATS; 0 = no date shown */
-    val dateFormat: Int = 0,
-    // ----- display options -----
-    /** wallpaper dimming: 0 = top & bottom, 1 = top, 2 = bottom, 3 = full, 4 = off */
-    val scrimMode: Int = 1, // Top
+    // ----- layout & visuals -----
+    val layout: Int = LAYOUT_GRID,
+    /** spacing step 0..4 (see GAP_SIZES) */
+    val spacing: Int = 2,
+    /** icon size step 0..4 (see ICON_SIZES) */
+    val iconScale: Int = 2,
+    /** icon/panel corner roundness step 0..4 (see CORNER_RADII) */
+    val cornerRadius: Int = 2,
+    /** whole-UI scale step 1..5 (see UI_SCALES, default 3 = 1.0x) */
+    val uiScale: Int = 3,
     val showCategoryNames: Boolean = true,
     val showAppLabels: Boolean = true,
-    /** spacing step 0..4 (see GAP_SIZES) */
-    val spacing: Int = 1, // Small
-    /** icon size step 0..4 (see ICON_SIZES) */
-    val iconScale: Int = 1, // Small
-    /** icon/panel corner roundness step 0..4 (see CORNER_RADII) */
-    val cornerRadius: Int = 3, // Large
-    /** UI scale: 0 = Auto (compact high-DPI TVs), 1..5 = fixed (see UI_SCALES) */
-    val uiScale: Int = 0, // Auto
-    /** language code (e.g. "fr", "de"); empty = system default */
-    val language: String = "",
-    /** 0 = carousel (fixed selection), 1 = grid, 2 = dock */
-    val layout: Int = 2, // Dock
-    // ----- password & security / privacy -----
+    /** 0 = full, 1 = top only, 2 = bottom only, 3 = both, 4 = none */
+    val scrimMode: Int = 0,
+    // ----- behavior -----
+    val launchOnBoot: Boolean = false,
+    val autoCategoryOnInstall: Boolean = true,
+    /** app lock: list of package names requiring a PIN to open */
+    val lockedApps: Set<String> = emptySet(),
+    val appLockPin: String = "",
+    val appLockPinLength: Int = 4,
+    val appLockEnabled: Boolean = false,
     val deviceLockEnabled: Boolean = false,
     val deviceLockPin: String = "",
-    val deviceLockPinLength: Int = 4, // 4 or 6
-    val appLockEnabled: Boolean = false,
-    val appLockPin: String = "",
-    val appLockPinLength: Int = 4, // 4 or 6
-    val lockedApps: Set<String> = emptySet(),
-    val hideAppsEnabled: Boolean = false,
-    val hideAppsPin: String = "",
-    val hideAppsPinLength: Int = 4, // 4 or 6
     val hideAppsCode: String = "",
-    // ----- launcher appearance mode: tv, pc, phone -----
-    val launcherMode: String = "",
-    val pcTaskbarPinned: List<String> = emptyList(),
+    val hideAppsPin: String = "",
+    /** launcher mode: 0 = TV, 1 = PC Desktop */
+    val launcherMode: Int = MODE_TV,
 )
 
-const val MODE_TV = "tv"
-const val MODE_PC = "pc"
-const val MODE_PHONE = "phone"
+const val MODE_TV = 0
+const val MODE_PC = 1
 
-const val LAYOUT_CAROUSEL = 0
-const val LAYOUT_GRID = 1
+const val LAYOUT_GRID = 0
+const val LAYOUT_CAROUSEL = 1
 const val LAYOUT_DOCK = 2
 
-/** Status bar date formats (SimpleDateFormat patterns); index 0 = off. */
-val DATE_FORMATS = listOf("", "EEE d", "EEE d MMM", "d MMM yyyy", "dd/MM", "MM/dd", "yyyy-MM-dd")
-
-/** Sorted by user base — the display name is localized in the UI via string resource. */
-val LANGUAGES = listOf(
-    "",     // system default
-    "zh", "es", "ja", "de", "fr",   // tier 1
-    "pt", "ru", "ko", "ar", "it",   // tier 2
-    "tr", "pl", "nl", "hi", "th", "in", "vi", // tier 3
-)
-
-private val Context.dataStore by preferencesDataStore(name = "launcher")
-private val KEY_CONFIG = stringPreferencesKey("config")
-private val json = Json { ignoreUnknownKeys = true }
+private val Context.dataStore by preferencesDataStore(name = "launcher_config")
 
 class ConfigStore(private val context: Context) {
+    private val key = stringPreferencesKey("config_json")
+    private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
     val flow: Flow<LauncherConfig> = context.dataStore.data.map { prefs ->
-        prefs[KEY_CONFIG]?.let {
+        prefs[key]?.let {
             runCatching { json.decodeFromString<LauncherConfig>(it) }.getOrNull()
-        } ?: LauncherConfig(categories = defaultCategories(context))
+        } ?: LauncherConfig(
+            // On fresh install on a touch-first non-TV device, default to PC mode
+            launcherMode = if (isProbablyTouchDevice(context)) MODE_PC else MODE_TV
+        )
     }
-
-    private fun defaultCategories(ctx: Context) = listOf(
-        CategoryCfg("streaming", ctx.getString(R.string.cat_streaming)),
-        CategoryCfg("games", ctx.getString(R.string.cat_games)),
-        CategoryCfg("music", ctx.getString(R.string.cat_music)),
-        CategoryCfg("apps", ctx.getString(R.string.cat_apps)),
-    )
 
     suspend fun update(transform: (LauncherConfig) -> LauncherConfig) {
         context.dataStore.edit { prefs ->
-            val current = prefs[KEY_CONFIG]?.let {
+            val current = prefs[key]?.let {
                 runCatching { json.decodeFromString<LauncherConfig>(it) }.getOrNull()
-            } ?: LauncherConfig()
-            prefs[KEY_CONFIG] = json.encodeToString(transform(current))
+            } ?: LauncherConfig(
+                launcherMode = if (isProbablyTouchDevice(context)) MODE_PC else MODE_TV
+            )
+            val updated = transform(current)
+            prefs[key] = json.encodeToString(updated)
         }
+    }
+
+    private fun isProbablyTouchDevice(context: Context): Boolean {
+        val uiMode = context.resources.configuration.uiMode
+        val isTv = (uiMode and android.content.res.Configuration.UI_MODE_TYPE_MASK) ==
+            android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
+        val hasTouch = context.packageManager.hasSystemFeature("android.hardware.touchscreen")
+        val hasLeanback = context.packageManager.hasSystemFeature("android.software.leanback")
+        return !isTv && !hasLeanback && hasTouch
     }
 }

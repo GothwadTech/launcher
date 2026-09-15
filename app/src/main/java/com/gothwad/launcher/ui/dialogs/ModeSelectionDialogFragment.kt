@@ -16,8 +16,8 @@ class ModeSelectionDialogFragment : DialogFragment() {
     private var _binding: DialogModeSelectionBinding? = null
     private val binding get() = _binding!!
 
-    var currentMode: String = MODE_TV
-    var onSelectMode: ((String) -> Unit)? = null
+    var currentMode: Int = MODE_TV
+    var onSelectMode: ((Int) -> Unit)? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -83,8 +83,8 @@ class ModeSelectionDialogFragment : DialogFragment() {
         const val TAG = "ModeSelectionDialog"
 
         fun newInstance(
-            currentMode: String,
-            onSelect: (String) -> Unit
+            currentMode: Int,
+            onSelect: (Int) -> Unit
         ): ModeSelectionDialogFragment {
             return ModeSelectionDialogFragment().apply {
                 this.currentMode = currentMode

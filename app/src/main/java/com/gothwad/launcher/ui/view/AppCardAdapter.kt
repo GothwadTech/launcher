@@ -7,8 +7,6 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
-import androidx.compose.ui.graphics.asAndroidBitmap
-import androidx.compose.ui.graphics.toArgb
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.gothwad.launcher.data.AppEntry
@@ -65,23 +63,27 @@ class AppCardAdapter(
     }
 
     inner class AppCardViewHolder(
-        val binding: ItemAppCardBinding,
+        private val binding: ItemAppCardBinding
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        private var isHovered = false
-        private var downAt = 0L
-        private var lastKeyDown = 0L
-        private var longPressTriggeredAt = 0L
         private var cardDrawable: SmoothCornerDrawable? = null
         private var outlineProvider: SmoothOutlineProvider? = null
 
+        private var isHovered: Boolean = false
+        private var longPressTriggeredAt: Long = 0L
+
         init {
+            itemView.isFocusable = true
+            itemView.isFocusableInTouchMode = false
+            itemView.isClickable = true
+
             itemView.setOnClickListener {
-                if (SystemClock.uptimeMillis() - longPressTriggeredAt > 1_000L) {
-                    val pos = bindingAdapterPosition
-                    if (pos != RecyclerView.NO_POSITION) {
-                        onLaunchApp(getItem(pos))
-                    }
+                if (SystemClock.uptimeMillis() - longPressTriggeredAt < 600L) {
+                    return@setOnClickListener
+                }
+                val pos = bindingAdapterPosition
+                if (pos != RecyclerView.NO_POSITION) {
+                    onLaunchApp(getItem(pos))
                 }
             }
 
@@ -95,37 +97,38 @@ class AppCardAdapter(
             }
 
             itemView.setOnKeyListener { _, keyCode, event ->
-                val select = keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
-                        keyCode == KeyEvent.KEYCODE_ENTER ||
-                        keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER ||
-                        keyCode == KeyEvent.KEYCODE_SPACE
-                val menu = keyCode == KeyEvent.KEYCODE_MENU
+                val isSelect = keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
+                    keyCode == KeyEvent.KEYCODE_ENTER ||
+                    keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER
+                val isMenu = keyCode == KeyEvent.KEYCODE_MENU
 
-                if (event.action == KeyEvent.ACTION_DOWN) {
-                    if (menu) {
-                        longPressTriggeredAt = SystemClock.uptimeMillis()
-                        val pos = bindingAdapterPosition
-                        if (pos != RecyclerView.NO_POSITION) {
-                            onAppMenu(getItem(pos))
-                            return@setOnKeyListener true
-                        }
+                if (isMenu && event.action == KeyEvent.ACTION_UP) {
+                    val pos = bindingAdapterPosition
+                    if (pos != RecyclerView.NO_POSITION) {
+                        onAppMenu(getItem(pos))
+                        return@setOnKeyListener true
                     }
+                }
 
-                    if (select) {
-                        val now = SystemClock.uptimeMillis()
-                        if (lastKeyDown == 0L || now - lastKeyDown > 300L) {
-                            downAt = now
-                            lastKeyDown = now
-                            return@setOnKeyListener false
-                        }
-                        lastKeyDown = now
-                        if (now - longPressTriggeredAt > 1_000L && now - downAt >= 450L) {
-                            longPressTriggeredAt = now
+                if (isSelect) {
+                    if (event.action == KeyEvent.ACTION_DOWN) {
+                        if (event.repeatCount == 0) {
+                            longPressTriggeredAt = 0L
+                        } else if (event.repeatCount > 0 && longPressTriggeredAt == 0L) {
+                            longPressTriggeredAt = SystemClock.uptimeMillis()
                             val pos = bindingAdapterPosition
                             if (pos != RecyclerView.NO_POSITION) {
                                 onAppMenu(getItem(pos))
                                 return@setOnKeyListener true
                             }
+                        }
+                    } else if (event.action == KeyEvent.ACTION_UP) {
+                        if (longPressTriggeredAt != 0L && (SystemClock.uptimeMillis() - longPressTriggeredAt < 800L)) {
+                            return@setOnKeyListener true
+                        }
+                        val pos = bindingAdapterPosition
+                        if (pos != RecyclerView.NO_POSITION) {
+                            onLaunchApp(getItem(pos))
                         }
                         return@setOnKeyListener true
                     }
@@ -179,23 +182,23 @@ class AppCardAdapter(
         private fun applyVisualState(hasFocus: Boolean, hovered: Boolean, app: AppEntry?) {
             val isMoving = app != null && app.pkg == movingPackage
             val targetScale = when {
-                hasFocus -> 1.10f
-                hovered -> 1.05f
+                isMoving -> 1.05f
+                hasFocus -> 1.08f
+                hovered -> 1.03f
                 else -> 1.0f
             }
+
             val targetElevation = when {
-                hasFocus -> 16f
-                hovered -> 8f
+                hasFocus -> 12f * itemView.resources.displayMetrics.density
+                hovered -> 6f * itemView.resources.displayMetrics.density
                 else -> 0f
             }
 
-            itemView.elevation = targetElevation
-            // ViewPropertyAnimator with .withLayer() enables hardware layer only during the 140ms
-            // transition, automatically releasing it when idle to prevent excessive GPU memory consumption.
             itemView.animate()
                 .scaleX(targetScale)
                 .scaleY(targetScale)
-                .setDuration(140)
+                .translationZ(targetElevation)
+                .setDuration(150)
                 .setInterpolator(DecelerateInterpolator())
                 .withLayer()
                 .start()
@@ -210,7 +213,7 @@ class AppCardAdapter(
             isMoving: Boolean
         ) {
             val tileColor = if (app != null) {
-                if (app.banner != null) 0xFF141720.toInt() else app.tile.toArgb()
+                if (app.banner != null) 0xFF141720.toInt() else app.tile
             } else 0xFF212638.toInt()
 
             val density = itemView.resources.displayMetrics.density
@@ -273,12 +276,12 @@ class AppCardAdapter(
             if (app.banner != null) {
                 binding.imgBanner.visibility = View.VISIBLE
                 binding.layoutFallback.visibility = View.GONE
-                binding.imgBanner.setImageBitmap(app.banner.asAndroidBitmap())
+                binding.imgBanner.setImageBitmap(app.banner)
             } else {
                 binding.imgBanner.visibility = View.GONE
                 binding.layoutFallback.visibility = View.VISIBLE
                 if (app.icon != null) {
-                    binding.imgIcon.setImageBitmap(app.icon.asAndroidBitmap())
+                    binding.imgIcon.setImageBitmap(app.icon)
                     binding.imgIcon.visibility = View.VISIBLE
                 } else {
                     binding.imgIcon.visibility = View.GONE
@@ -297,4 +300,3 @@ class AppCardAdapter(
         }
     }
 }
-

@@ -1,7 +1,6 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
@@ -77,7 +76,6 @@ android {
         jvmTarget = "17"
     }
     buildFeatures {
-        compose = true
         viewBinding = true
     }
     lint {
@@ -87,19 +85,16 @@ android {
 }
 
 dependencies {
-    implementation(platform("androidx.compose:compose-bom:2024.09.03"))
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.foundation:foundation")
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.tv:tv-material:1.0.0")
-    // iOS-style continuous (squircle) corners — perceptually smoother than the
-    // circular-arc RoundedCornerShape.
+    // iOS-style continuous (squircle) corners via native Drawables — perceptually
+    // smoother than the circular-arc RoundedCornerShape.
     implementation("androidx.graphics:graphics-shapes:1.0.1")
 
     implementation("androidx.core:core-ktx:1.13.1")
+    implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation("androidx.activity:activity-ktx:1.9.2")
+    implementation("androidx.fragment:fragment-ktx:1.8.3")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.6")
     implementation("androidx.annotation:annotation:1.8.2")
-    implementation("androidx.activity:activity-compose:1.9.2")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.6")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation("androidx.recyclerview:recyclerview:1.3.2")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
@@ -107,7 +102,6 @@ dependencies {
     implementation("androidx.viewpager2:viewpager2:1.1.0")
     implementation("androidx.navigation:navigation-fragment-ktx:2.7.7")
     implementation("androidx.navigation:navigation-ui-ktx:2.7.7")
-    implementation("androidx.fragment:fragment-ktx:1.8.3")
     // Applies the bundled baseline profile (src/main/baseline-prof.txt) so the
     // startup + scroll paths are AOT-compiled on first run instead of JIT'd —
     // the big cold-start "screen shows but not smooth yet" win.

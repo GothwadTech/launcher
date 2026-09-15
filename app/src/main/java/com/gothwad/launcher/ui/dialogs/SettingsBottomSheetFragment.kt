@@ -34,7 +34,7 @@ class SettingsBottomSheetFragment : DialogFragment() {
     var apps: List<AppEntry> = emptyList()
     var onWallpaperChanged: (() -> Unit)? = null
     var onRerunWizard: (() -> Unit)? = null
-    var onModeSelected: ((String) -> Unit)? = null
+    var onModeSelected: ((Int) -> Unit)? = null
 
     private lateinit var store: ConfigStore
 
@@ -388,7 +388,7 @@ class SettingsBottomSheetFragment : DialogFragment() {
             apps: List<AppEntry>,
             onWallpaperChanged: () -> Unit,
             onRerunWizard: () -> Unit,
-            onModeSelected: (String) -> Unit
+            onModeSelected: (Int) -> Unit
         ): SettingsBottomSheetFragment {
             return SettingsBottomSheetFragment().apply {
                 this.config = config

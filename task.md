@@ -103,3 +103,19 @@ Capture this in the same "everything loaded" state used for previous measurement
 - If any phase's AI Studio session runs low on usage credit mid-phase, stop, let quota reset, and re-run the *same* phase's prompt again (each phase prompt is self-contained and scoped to specific files, so resuming is safe) rather than trying to combine it with the next phase.
 - Do not skip ahead to a later phase while an earlier phase still has Compose/Views mixed for the same screen — verify each phase builds and runs cleanly first.
 - Keep `AGENTS.md` (from the browser project, or create an equivalent for the launcher if one doesn't exist yet) updated with a note once this migration is complete, so future AI Studio sessions know the launcher is Views-only and should never reintroduce Compose or `AndroidView`/`ComposeView` bridges.
+
+---
+
+## Migration Status & Complete Phase Review
+
+### Overall Status: **100% COMPLETED**
+
+| Phase | Description | Status | Details |
+|---|---|---|---|
+| **Phase 1** | Foundation & Shell | **COMPLETED** | Added AndroidX Views dependencies, enabled `viewBinding = true`, established single-Activity `nav_graph.xml` architecture. |
+| **Phase 2** | App Grid Screens (TV + PC) | **COMPLETED** | Built `TvLauncherFragment` (RecyclerView with category scrolling, D-pad navigation, focus highlights) and `PcLauncherFragment` (desktop grid, taskbar, start menu, fast switching). Zero Compose/`AndroidView` interop. |
+| **Phase 3** | App Card Visuals & Drawables | **COMPLETED** | Implemented `SmoothCornerDrawable` for continuous squircle rendering via `androidx.graphics.shapes`, `AppIcons` vector rendering, native `StateListAnimator` focus states. |
+| **Phase 4** | Dialogs & Sheets | **COMPLETED** | Converted all 10 dialogs/sheets to native `DialogFragment` / `BottomSheetDialogFragment` with ViewBinding (`SettingsBottomSheetFragment`, `SearchDialogFragment`, `PinEntryDialogFragment`, `PinSetupDialogFragment`, `SetupWizardDialogFragment`, `ModeSelectionDialogFragment`, `NotificationBottomSheetFragment`, `QuickDashboardDialogFragment`, `WeatherDetailsDialogFragment`, `VoiceSearchDialogFragment`, `BackgroundMediaDialogFragment`). |
+| **Phase 5** | Theme & Status Bar | **COMPLETED** | Created native theme resources in `res/values/themes.xml`, `colors.xml`, `styles.xml`. Implemented native `StatusBarView` in Activity layout with clock, date, weather, notification bell/badge, active media chip, network status, and settings shortcut. |
+| **Phase 6** | Full Compose Removal | **COMPLETED** | Deleted all legacy Compose files, removed `compose = true`, removed Compose compiler plugin, removed Compose BOM and all Compose libraries from `build.gradle.kts`. Retained `androidx.graphics:graphics-shapes` for native squircle drawables. Verified clean compilation. Created `AGENTS.md` documenting Views-only architectural invariants. |
+

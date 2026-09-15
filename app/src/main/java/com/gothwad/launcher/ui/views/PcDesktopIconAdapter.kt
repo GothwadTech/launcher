@@ -4,7 +4,6 @@ import android.graphics.drawable.GradientDrawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.gothwad.launcher.data.AppEntry
@@ -41,7 +40,7 @@ class PcDesktopIconAdapter(
             binding.iconContainer.background = iconBg
             binding.iconContainer.clipToOutline = true
 
-            val bitmap = app.icon?.asAndroidBitmap()
+            val bitmap = app.icon
             if (bitmap != null) {
                 binding.imgAppIcon.setImageBitmap(bitmap)
                 binding.imgAppIcon.visibility = View.VISIBLE

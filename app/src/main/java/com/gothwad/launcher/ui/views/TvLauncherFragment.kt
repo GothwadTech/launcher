@@ -66,17 +66,13 @@ class TvLauncherFragment : Fragment() {
 
     private fun setupRecyclerView() {
         val density = resources.displayMetrics.density
-        val defaultWidthDp = ICON_SIZES.getOrElse(currentConfig.iconScale.coerceIn(0, ICON_SIZES.size - 1)) { ICON_SIZES[2] }.value
+        val defaultWidthDp = ICON_SIZES.getOrElse(currentConfig.iconScale.coerceIn(0, ICON_SIZES.size - 1)) { ICON_SIZES[2] }
         val defaultWidthPx = (defaultWidthDp * density).toInt()
         val defaultHeightPx = (defaultWidthPx * 9f / 16f).toInt()
-        val defaultRadiusPx = (CORNER_RADII.getOrElse(currentConfig.cornerRadius.coerceIn(0, CORNER_RADII.size - 1)) { CORNER_RADII[2] }.value * density)
-        val defaultGapPx = (GAP_SIZES.getOrElse(currentConfig.spacing.coerceIn(0, GAP_SIZES.size - 1)) { GAP_SIZES[2] }.value * density).toInt()
+        val defaultRadiusPx = (CORNER_RADII.getOrElse(currentConfig.cornerRadius.coerceIn(0, CORNER_RADII.size - 1)) { CORNER_RADII[2] } * density)
+        val defaultGapPx = (GAP_SIZES.getOrElse(currentConfig.spacing.coerceIn(0, GAP_SIZES.size - 1)) { GAP_SIZES[2] } * density).toInt()
         val accentColor = ACCENTS.getOrElse(currentConfig.accent.coerceIn(0, ACCENTS.size - 1)) { ACCENTS[0] }
-        val accentArgb = android.graphics.Color.rgb(
-            (accentColor.red * 255).toInt(),
-            (accentColor.green * 255).toInt(),
-            (accentColor.blue * 255).toInt()
-        )
+        val accentArgb = accentColor
 
         categoryAdapter = TvCategoryAdapter(
             recycledViewPool = sharedRecycledViewPool,
@@ -181,9 +177,7 @@ class TvLauncherFragment : Fragment() {
                 }
             } else {
                 val preset = WALLPAPERS.getOrElse(currentConfig.wallpaper.coerceIn(0, WALLPAPERS.size - 1)) { WALLPAPERS[0] }
-                val colors = preset.colors.map { c ->
-                    Color.rgb((c.red * 255).toInt(), (c.green * 255).toInt(), (c.blue * 255).toInt())
-                }.toIntArray()
+                val colors = preset.colors.toIntArray()
 
                 val gradient = GradientDrawable(GradientDrawable.Orientation.TL_BR, colors)
                 binding.imgWallpaper.setImageDrawable(gradient)
@@ -229,17 +223,13 @@ class TvLauncherFragment : Fragment() {
 
     private fun updateDimensionsAndStyling() {
         val density = resources.displayMetrics.density
-        val widthDp = ICON_SIZES.getOrElse(currentConfig.iconScale.coerceIn(0, ICON_SIZES.size - 1)) { ICON_SIZES[2] }.value
+        val widthDp = ICON_SIZES.getOrElse(currentConfig.iconScale.coerceIn(0, ICON_SIZES.size - 1)) { ICON_SIZES[2] }
         val widthPx = (widthDp * density).toInt()
         val heightPx = (widthPx * 9f / 16f).toInt()
-        val radiusPx = (CORNER_RADII.getOrElse(currentConfig.cornerRadius.coerceIn(0, CORNER_RADII.size - 1)) { CORNER_RADII[2] }.value * density)
-        val gapPx = (GAP_SIZES.getOrElse(currentConfig.spacing.coerceIn(0, GAP_SIZES.size - 1)) { GAP_SIZES[2] }.value * density).toInt()
+        val radiusPx = (CORNER_RADII.getOrElse(currentConfig.cornerRadius.coerceIn(0, CORNER_RADII.size - 1)) { CORNER_RADII[2] } * density)
+        val gapPx = (GAP_SIZES.getOrElse(currentConfig.spacing.coerceIn(0, GAP_SIZES.size - 1)) { GAP_SIZES[2] } * density).toInt()
         val accentColor = ACCENTS.getOrElse(currentConfig.accent.coerceIn(0, ACCENTS.size - 1)) { ACCENTS[0] }
-        val accentArgb = android.graphics.Color.rgb(
-            (accentColor.red * 255).toInt(),
-            (accentColor.green * 255).toInt(),
-            (accentColor.blue * 255).toInt()
-        )
+        val accentArgb = accentColor
 
         categoryAdapter?.updateConfig(
             widthPx = widthPx,

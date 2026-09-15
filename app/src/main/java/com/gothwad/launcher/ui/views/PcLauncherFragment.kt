@@ -201,9 +201,7 @@ class PcLauncherFragment : Fragment() {
                 }
             } else {
                 val preset = WALLPAPERS.getOrElse(currentConfig.wallpaper.coerceIn(0, WALLPAPERS.size - 1)) { WALLPAPERS[0] }
-                val colors = preset.colors.map { c ->
-                    Color.rgb((c.red * 255).toInt(), (c.green * 255).toInt(), (c.blue * 255).toInt())
-                }.toIntArray()
+                val colors = preset.colors.toIntArray()
 
                 val gradient = GradientDrawable(GradientDrawable.Orientation.TL_BR, colors)
                 binding.imgWallpaper.setImageDrawable(gradient)

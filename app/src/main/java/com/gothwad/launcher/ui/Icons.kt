@@ -5,13 +5,7 @@ import android.graphics.ColorFilter
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.PixelFormat
-import android.graphics.Rect
 import android.graphics.drawable.Drawable
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.vector.addPathNodes
-import androidx.compose.ui.unit.dp
 import androidx.core.graphics.PathParser
 
 /**
@@ -64,22 +58,6 @@ class VectorPathDrawable(
     @Deprecated("Deprecated in Java")
     override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
 }
-
-/**
- * Hand-defined Material icon paths — replaces the multi-megabyte
- * material-icons-extended dependency with just the 15 icons we use.
- */
-private fun icon(name: String, d: String): ImageVector =
-    ImageVector.Builder(
-        name = name,
-        defaultWidth = 24.dp,
-        defaultHeight = 24.dp,
-        viewportWidth = 24f,
-        viewportHeight = 24f,
-    ).addPath(
-        pathData = addPathNodes(d),
-        fill = SolidColor(Color.White),
-    ).build()
 
 object AppIcons {
     // Path constants
@@ -150,61 +128,4 @@ object AppIcons {
         val path = PathParser.createPathFromPathData(pathData)
         return VectorPathDrawable(path, viewportWidth, viewportHeight, tintColor)
     }
-
-    // Compose ImageVectors (kept for compatibility with screens not yet migrated)
-    val Search by lazy { icon("Search", PATH_SEARCH) }
-    val Lock by lazy { icon("Lock", PATH_LOCK) }
-    val LockOpen by lazy { icon("LockOpen", PATH_LOCK_OPEN) }
-    val Key by lazy { icon("Key", PATH_KEY) }
-    val Play by lazy { icon("Play", PATH_PLAY) }
-    val Bolt by lazy { icon("Bolt", PATH_BOLT) }
-    val Move by lazy { icon("Move", PATH_MOVE) }
-    val Hide by lazy { icon("Hide", PATH_HIDE) }
-    val Show by lazy { icon("Show", PATH_SHOW) }
-    val Info by lazy { icon("Info", PATH_INFO) }
-    val Stop by lazy { icon("Stop", PATH_STOP) }
-    val Delete by lazy { icon("Delete", PATH_DELETE) }
-    val Add by lazy { icon("Add", PATH_ADD) }
-    val Up by lazy { icon("Up", PATH_UP) }
-    val Down by lazy { icon("Down", PATH_DOWN) }
-    val Vpn by lazy { icon("Vpn", PATH_VPN) }
-    val Wifi by lazy { icon("Wifi", PATH_WIFI) }
-    val WifiOff by lazy { icon("WifiOff", PATH_WIFI_OFF) }
-    val Ethernet by lazy { icon("Ethernet", PATH_ETHERNET) }
-    val Check by lazy { icon("Check", PATH_CHECK) }
-    val Pencil by lazy { icon("Pencil", PATH_PENCIL) }
-    val Image by lazy { icon("Image", PATH_IMAGE) }
-    val Apps by lazy { icon("Apps", PATH_APPS) }
-    val Save by lazy { icon("Save", PATH_SAVE) }
-    val Folder by lazy { icon("Folder", PATH_FOLDER) }
-    val Back by lazy { icon("Back", PATH_BACK) }
-    val Gear by lazy { icon("Gear", PATH_GEAR) }
-    val Display by lazy { icon("Display", PATH_DISPLAY) }
-    val Palette by lazy { icon("Palette", PATH_PALETTE) }
-    val Language by lazy { icon("Language", PATH_LANGUAGE) }
-    val Bell by lazy { icon("Bell", PATH_BELL) }
-    val BellActive by lazy { icon("BellActive", PATH_BELL_ACTIVE) }
-    val Close by lazy { icon("Close", PATH_CLOSE) }
-    val ClearAll by lazy { icon("ClearAll", PATH_CLEAR_ALL) }
-    val Accessibility by lazy { icon("Accessibility", PATH_ACCESSIBILITY) }
-    val Mic by lazy { icon("Mic", PATH_MIC) }
-    val Sun by lazy { icon("Sun", PATH_SUN) }
-    val Cloud by lazy { icon("Cloud", PATH_CLOUD) }
-    val Rain by lazy { icon("Rain", PATH_RAIN) }
-    val Bluetooth by lazy { icon("Bluetooth", PATH_BLUETOOTH) }
-    val Battery by lazy { icon("Battery", PATH_BATTERY) }
-    val Dashboard by lazy { icon("Dashboard", PATH_DASHBOARD) }
-    val Star by lazy { icon("Star", PATH_STAR) }
-    val Volume by lazy { icon("Volume", PATH_VOLUME) }
-    val Mute by lazy { icon("Mute", PATH_MUTE) }
-    val Standby by lazy { icon("Standby", PATH_STANDBY) }
-    val Music by lazy { icon("Music", PATH_MUSIC) }
-    val Equalizer by lazy { icon("Equalizer", PATH_EQUALIZER) }
-    val Shield by lazy { icon("Shield", PATH_SHIELD) }
-    val Tv by lazy { icon("Tv", PATH_TV) }
-    val Desktop by lazy { icon("Desktop", PATH_DESKTOP) }
-    val Phone by lazy { icon("Phone", PATH_PHONE) }
-    val Windows by lazy { icon("Windows", PATH_WINDOWS) }
-    val Refresh by lazy { icon("Refresh", PATH_REFRESH) }
 }
-

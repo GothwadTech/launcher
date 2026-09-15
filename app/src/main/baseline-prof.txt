@@ -1,25 +1,16 @@
 # Baseline profile — hand-authored (no macrobenchmark harness). Covers the
-# launcher's own code plus the Compose / TV-Material paths exercised on cold
+# launcher's own code plus the Views / AndroidX paths exercised on cold
 # start and while scrolling, so ART compiles them ahead of time instead of
 # interpreting them on first use. Flags: H=hot, S=startup, P=post-startup.
 
 # --- The launcher itself: every class is on the startup / interaction path. ---
 HSPLcom/gothwad/launcher/**->**(**)**
 
-# --- Compose runtime: composition, snapshots, recomposition. ---
-HSPLandroidx/compose/runtime/**->**(**)**
-
-# --- Compose UI: layout, draw, graphics, focus, input, first frame. ---
-HSPLandroidx/compose/ui/**->**(**)**
-
-# --- Compose foundation: lazy lists, gestures, scrolling, background/clip. ---
-HSPLandroidx/compose/foundation/**->**(**)**
-
-# --- Compose animation: the launch entrance + focus transitions. ---
-HSPLandroidx/compose/animation/**->**(**)**
-
-# --- TV Material 3 components used across every screen. ---
-HSPLandroidx/tv/material3/**->**(**)**
+# --- AndroidX Views & Navigation: RecyclerView, Fragment, ConstraintLayout. ---
+HSPLandroidx/recyclerview/**->**(**)**
+HSPLandroidx/fragment/**->**(**)**
+HSPLandroidx/constraintlayout/**->**(**)**
+HSPLandroidx/navigation/**->**(**)**
 
 # --- graphics-shapes: the squircle corner path built on every card. ---
 HSPLandroidx/graphics/shapes/**->**(**)**

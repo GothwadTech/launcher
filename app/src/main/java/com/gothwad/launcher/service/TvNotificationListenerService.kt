@@ -9,8 +9,6 @@ import android.graphics.drawable.Drawable
 import android.provider.Settings
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,7 +17,7 @@ data class TvNotificationItem(
     val key: String,
     val packageName: String,
     val appName: String,
-    val appIcon: ImageBitmap? = null,
+    val appIcon: Bitmap? = null,
     val nativeBitmap: Bitmap? = null,
     val title: String,
     val text: String,
@@ -151,7 +149,6 @@ class TvNotificationListenerService : NotificationListenerService() {
                     }
                     drawable?.let { toNativeBitmap(it) }
                 }.getOrNull()
-                val iconBitmap: ImageBitmap? = nativeBmp?.asImageBitmap()
 
                 val subText = extras.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString()
                 val isClearable = sbn.isClearable
@@ -161,7 +158,7 @@ class TvNotificationListenerService : NotificationListenerService() {
                         key = sbn.key,
                         packageName = sbn.packageName,
                         appName = appName,
-                        appIcon = iconBitmap,
+                        appIcon = nativeBmp,
                         nativeBitmap = nativeBmp,
                         title = title.ifBlank { appName },
                         text = text,
@@ -196,9 +193,5 @@ class TvNotificationListenerService : NotificationListenerService() {
         drawable.setBounds(0, 0, canvas.width, canvas.height)
         drawable.draw(canvas)
         return bmp
-    }
-
-    private fun toImageBitmap(drawable: Drawable): ImageBitmap? {
-        return toNativeBitmap(drawable).asImageBitmap()
     }
 }

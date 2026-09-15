@@ -3,7 +3,6 @@ package com.gothwad.launcher.ui.dialogs
 import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -39,7 +38,7 @@ class SearchAppAdapter(
             binding.tvAppLabel.text = app.label
             binding.tvAppPkg.text = app.pkg
 
-            val bmp = app.icon?.asAndroidBitmap() ?: app.banner?.asAndroidBitmap()
+            val bmp = app.icon ?: app.banner
             if (bmp != null) {
                 binding.imgAppIcon.setImageBitmap(bmp)
             } else {
