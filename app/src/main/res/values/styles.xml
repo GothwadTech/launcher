@@ -113,4 +113,10 @@
         <item name="android:paddingHorizontal">10dp</item>
     </style>
 
+    <!-- TV Settings Right-Side Slide Animation -->
+    <style name="Animation.TvSettingsPanel" parent="@android:style/Animation">
+        <item name="android:windowEnterAnimation">@anim/slide_in_right</item>
+        <item name="android:windowExitAnimation">@anim/slide_out_right</item>
+    </style>
+
 </resources>
