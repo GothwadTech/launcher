@@ -18,6 +18,10 @@
         <!-- Bottom Sheet Theme -->
         <item name="bottomSheetDialogTheme">@style/Theme.LiteTV.BottomSheetDialog</item>
         <item name="dialogTheme">@style/Theme.LiteTV.Dialog</item>
+
+        <!-- Toggle Switch Blue Color #4FA7FA -->
+        <item name="colorControlActivated">#4FA7FA</item>
+        <item name="switchStyle">@style/Widget.LiteTV.Switch</item>
     </style>
 
     <style name="Theme.LiteTV.BottomSheetDialog" parent="Theme.MaterialComponents.DayNight.BottomSheetDialog">

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <!-- Android TV Leanback Settings Dark Slate Background -->
-    <solid android:color="#F7151D24" />
+    <!-- Android TV Leanback Settings Background -->
+    <solid android:color="#202124" />
 </shape>

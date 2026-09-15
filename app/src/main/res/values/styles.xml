@@ -119,4 +119,11 @@
         <item name="android:windowExitAnimation">@anim/slide_out_right</item>
     </style>
 
+    <!-- TV Settings Switch Toggle Style -->
+    <style name="Widget.LiteTV.Switch" parent="Widget.MaterialComponents.CompoundButton.Switch">
+        <item name="thumbTint">@color/switch_thumb_tint</item>
+        <item name="trackTint">@color/switch_track_tint</item>
+        <item name="useMaterialThemeColors">false</item>
+    </style>
+
 </resources>

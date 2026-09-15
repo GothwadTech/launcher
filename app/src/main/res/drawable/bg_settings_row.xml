@@ -1,24 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Focused state: entire rectangle background subtly highlights, no rounded corners or stroke -->
+    <!-- Focused state: solid #2E2F32 rectangle highlight -->
     <item android:state_focused="true">
         <shape android:shape="rectangle">
-            <solid android:color="#243444" />
+            <solid android:color="#2E2F32" />
         </shape>
     </item>
     <!-- Pressed state -->
     <item android:state_pressed="true">
         <shape android:shape="rectangle">
-            <solid android:color="#35485B" />
+            <solid android:color="#2E2F32" />
         </shape>
     </item>
     <!-- Selected state -->
     <item android:state_selected="true">
         <shape android:shape="rectangle">
-            <solid android:color="#1F3446" />
+            <solid android:color="#2E2F32" />
         </shape>
     </item>
-    <!-- Default state: completely transparent, not a card -->
+    <!-- Default state: completely transparent, seamless with parent #202124 -->
     <item>
         <shape android:shape="rectangle">
             <solid android:color="@android:color/transparent" />
