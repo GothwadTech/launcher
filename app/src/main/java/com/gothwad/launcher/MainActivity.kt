@@ -23,8 +23,6 @@ import com.gothwad.launcher.data.ConfigStore
 import com.gothwad.launcher.data.LauncherConfig
 import com.gothwad.launcher.data.MODE_PC
 import com.gothwad.launcher.data.NetStatus
-import com.gothwad.launcher.data.WeatherData
-import com.gothwad.launcher.data.WeatherRepository
 import com.gothwad.launcher.data.bluetoothStatusFlow
 import com.gothwad.launcher.data.networkStatusFlow
 import com.gothwad.launcher.databinding.ActivityMainBinding
@@ -37,7 +35,6 @@ import com.gothwad.launcher.ui.dialogs.SearchDialogFragment
 import com.gothwad.launcher.ui.dialogs.SettingsBottomSheetFragment
 import com.gothwad.launcher.ui.dialogs.SetupWizardDialogFragment
 import com.gothwad.launcher.ui.dialogs.VoiceSearchDialogFragment
-import com.gothwad.launcher.ui.dialogs.WeatherDetailsDialogFragment
 import com.gothwad.launcher.ui.views.TvLauncherFragment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -61,7 +58,6 @@ class MainActivity : AppCompatActivity() {
     private var currentNetStatus: NetStatus = NetStatus()
     private var currentBtStatus: BluetoothDeviceStatus = BluetoothDeviceStatus()
     private var currentMediaState: BackgroundMediaState = BackgroundMediaState()
-    private var currentWeather: WeatherData = WeatherData()
     private var allApps: List<AppEntry> = emptyList()
 
     private val packageReceiver = object : BroadcastReceiver() {
@@ -186,25 +182,10 @@ class MainActivity : AppCompatActivity() {
                 ).show(supportFragmentManager, QuickDashboardDialogFragment.TAG)
             }
 
-            onWeatherClick = {
-                WeatherDetailsDialogFragment.newInstance(
-                    weather = currentWeather,
-                    onRefresh = { refreshWeather() }
-                ).show(supportFragmentManager, WeatherDetailsDialogFragment.TAG)
-            }
-
             onBackgroundMediaClick = {
                 BackgroundMediaDialogFragment.newInstance(
                     state = currentMediaState
                 ).show(supportFragmentManager, BackgroundMediaDialogFragment.TAG)
-            }
-
-            onVpnClick = {
-                if (currentConfig.vpnApp.isNotEmpty()) {
-                    Actions.launchApp(this@MainActivity, currentConfig.vpnApp)
-                } else {
-                    Actions.openVpnSettings(this@MainActivity)
-                }
             }
 
             onNetworkClick = {
@@ -311,34 +292,19 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
-                // 6. Clock & Date loop
+                // 6. Clock & Date loop (Format: 16 Sep • Wed • 01:26 AM)
                 launch {
                     while (isActive) {
                         val now = Date()
-                        val timePattern = if (currentConfig.h24) "HH:mm" else "h:mm a"
-                        val timeStr = SimpleDateFormat(timePattern, Locale.getDefault()).format(now)
-                        val dateStr = SimpleDateFormat("EEE, MMM d", Locale.getDefault()).format(now)
-                        binding.mainStatusBar.setClockTime(timeStr, dateStr)
+                        val timePattern = if (currentConfig.h24) "HH:mm" else "hh:mm a"
+                        val dateFormatted = SimpleDateFormat("d MMM • EEE", Locale.ENGLISH).format(now)
+                        val timeFormatted = SimpleDateFormat(timePattern, Locale.ENGLISH).format(now)
+                        val fullDateTime = "$dateFormatted • $timeFormatted"
+                        binding.mainStatusBar.setClockTime(fullDateTime)
                         delay(1000)
                     }
                 }
-
-                // 7. Periodic Weather
-                launch {
-                    while (isActive) {
-                        refreshWeather()
-                        delay(15 * 60 * 1000) // 15 mins
-                    }
-                }
             }
-        }
-    }
-
-    private fun refreshWeather() {
-        lifecycleScope.launch {
-            val weather = WeatherRepository.getWeather(this@MainActivity)
-            currentWeather = weather
-            binding.mainStatusBar.setWeatherData(weather)
         }
     }
 

@@ -14,7 +14,6 @@ import com.gothwad.launcher.data.BackgroundMediaState
 import com.gothwad.launcher.data.BluetoothDeviceStatus
 import com.gothwad.launcher.data.LauncherConfig
 import com.gothwad.launcher.data.NetStatus
-import com.gothwad.launcher.data.WeatherData
 import com.gothwad.launcher.databinding.ViewStatusBarBinding
 import com.gothwad.launcher.ui.AppIcons
 
@@ -31,15 +30,12 @@ class StatusBarView @JvmOverloads constructor(
     var onSearchClick: (() -> Unit)? = null
     var onVoiceSearchClick: (() -> Unit)? = null
     var onBluetoothClick: (() -> Unit)? = null
-    var onWeatherClick: (() -> Unit)? = null
     var onBackgroundMediaClick: (() -> Unit)? = null
-    var onVpnClick: (() -> Unit)? = null
     var onNetworkClick: (() -> Unit)? = null
     var onNotificationsClick: (() -> Unit)? = null
     var onSettingsClick: (() -> Unit)? = null
 
     private var mediaPulseAnimator: ObjectAnimator? = null
-    private var showVpnButton: Boolean = false
 
     init {
         setupStaticIcons()
@@ -51,8 +47,6 @@ class StatusBarView @JvmOverloads constructor(
         binding.btnSearch.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_SEARCH, Color.WHITE))
         binding.btnVoiceSearch.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_MIC, Color.WHITE))
         binding.imgBluetooth.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BLUETOOTH, 0xFF64B5F6.toInt()))
-        binding.imgWeather.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_SUN, 0xFFFFD54F.toInt()))
-        binding.btnVpn.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_VPN, Color.WHITE))
         binding.btnNetwork.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_WIFI, Color.WHITE))
         binding.btnNotifications.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BELL, Color.WHITE))
         binding.btnSettings.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_GEAR, Color.WHITE))
@@ -63,18 +57,13 @@ class StatusBarView @JvmOverloads constructor(
         binding.btnSearch.setOnClickListener { onSearchClick?.invoke() }
         binding.btnVoiceSearch.setOnClickListener { onVoiceSearchClick?.invoke() }
         binding.layoutBluetoothPill.setOnClickListener { onBluetoothClick?.invoke() }
-        binding.layoutWeatherPill.setOnClickListener { onWeatherClick?.invoke() }
         binding.btnBgMedia.setOnClickListener { onBackgroundMediaClick?.invoke() }
-        binding.btnVpn.setOnClickListener { onVpnClick?.invoke() }
         binding.btnNetwork.setOnClickListener { onNetworkClick?.invoke() }
         binding.btnNotifications.setOnClickListener { onNotificationsClick?.invoke() }
         binding.btnSettings.setOnClickListener { onSettingsClick?.invoke() }
     }
 
     fun applyConfig(config: LauncherConfig) {
-        showVpnButton = config.showVpnButton
-        binding.btnVpn.visibility = if (showVpnButton) View.VISIBLE else View.GONE
-
         val glassDrawable = if (config.statusBarGlass) {
             ContextCompat.getDrawable(context, R.drawable.bg_glass_cluster)
         } else {
@@ -91,14 +80,6 @@ class StatusBarView @JvmOverloads constructor(
             else -> AppIcons.PATH_WIFI_OFF to 0x80FFFFFF.toInt()
         }
         binding.btnNetwork.setImageDrawable(AppIcons.createDrawable(iconPath, color))
-
-        if (showVpnButton) {
-            binding.btnVpn.visibility = View.VISIBLE
-            val vpnColor = if (net.vpn) 0xFF8AB4F8.toInt() else 0x80FFFFFF.toInt()
-            binding.btnVpn.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_VPN, vpnColor))
-        } else {
-            binding.btnVpn.visibility = View.GONE
-        }
     }
 
     fun setBluetoothStatus(bt: BluetoothDeviceStatus) {
@@ -118,16 +99,6 @@ class StatusBarView @JvmOverloads constructor(
         } else {
             binding.layoutBluetoothPill.visibility = View.GONE
         }
-    }
-
-    fun setWeatherData(weather: WeatherData) {
-        val (path, color) = when (weather.condition.lowercase()) {
-            "rain", "showers", "thunderstorm" -> AppIcons.PATH_RAIN to 0xFF81D4FA.toInt()
-            "partly cloudy", "foggy", "clouds" -> AppIcons.PATH_CLOUD to 0xFF90CAF9.toInt()
-            else -> AppIcons.PATH_SUN to 0xFFFFD54F.toInt()
-        }
-        binding.imgWeather.setImageDrawable(AppIcons.createDrawable(path, color))
-        binding.tvWeatherTemp.text = weather.temp.ifEmpty { "--°" }
     }
 
     fun setBackgroundMedia(media: BackgroundMediaState) {
@@ -171,9 +142,8 @@ class StatusBarView @JvmOverloads constructor(
         }
     }
 
-    fun setClockTime(time: String, date: String) {
-        binding.tvClock.text = time
-        binding.tvDate.text = date
+    fun setClockTime(formattedDateTime: String) {
+        binding.tvClock.text = formattedDateTime
     }
 
     override fun onDetachedFromWindow() {

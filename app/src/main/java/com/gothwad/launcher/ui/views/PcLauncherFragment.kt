@@ -281,7 +281,7 @@ class PcLauncherFragment : Fragment() {
         val context = requireContext()
 
         qsBinding.imgTileWifi.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_WIFI, 0xFF4FA7FA.toInt()))
-        qsBinding.imgTileBluetooth.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BLUETOOTH, 0xFF4FA7FA.toInt()))
+        qsBinding.imgTileHome.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_HOME, 0xFF4FA7FA.toInt()))
         qsBinding.imgTileTv.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_TV, 0xFF60A5FA.toInt()))
         qsBinding.imgTileNotifs.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BELL, Color.WHITE))
         qsBinding.imgQsVolume.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_VOLUME, Color.WHITE))
@@ -315,9 +315,8 @@ class PcLauncherFragment : Fragment() {
             Actions.openNetworkSettings(requireContext())
         }
 
-        qsBinding.tileQsBluetooth.setOnClickListener {
+        qsBinding.tileQsHome.setOnClickListener {
             closeAllFlyouts()
-            Actions.openBluetoothSettings(requireContext())
         }
 
         qsBinding.tileQsTvMode.setOnClickListener {
@@ -1036,9 +1035,9 @@ class PcLauncherFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 while (isActive) {
                     val now = Date()
-                    val timePattern = if (currentConfig.h24) "HH:mm" else "h:mm a"
-                    val timeStr = SimpleDateFormat(timePattern, Locale.getDefault()).format(now)
-                    val dateStr = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault()).format(now)
+                    val timePattern = if (currentConfig.h24) "HH:mm" else "hh:mm a"
+                    val timeStr = SimpleDateFormat(timePattern, Locale.ENGLISH).format(now)
+                    val dateStr = SimpleDateFormat("d MMM • EEE", Locale.ENGLISH).format(now)
 
                     binding.tvTaskbarTime.text = timeStr
                     binding.tvTaskbarDate.text = dateStr

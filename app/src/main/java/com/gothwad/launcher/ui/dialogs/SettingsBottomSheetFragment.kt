@@ -510,16 +510,6 @@ class SettingsBottomSheetFragment : DialogFragment() {
             }
         }
 
-        binding.switchVpnButton.isChecked = config.showVpnButton
-        binding.rowToggleVpnButton.setOnClickListener {
-            val newVal = !binding.switchVpnButton.isChecked
-            binding.switchVpnButton.isChecked = newVal
-            lifecycleScope.launch {
-                store.update { it.copy(showVpnButton = newVal) }
-                config = config.copy(showVpnButton = newVal)
-            }
-        }
-
         binding.switchStatusbarGlass.isChecked = config.statusBarGlass
         binding.rowToggleStatusbarGlass.setOnClickListener {
             val newVal = !binding.switchStatusbarGlass.isChecked

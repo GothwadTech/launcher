@@ -76,17 +76,12 @@ class QuickDashboardDialogFragment : DialogFragment() {
             dismiss()
         }
 
-        // Bluetooth status
-        binding.imgBtIcon.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BLUETOOTH, 0xFF64B5F6.toInt()))
-        binding.tvBtTitle.text = if (btStatus.name.isNotEmpty()) btStatus.name else "Bluetooth"
-        binding.tvBtSub.text = if (btStatus.batteryLevel >= 0) "Battery: ${btStatus.batteryLevel}%" else "Connected"
+        // Home action
+        binding.imgHomeIcon.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_HOME, 0xFF64B5F6.toInt()))
+        binding.tvHomeTitle.text = "Home"
+        binding.tvHomeSub.text = "Return Home"
 
-        binding.tileBluetooth.setOnClickListener {
-            runCatching {
-                startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                })
-            }
+        binding.tileHome.setOnClickListener {
             dismiss()
         }
 

@@ -119,6 +119,12 @@
         <item name="android:windowExitAnimation">@anim/slide_out_right</item>
     </style>
 
+    <!-- TV Notifications Left-Side Slide Animation -->
+    <style name="Animation.LeftSidebar" parent="@android:style/Animation">
+        <item name="android:windowEnterAnimation">@anim/slide_in_left</item>
+        <item name="android:windowExitAnimation">@anim/slide_out_left</item>
+    </style>
+
     <!-- TV Settings Switch Toggle Style -->
     <style name="Widget.LiteTV.Switch" parent="Widget.MaterialComponents.CompoundButton.Switch">
         <item name="thumbTint">@color/switch_thumb_tint</item>

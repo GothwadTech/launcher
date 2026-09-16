@@ -112,9 +112,9 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Bluetooth Tile -->
+        <!-- Home Tile -->
         <LinearLayout
-            android:id="@+id/tile_qs_bluetooth"
+            android:id="@+id/tile_qs_home"
             android:layout_width="0dp"
             android:layout_height="52dp"
             android:layout_marginStart="6dp"
@@ -127,7 +127,7 @@
             android:paddingHorizontal="10dp">
 
             <ImageView
-                android:id="@+id/img_tile_bluetooth"
+                android:id="@+id/img_tile_home"
                 android:layout_width="22dp"
                 android:layout_height="22dp"
                 android:contentDescription="@null" />
@@ -142,16 +142,16 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Bluetooth"
+                    android:text="Home"
                     android:textColor="#FFFFFF"
                     android:textSize="11sp"
                     android:textStyle="bold" />
 
                 <TextView
-                    android:id="@+id/tv_tile_bt_state"
+                    android:id="@+id/tv_tile_home_state"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Settings"
+                    android:text="Return"
                     android:textColor="#9AA0A6"
                     android:textSize="10sp" />
             </LinearLayout>

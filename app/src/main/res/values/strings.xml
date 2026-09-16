@@ -25,7 +25,6 @@
     <string name="minutes_short">%1$d min</string>
 
     <!-- Status bar -->
-    <string name="cd_vpn">VPN</string>
     <string name="cd_network">Network</string>
     <string name="cd_settings">Settings</string>
 
@@ -63,7 +62,7 @@
     <string name="item_wallpaper">Wallpaper</string>
     <string name="item_wallpaper_sub">Static color or photo</string>
     <string name="item_statusbar">Status bar</string>
-    <string name="item_statusbar_sub">Visibility, clock format, VPN app</string>
+    <string name="item_statusbar_sub">Visibility, clock format, glass effect</string>
     <string name="item_language">Language</string>
     <string name="item_language_sub">Interface language</string>
     <string name="lang_system">System default</string>
@@ -239,8 +238,6 @@
     <string name="permission_usage_desc">Allows the launcher to organize and show your most frequently opened apps automatically on the home screen.</string>
     <string name="permission_usage_stats_title">Usage Access Required</string>
     <string name="permission_usage_stats_desc">To display your frequently used apps automatically, grant Usage Access permission.</string>
-    <string name="permission_location_title">Location Access for Weather</string>
-    <string name="permission_location_desc">Used to automatically fetch accurate local temperature and weather forecasts for your TV.</string>
     <string name="permission_mic_title">Microphone Access for Voice Search</string>
     <string name="permission_mic_desc">Used to search for apps and media quickly using your voice on TV remote or phone.</string>
     <string name="permission_overlay_title">Draw Over Other Apps</string>
@@ -254,9 +251,8 @@
     <string name="mute">Mute</string>
     <string name="standby">Sleep / Standby</string>
     <string name="remote_battery">Remote: %1$d%%</string>
-    <string name="weather_auto_location">Auto location</string>
     <string name="item_permissions">Smart Permissions</string>
-    <string name="item_permissions_sub">Usage stats, Weather location, Mic, Bluetooth, Overlay</string>
+    <string name="item_permissions_sub">Usage stats, Mic, Bluetooth, Overlay</string>
 
     <!-- Search & Secret Vault -->
     <string name="cd_search">Search</string>

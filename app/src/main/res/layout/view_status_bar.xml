@@ -9,7 +9,7 @@
     android:paddingTop="18dp"
     android:paddingBottom="8dp">
 
-    <!-- Left Cluster: Control Center, Search, Voice, BT, Weather -->
+    <!-- Left Cluster: Control Center, Search, Voice, BT, Notifications -->
     <LinearLayout
         android:id="@+id/cluster_left"
         android:layout_width="wrap_content"
@@ -64,67 +64,7 @@
                 android:textColor="@color/text_primary" />
         </LinearLayout>
 
-        <LinearLayout
-            android:id="@+id/layout_weather_pill"
-            style="@style/Widget.LiteTV.StatusPill"
-            android:layout_width="wrap_content"
-            android:layout_marginStart="4dp">
-
-            <ImageView
-                android:id="@+id/img_weather"
-                android:layout_width="18dp"
-                android:layout_height="18dp"
-                android:contentDescription="@string/cd_weather" />
-
-            <TextView
-                android:id="@+id/tv_weather_temp"
-                style="@style/TextAppearance.LiteTV.TitleSmall"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:text="--°"
-                android:textColor="@color/text_primary"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-    </LinearLayout>
-
-    <!-- Right Cluster: Active Media, VPN, Network, Notifications, Settings, Date, Clock -->
-    <LinearLayout
-        android:id="@+id/cluster_right"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentEnd="true"
-        android:layout_centerVertical="true"
-        android:background="@drawable/bg_glass_cluster"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="8dp"
-        android:paddingVertical="4dp">
-
-        <ImageButton
-            android:id="@+id/btn_bg_media"
-            style="@style/Widget.LiteTV.StatusButton"
-            android:contentDescription="Background Media"
-            android:padding="7dp"
-            android:visibility="gone" />
-
-        <ImageButton
-            android:id="@+id/btn_vpn"
-            style="@style/Widget.LiteTV.StatusButton"
-            android:layout_marginStart="4dp"
-            android:contentDescription="@string/cd_vpn"
-            android:padding="7dp"
-            android:visibility="gone" />
-
-        <ImageButton
-            android:id="@+id/btn_network"
-            style="@style/Widget.LiteTV.StatusButton"
-            android:layout_marginStart="4dp"
-            android:contentDescription="@string/cd_network"
-            android:padding="7dp" />
-
-        <!-- Notification Bell with Badge / Warning Dot -->
+        <!-- Notification Bell with Badge / Warning Dot moved to Left Cluster -->
         <FrameLayout
             android:id="@+id/layout_notification"
             android:layout_width="wrap_content"
@@ -166,6 +106,35 @@
                 android:visibility="gone" />
         </FrameLayout>
 
+    </LinearLayout>
+
+    <!-- Right Cluster: Active Media (when present), Wi-Fi, Settings, Date/Day/Time -->
+    <LinearLayout
+        android:id="@+id/cluster_right"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_centerVertical="true"
+        android:background="@drawable/bg_glass_cluster"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="4dp">
+
+        <ImageButton
+            android:id="@+id/btn_bg_media"
+            style="@style/Widget.LiteTV.StatusButton"
+            android:contentDescription="Background Media"
+            android:padding="7dp"
+            android:visibility="gone" />
+
+        <ImageButton
+            android:id="@+id/btn_network"
+            style="@style/Widget.LiteTV.StatusButton"
+            android:layout_marginStart="4dp"
+            android:contentDescription="@string/cd_network"
+            android:padding="7dp" />
+
         <ImageButton
             android:id="@+id/btn_settings"
             style="@style/Widget.LiteTV.StatusButton"
@@ -180,24 +149,11 @@
             android:layout_marginHorizontal="10dp"
             android:background="@color/surface_glass_border" />
 
-        <LinearLayout
+        <TextView
+            android:id="@+id/tv_clock"
+            style="@style/TextAppearance.LiteTV.Clock"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical|end"
-            android:orientation="vertical">
-
-            <TextView
-                android:id="@+id/tv_clock"
-                style="@style/TextAppearance.LiteTV.Clock"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
-
-            <TextView
-                android:id="@+id/tv_date"
-                style="@style/TextAppearance.LiteTV.Date"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
-        </LinearLayout>
+            android:layout_height="wrap_content" />
 
     </LinearLayout>
 

@@ -194,9 +194,9 @@
                     android:textSize="11sp" />
             </LinearLayout>
 
-            <!-- Bluetooth Tile -->
+            <!-- Home Tile -->
             <LinearLayout
-                android:id="@+id/tile_bluetooth"
+                android:id="@+id/tile_home"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="6dp"
@@ -214,30 +214,30 @@
                     android:orientation="horizontal">
 
                     <ImageView
-                        android:id="@+id/img_bt_icon"
+                        android:id="@+id/img_home_icon"
                         android:layout_width="20dp"
                         android:layout_height="20dp"
-                        android:contentDescription="Bluetooth" />
+                        android:contentDescription="Home" />
 
                     <TextView
-                        android:id="@+id/tv_bt_title"
+                        android:id="@+id/tv_home_title"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="6dp"
                         android:ellipsize="end"
                         android:maxLines="1"
-                        android:text="Remote / BT"
+                        android:text="Home"
                         android:textColor="#FFFFFF"
                         android:textSize="14sp"
                         android:textStyle="bold" />
                 </LinearLayout>
 
                 <TextView
-                    android:id="@+id/tv_bt_sub"
+                    android:id="@+id/tv_home_sub"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:text="Connected"
+                    android:text="Return Home"
                     android:textColor="#99FFFFFF"
                     android:textSize="11sp" />
             </LinearLayout>

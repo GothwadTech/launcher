@@ -59,11 +59,6 @@ object Actions {
             .onFailure { openSystemSettings(context) }
     }
 
-    fun openVpnSettings(context: Context) {
-        runCatching { context.startActivity(Intent("android.settings.VPN_SETTINGS")) }
-            .onFailure { openSystemSettings(context) }
-    }
-
     fun openAccessibilitySettings(context: Context) {
         runCatching {
             val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
