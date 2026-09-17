@@ -17,8 +17,10 @@ object Actions {
         val intent = pm.getLeanbackLaunchIntentForPackage(pkg)
             ?: pm.getLaunchIntentForPackage(pkg)
         if (intent != null) {
-            runCatching { context.startActivity(intent) }
-                .onFailure { toast(context, context.getString(R.string.toast_cannot_open)) }
+            runCatching {
+                context.startActivity(intent)
+                com.gothwad.launcher.data.AppLaunchTracker.onAppLaunched(pkg)
+            }.onFailure { toast(context, context.getString(R.string.toast_cannot_open)) }
         } else toast(context, context.getString(R.string.toast_no_launchable))
     }
 

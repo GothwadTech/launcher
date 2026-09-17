@@ -98,14 +98,36 @@
                 android:contentDescription="Start Menu"
                 android:padding="7dp" />
 
-            <ImageButton
+            <!-- Windows / Linux style Taskbar Search Bar -->
+            <LinearLayout
                 android:id="@+id/btn_search"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_marginStart="2dp"
-                android:background="@drawable/bg_pc_taskbar_btn"
-                android:contentDescription="@string/cd_search"
-                android:padding="8dp" />
+                android:layout_width="160dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="4dp"
+                android:background="@drawable/bg_pc_taskbar_search_bar"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="8dp">
+
+                <ImageView
+                    android:id="@+id/img_taskbar_search_icon"
+                    android:layout_width="15dp"
+                    android:layout_height="15dp"
+                    android:contentDescription="@null" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="Type here to search"
+                    android:textColor="#99FFFFFF"
+                    android:textSize="11.5sp" />
+            </LinearLayout>
 
             <!-- Pinned Apps List on Taskbar -->
             <androidx.recyclerview.widget.RecyclerView

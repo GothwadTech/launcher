@@ -1,121 +1,87 @@
-# Gothwad Launcher — Full Compose → Android Views Migration Plan
+# Gothwad Launcher — Reliability Hardening + Remote Button Mapping
 
 ## How to use this file
+Same rule as `task.md`: feed **one phase at a time** to Google AI Studio, as its own separate prompt/session. After each phase, build, install on the real test device, confirm nothing regressed, then move on. Do not skip ahead or merge phases — each phase touches memory-sensitive/system-sensitive code and needs to be verified in isolation on the actual STB.
 
-This is a **6-phase migration**, not a single task. Feed **one phase at a time** to Google AI Studio, as its own separate prompt/session. After each phase:
-1. Build the app.
-2. Install and run it on the actual test device.
-3. Confirm the app doesn't crash and the converted screen(s) look/behave correctly.
-4. Only then move to the next phase's prompt.
+**Global rule for every phase (paste this at the top of every AI Studio prompt below):**
 
-Do this for two reasons:
-- **It protects your AI Studio usage credits** — six focused prompts cost far less total than one giant one, and if a session runs out of quota mid-way, you only lose that one phase's progress, not the whole migration.
-- **It prevents another hybrid-mess regression.** The previous attempt silently mixed Compose and Views (via `AndroidView`) because the task scope wasn't broken down — this plan explicitly forbids that in every phase.
-
-**Global rule for every phase (repeat this at the top of whatever you paste into AI Studio, it's included in each phase prompt below):**
-
-> This project is being fully migrated off Jetpack Compose to classic Android Views (XML layouts + Fragments/Activities + ViewBinding). Do not use `androidx.compose.ui.viewinterop.AndroidView`, `ComposeView`, or any other Compose/View interop bridge at any point, even temporarily — this creates a documented memory regression (confirmed via `adb shell dumpsys meminfo -d`: Graphics/GPU memory went from 81MB to 152MB and Code memory from 73MB to 107MB when a partial Compose+RecyclerView hybrid was attempted). Every screen must be either fully Compose (temporarily, until its phase is reached) or fully Views (once migrated) — never both at once for the same screen.
+> This is a low-RAM (2GB) Android TV set-top-box launcher (`com.gothwad.launcher`) that must run reliably as the default HOME app on restricted, non-rooted OEM firmware (Jio STB, Airtel Xstream, generic Android TV, and Google TV certified devices). Do not add any dependency that requires root, a system-app install, or a custom ROM. Every new background component must be extremely lightweight — this project already reduced RSS from 400MB+ to under 90MB and that must not regress. Do not reintroduce Jetpack Compose or `AndroidView` interop anywhere (see the existing migration rule in `task.md`).
 
 ---
 
-## Phase 1 — Foundation: Gradle setup + MainActivity shell
+## Phase 1 — Application-level memory guardian (stop the crash before it happens)
 
-**Goal:** Get the project building with a View-based `MainActivity` shell and the necessary Views/AndroidX dependencies in place, without touching any actual screen content yet. The existing Compose screens can still be launched from the old code path temporarily during this phase only — full removal of Compose happens in Phase 6.
+**Goal:** Give the launcher its own automatic background-app management, since it can no longer assume a third-party "app optimizer" is installed.
+
+**Context for AI Studio:** Today `Actions.kt` has a `close(pkg)` function that calls `ActivityManager.killBackgroundProcesses(pkg)`, but it is only ever invoked manually by the user from the UI. There is no `Application` subclass and no `onTrimMemory`/`onLowMemory` override anywhere in the project, so the launcher never reacts to system memory pressure on its own.
 
 Prompt for AI Studio:
 
-> Add the necessary Android Views dependencies to `app/build.gradle.kts` for a Views-based UI: `androidx.constraintlayout:constraintlayout`, `com.google.android.material:material`, `androidx.viewpager2:viewpager2` (if needed for any swipeable UI later), and confirm `androidx.recyclerview:recyclerview` (already present) stays. Enable `viewBinding = true` in the `buildFeatures` block. Do not remove any existing Compose dependencies yet — that happens in a later phase. Create a new `MainActivity` entry point (or prepare the existing `MainActivity.kt` to be converted) that will eventually host a single-Activity, multiple-Fragment architecture using the Jetpack Navigation component (`androidx.navigation:navigation-fragment-ktx`, `androidx.navigation:navigation-ui-ktx`) — set up a basic `nav_graph.xml` with one placeholder empty Fragment destination for now, just to confirm the navigation shell builds and runs without crashing. Do not migrate any real screen content in this phase. Confirm the app builds and launches to a blank placeholder screen.
+> Create a new `GothwadApplication : Application()` class (register it as `android:name` in `AndroidManifest.xml`). Inside it, maintain an in-memory, timestamp-ordered LRU list of package names the user has launched via `Actions.launchApp` (add a hook there to report launches to this tracker — keep it a simple singleton object, no DB). Override `onTrimMemory(level: Int)`: when `level >= TRIM_MEMORY_RUNNING_LOW`, call `ActivityManager.killBackgroundProcesses()` on every tracked package **except** `com.gothwad.launcher` itself, the single most-recently-launched package, and a small hardcoded protect-list (system launcher/settings packages). When `level >= TRIM_MEMORY_RUNNING_CRITICAL`, also drop everything except the current foreground package. Also override `onLowMemory()` to do the same critical-level cleanup as a fallback for OEM builds that don't reliably deliver `onTrimMemory`. Do not touch UI code in this phase — this is a pure background service class. Make sure this logic runs on a background thread/coroutine, never blocking the main thread, since the whole point is to prevent the main thread from ever stalling under memory pressure.
 
 ---
 
-## Phase 2 — App grid screens (TV + PC) as native Views
+## Phase 2 — Crash & ANR self-healing watchdog (no reboot required)
 
-**Goal:** Convert the core home-screen app grid (`LauncherScreen.kt`, `TvLauncherScreen.kt`, `PcLauncherScreen.kt`) into Fragments with XML layouts. The project already has a partial start on this (`TvAppGridRecyclerView.kt`, `AppCardAdapter.kt`, `AppCardDiffCallback.kt`, `TvCategoryAdapter.kt`) — reuse and complete this work, but remove the `AndroidView` Compose-interop wrapper currently in `TvAppGridRecyclerView.kt` since the RecyclerView will now live directly inside a native Fragment's XML layout, with no Compose involved at all for this screen.
+**Goal:** If the launcher process ever does die or hang despite Phase 1, it must come back **by itself within seconds**, without the user needing to power-cycle the box.
+
+**Context for AI Studio:** `BootReceiver.kt` only fires on `ACTION_BOOT_COMPLETED`/`QUICKBOOT_POWERON`. There is currently no mechanism that detects "the launcher process died or is hung while the device stayed powered on" and relaunches it. Also, `Thread.setDefaultUncaughtExceptionHandler` is never set, so a crash falls straight through to the default Android crash dialog.
 
 Prompt for AI Studio:
 
-> Convert the TV home-screen app grid to a fully native Fragment (e.g. `TvLauncherFragment`) with an XML layout containing a `RecyclerView` directly (no `AndroidView`/Compose interop — remove the `AndroidView` wrapper currently in `TvAppGridRecyclerView.kt` and inline that RecyclerView setup directly into the new Fragment using ViewBinding). Reuse the existing `AppCardAdapter.kt`, `AppCardDiffCallback.kt`, and `TvCategoryAdapter.kt` — they're already Views-based and don't need Compose removed from them, just wire them into the new native Fragment instead of into a Compose `AndroidView` host. Do the same for the PC/tablet variant (a `PcLauncherFragment` equivalent to `PcLauncherScreen.kt`'s layout, e.g. a different grid arrangement or `ViewPager2`/`RecyclerView` layout manager suited to touch/mouse navigation instead of D-pad). Preserve all existing behavior: category switching, focus/D-pad navigation between app cards, app launching on click/select, long-press context actions if any exist in the current Compose version. Wire the appropriate Fragment (TV vs PC layout) into the navigation graph from Phase 1, replacing the placeholder destination, chosen based on the same device-type detection logic the current Compose code uses. Do not touch dialogs, settings, search, or any other screen in this phase — only the core app-grid home screen.
+> 1) In `GothwadApplication.onCreate()`, install a `Thread.setDefaultUncaughtExceptionHandler` that: logs the exception to a small rolling file in `filesDir` (for later diagnosis), then schedules an immediate relaunch of `MainActivity` via `AlarmManager.setExactAndAllowWhileIdle` (1-2 seconds out) using the same intent flags `LauncherAccessibilityService.launchHome()` already uses, before calling through to the previous default handler (so the crash still gets reported to the system, but the relaunch is already queued).
+> 2) Add a second, minimal always-alive component running in its own process (`android:process=":watchdog"` in the manifest) — a small `Service` (or `WorkManager` periodic worker if `:watchdog` process complicates things — pick whichever is more reliable on Android 8-14) that, every ~10 seconds, checks whether `com.gothwad.launcher`'s main process/`MainActivity` is alive and in the foreground (use `ActivityManager.RunningAppProcessInfo` for the main process's importance, since that check does not have the Android 10+ foreground-task restriction that `getRunningTasks` has). If the main process is dead, or if it has been in the "not responding" state, immediately fire the same relaunch intent. This watchdog process must be trivially small in memory (a plain `Handler`/coroutine loop with `delay()`, no libraries) so it doesn't itself become a memory problem on a 2GB device.
+> 3) This watchdog must self-start on boot alongside `BootReceiver`, and must restart itself if the system kills it (`START_STICKY` if using a `Service`).
 
 ---
 
-## Phase 3 — App card visuals, icons, and shapes as native Views/Drawables
+## Phase 3 — Guaranteed 100% boot-time recovery on ANY device (Jio / Airtel / Google TV / Android TV certified / restricted)
 
-**Goal:** Convert `AppCard.kt`'s Compose visuals (if any part of it still needs converting beyond the already-native adapter from Phase 2), `Icons.kt`, and `SmoothCornerShape.kt` into native View/Drawable equivalents.
+**Goal:** If Phases 1-2 somehow still fail to keep it alive, the very next boot must deterministically bring the launcher back to foreground and keep it there, on every device type — including fully Android-TV-certified/restricted firmware where APIs behave differently than on Jio's looser STB fork.
+
+**Context for AI Studio — an important existing bug to fix:** `BootReceiver.kt`'s 45-second "boot shield" loop currently calls `ActivityManager.getRunningTasks(1)` to detect the stock launcher stealing the foreground. **On Android 10 (API 29) and above, `getRunningTasks()` is restricted and only returns the calling app's own tasks for any non-system app** — so on modern, properly-restricted Android TV / Google TV certified builds this check silently does nothing useful; it may only have appeared to work on Jio's box because that OEM fork is looser about this restriction. This needs to be fixed for the feature to actually be reliable "on any device."
 
 Prompt for AI Studio:
 
-> Convert `SmoothCornerShape.kt` (the iOS-style continuous/squircle corner shape currently implemented as a Compose `Shape`) into an equivalent Android `Drawable` (e.g. a custom `Drawable` subclass drawing the same squircle path via `android.graphics.Path`, or an XML `<shape>`/`<vector>` approximation if visually close enough) usable as a View background. Convert any remaining Compose-specific icon rendering in `Icons.kt` into a plain Kotlin object/function that returns `Drawable`/`Bitmap` resources for use in `ImageView`s within the Views-based `AppCardAdapter` from Phase 2. Ensure app card focus/selection visual states (scale, highlight, border) are implemented using native View animation APIs (`ViewPropertyAnimator`, `StateListAnimator`, or `AnimatedVectorDrawable`) rather than Compose animation APIs, and confirm these do not use excessive `setLayerType(LAYER_TYPE_HARDWARE, ...)` calls per-item (batch/share hardware layers only where genuinely needed for animation smoothness, consistent with the project's memory-reduction goals). Update `AppCardAdapter.kt`'s `onBindViewHolder` to use these new native shape/icon/animation implementations.
+> Replace the `getRunningTasks(1)`-based foreground detection in `BootReceiver.kt`'s boot-shield loop with `UsageStatsManager.queryEvents()` (the app already has `PACKAGE_USAGE_STATS` permission and already uses `UsageStatsManager` in `SmartServices.kt`'s `UsageTracker`), watching for `UsageEvents.Event.MOVE_TO_FOREGROUND` events and checking the most recent event's package name — this works correctly on all Android versions and device restriction levels, unlike `getRunningTasks`. Keep a graceful fallback to the old `getRunningTasks` check only for devices where the usage-stats permission isn't granted yet, wrapped in `runCatching`.
+> Also make the boot-shield window adaptive instead of a fixed 45 seconds: read `ActivityManager.MemoryInfo` / total RAM at boot, and extend the window (e.g. up to 90 seconds) on devices with 2GB or less RAM, since boot ads and OEM launcher races take longer to resolve on weaker hardware.
+> Also register `BootReceiver` for `Intent.ACTION_MY_PACKAGE_REPLACED` in the manifest, so recovery re-arms itself automatically right after any app update, without waiting for a reboot.
+> Finally, make the relaunch itself retry with backoff (e.g. up to 5 attempts, doubling delay) instead of a single `startActivity` call, since on some restricted/certified firmware the very first `startActivity` call immediately after boot can silently fail before the system is fully settled.
 
 ---
 
-## Phase 4 — Dialogs and sheets as DialogFragments/BottomSheetDialogFragments
+## Phase 4 — Recover from Android's automatic accessibility-service disable
 
-**Goal:** Convert all remaining dialog/sheet screens to native Views-based dialogs. This is the largest remaining phase — consider splitting it further into 2-3 sub-sessions if AI Studio's usage runs low (e.g. "Settings + Search" as one sub-session, "Security + SetupWizard" as another, "Notifications + QuickDashboard + WeatherDetails + VoiceSearch + BackgroundMediaDialog" as a third).
-
-Prompt for AI Studio (do this list, or split into sub-batches as noted above):
-
-> Convert the following Compose dialogs/sheets into native Views-based equivalents, each as a `DialogFragment` or `BottomSheetDialogFragment` (using `com.google.android.material.bottomsheet.BottomSheetDialogFragment` where the current Compose version behaves like a bottom sheet) with its own XML layout and ViewBinding, preserving all existing functionality and options exactly:
-> - `SettingsSheet.kt` → settings screen (all existing toggles/options, including the wallpaper, icon, and behavior settings that remain after the video-wallpaper removal)
-> - `SearchDialog.kt` → app/content search
-> - `SecurityDialogs.kt` and `SecuritySettings.kt` → PIN lock setup/entry screens
-> - `SetupWizard.kt` → first-run setup flow
-> - `ModeSelectionDialog.kt` → TV vs PC mode selection
-> - `NotificationSheet.kt` → notification list sheet
-> - `QuickDashboardDialog.kt` → quick dashboard overlay
-> - `WeatherDetailsDialog.kt` → weather detail popup
-> - `VoiceSearchDialog.kt` → voice search UI (keep this wired to the existing `VoiceSearchHelper.kt` logic, which is unrelated to Compose and needs no changes)
-> - `BackgroundMediaDialog.kt` → background media detection dialog
->
-> For each, remove the Compose-based implementation only after its native replacement is confirmed working, and update whatever code currently shows/launches these Compose dialogs (from `LauncherScreen.kt`/`MainActivity`/the Fragments from Phase 2) to instead show the new `DialogFragment`/`BottomSheetDialogFragment`. Do not use `ComposeView` or `AndroidView` as an intermediate step for any of these — build them as plain XML layouts from the start.
-
----
-
-## Phase 5 — Theme and status bar
-
-**Goal:** Convert `Theme.kt` (Compose `MaterialTheme`/color scheme) and `StatusBar.kt` into native `styles.xml`/`themes.xml` and a native status bar View (likely a persistent View in the main Activity layout or a small Fragment).
+**Goal:** When Android auto-disables `LauncherAccessibilityService` after a crash/ANR (a built-in OS safety behavior, not a bug in this app), the user must be told immediately and clearly instead of discovering it later as "HOME button / auto-return-to-launcher stopped working."
 
 Prompt for AI Studio:
 
-> Convert `Theme.kt`'s color scheme, typography, and shape definitions into equivalent `res/values/themes.xml` and `res/values/colors.xml`/`styles.xml` definitions for use by the native Views/Fragments built in Phases 1-4. Convert `StatusBar.kt` (the persistent clock/status/notification-icons bar, if that's what it is — inspect its current Compose implementation first and describe what it shows) into a native View or small Fragment hosted permanently in the main Activity's XML layout, functionally identical to its current behavior. Update all previously-converted Fragments/DialogFragments from Phases 2-4 to use the new native theme resources instead of any remaining Compose theme references.
+> On every app start (`MainActivity.onCreate`) and inside the Phase 2 watchdog's periodic check, call the existing `LauncherAccessibilityService.isEnabled(context)`. If it returns `false` after previously having been enabled (track this with a simple `SharedPreferences` flag `"accessibility_was_enabled"`), show a persistent, high-visibility on-screen banner/notification (not just a Toast) that stays until dismissed, explaining that Android disabled the accessibility permission after a crash and that it needs to be re-enabled, with a button that calls the existing `Actions.openAccessibilitySettings(context)`. Do not silently keep working in a degraded mode — the user must always know why HOME-button interception has stopped.
 
 ---
 
-## Phase 6 — Full Compose removal and final verification
+## Phase 5 — Remote button mapping (Settings feature)
 
-**Goal:** Remove Jetpack Compose entirely from the project and confirm the memory improvement.
+**Goal:** Dedicated hotkeys on different STB remotes (e.g. a physical "YouTube" button) currently do nothing in this launcher, because only `KEYCODE_HOME` is intercepted today. Add both an automatic default mapping and a manual "learn this button" mapping system.
+
+**Context for AI Studio:** `LauncherAccessibilityService` already has `FLAG_REQUEST_FILTER_KEY_EVENTS` set and already implements `onKeyEvent()`, but it only checks for `KeyEvent.KEYCODE_HOME` — every other key currently falls through unused. `LauncherConfig` in `Config.kt` is where all persisted settings already live via the existing `ConfigStore`/DataStore mechanism.
 
 Prompt for AI Studio:
 
-> Search the entire codebase for any remaining Compose imports (`androidx.compose.*`), `@Composable` functions, `setContent { }` calls, `ComposeView`, or `AndroidView` usage — there should be none left after Phases 1-5. Delete any leftover now-unused Compose source files (the original `.kt` files for `LauncherScreen.kt`, `TvLauncherScreen.kt`, `PcLauncherScreen.kt`, `AppCard.kt`, and all the dialog files from Phase 4, if their content was fully ported and they're no longer referenced anywhere). Remove all Compose-related dependencies from `app/build.gradle.kts`: the `compose-bom` platform, `androidx.compose.ui:ui`, `androidx.compose.foundation:foundation`, `androidx.compose.material3:material3`, `androidx.tv:tv-material`, `androidx.graphics:graphics-shapes` (only if nothing non-Compose still needs it — check first), `androidx.activity:activity-compose`, `androidx.lifecycle:lifecycle-runtime-compose`. Remove the `buildFeatures { compose = true }` flag and the Compose compiler plugin/extension configuration from `build.gradle.kts`. Confirm the project builds successfully after all removals with zero remaining Compose references. Confirm `isMinifyEnabled = true` and `isShrinkResources = true` remain enabled for release builds.
-
-**After Phase 6, re-measure and compare:**
-
-```
-adb shell dumpsys meminfo com.gothwad.launcher -d
-```
-
-Capture this in the same "everything loaded" state used for previous measurements (all categories opened, a dialog or two shown) and compare the "Graphics" and "Code" categories against the two previous measurements (81MB/73MB before any changes, 152MB/107MB after the hybrid regression) to confirm the full-Views version is now meaningfully lower than both — this is the actual proof the migration achieved its goal.
+> 1) Add `val buttonMap: Map<Int, String> = emptyMap()` to `LauncherConfig` in `Config.kt` (keyCode → target package name, using the existing `kotlinx.serialization` setup already used for the rest of the config — `Map<Int, String>` serializes fine as-is).
+> 2) Seed a hardcoded default map of well-known STB/TV-remote dedicated hotkey codes (e.g. `KeyEvent.KEYCODE_PROG_RED/GREEN/YELLOW/BLUE`, `KEYCODE_GUIDE`, `KEYCODE_CAPTIONS`, `KEYCODE_TV`, and any others you can find in the Android `KeyEvent` reference that commonly map to streaming-app hotkeys) to sensible default target packages (YouTube, Netflix, Prime Video, etc. — only apply a default if that package is actually installed on the device, check via `Actions.isInstalled`). Apply these defaults only once, on first run, and only for keys the user hasn't already mapped.
+> 3) In `LauncherAccessibilityService.onKeyEvent()`, before/after the existing `KEYCODE_HOME` check, look up `event.keyCode` in the current `LauncherConfig.buttonMap` (read via `ConfigStore` — cache the latest config in the service via the existing config flow so this lookup is not a blocking read on every keystroke) and if a mapping exists, call `Actions.launchApp(this, mappedPkg)` and consume the event (`return true`), the same way `KEYCODE_HOME` does. Never intercept keys with no mapping — let them pass through as today.
+> 4) Add a new **"Button Mapping"** section inside `SettingsBottomSheetFragment.kt` (or its own `DialogFragment`/`BottomSheetDialogFragment` if that fits the existing settings structure better) with:
+>    - A list of currently mapped buttons (shown as "Button code NNN → App label", with the default hotkey names shown in plain English where known, e.g. "Red button → Netflix") and a remove (✕) action per row.
+>    - An "Add mapping" flow: tapping it shows a "Press the button on your remote now…" prompt; the very next raw key event the `LauncherAccessibilityService` receives (add a temporary listen-mode flag the service checks, communicated via a `SharedFlow`/broadcast back to the settings UI so it isn't tied to `KEYCODE_HOME`-only handling) is captured — including unknown/vendor-specific key codes — and shown to the user as "Detected button code: NNN". The user then picks any installed app from a list (`AppRepository`'s existing scanned list) to map it to, and it's saved into `LauncherConfig.buttonMap` via `ConfigStore.update`.
+>    - Make sure `KEYCODE_HOME`, `KEYCODE_BACK`, and D-pad navigation keys cannot be remapped (skip/reject them in the "press a button" capture step with a clear message), since those are reserved for core launcher navigation.
 
 ---
 
-## Notes
+## Phase 6 — Verification checklist (do this after every phase, on the real box)
 
-- If any phase's AI Studio session runs low on usage credit mid-phase, stop, let quota reset, and re-run the *same* phase's prompt again (each phase prompt is self-contained and scoped to specific files, so resuming is safe) rather than trying to combine it with the next phase.
-- Do not skip ahead to a later phase while an earlier phase still has Compose/Views mixed for the same screen — verify each phase builds and runs cleanly first.
-- Keep `AGENTS.md` (from the browser project, or create an equivalent for the launcher if one doesn't exist yet) updated with a note once this migration is complete, so future AI Studio sessions know the launcher is Views-only and should never reintroduce Compose or `AndroidView`/`ComposeView` bridges.
+Prompt for AI Studio (use as a final review pass after all phases are merged):
 
----
+> Review the full diff across Phases 1-5 together and confirm: (a) nothing added here can block the main/UI thread even transiently — all `ActivityManager`/`UsageStatsManager`/DataStore calls involved must be off the main thread; (b) the new `:watchdog` process, `GothwadApplication`'s LRU tracker, and the button-mapping cache together add no more than a few MB of steady-state RAM, consistent with the project's 90MB budget; (c) every new permission-gated code path (usage stats, accessibility) degrades gracefully with `runCatching`/null-checks when the permission isn't granted, instead of crashing; (d) `buttonMap` defaults and the accessibility re-enable banner both work correctly on a device where `PACKAGE_USAGE_STATS` has not been granted at all.
 
-## Migration Status & Complete Phase Review
-
-### Overall Status: **100% COMPLETED**
-
-| Phase | Description | Status | Details |
-|---|---|---|---|
-| **Phase 1** | Foundation & Shell | **COMPLETED** | Added AndroidX Views dependencies, enabled `viewBinding = true`, established single-Activity `nav_graph.xml` architecture. |
-| **Phase 2** | App Grid Screens (TV + PC) | **COMPLETED** | Built `TvLauncherFragment` (RecyclerView with category scrolling, D-pad navigation, focus highlights) and `PcLauncherFragment` (desktop grid, taskbar, start menu, fast switching). Zero Compose/`AndroidView` interop. |
-| **Phase 3** | App Card Visuals & Drawables | **COMPLETED** | Implemented `SmoothCornerDrawable` for continuous squircle rendering via `androidx.graphics.shapes`, `AppIcons` vector rendering, native `StateListAnimator` focus states. |
-| **Phase 4** | Dialogs & Sheets | **COMPLETED** | Converted all 10 dialogs/sheets to native `DialogFragment` / `BottomSheetDialogFragment` with ViewBinding (`SettingsBottomSheetFragment`, `SearchDialogFragment`, `PinEntryDialogFragment`, `PinSetupDialogFragment`, `SetupWizardDialogFragment`, `ModeSelectionDialogFragment`, `NotificationBottomSheetFragment`, `QuickDashboardDialogFragment`, `WeatherDetailsDialogFragment`, `VoiceSearchDialogFragment`, `BackgroundMediaDialogFragment`). |
-| **Phase 5** | Theme & Status Bar | **COMPLETED** | Created native theme resources in `res/values/themes.xml`, `colors.xml`, `styles.xml`. Implemented native `StatusBarView` in Activity layout with clock, date, weather, notification bell/badge, active media chip, network status, and settings shortcut. |
-| **Phase 6** | Full Compose Removal | **COMPLETED** | Deleted all legacy Compose files, removed `compose = true`, removed Compose compiler plugin, removed Compose BOM and all Compose libraries from `build.gradle.kts`. Retained `androidx.graphics:graphics-shapes` for native squircle drawables. Verified clean compilation. Created `AGENTS.md` documenting Views-only architectural invariants. |
-
+Manually re-test this exact scenario after Phase 1-3 are done: open Chrome, then YouTube (without closing Chrome), then the sideloaded browser, then Spotify, then try to open a 5th app — the launcher must not hang; if it ever does, it must recover to a working home screen within a few seconds without any manual ADB intervention or reboot.

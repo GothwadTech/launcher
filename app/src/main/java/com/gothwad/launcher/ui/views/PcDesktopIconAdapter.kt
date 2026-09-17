@@ -36,6 +36,18 @@ class PcDesktopIconAdapter(
         }
     }
 
+    fun moveItemByPkg(pkg: String, delta: Int): Boolean {
+        val idx = appsList.indexOfFirst { it.pkg == pkg }
+        if (idx == -1) return false
+        val targetIdx = idx + delta
+        if (targetIdx in appsList.indices) {
+            Collections.swap(appsList, idx, targetIdx)
+            notifyItemMoved(idx, targetIdx)
+            return true
+        }
+        return false
+    }
+
     fun getCurrentList(): List<AppEntry> = appsList.toList()
 
     override fun getItemCount(): Int = appsList.size
@@ -81,20 +93,12 @@ class PcDesktopIconAdapter(
             containerLp.width = containerSizePx
             containerLp.height = containerSizePx
             binding.iconContainer.layoutParams = containerLp
-
-            // Rounded background for icon container
-            val iconBg = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = cornerRadiusPx
-                setColor(0x14FFFFFF)
-            }
-            binding.iconContainer.background = iconBg
-            binding.iconContainer.clipToOutline = true
+            binding.iconContainer.background = null
 
             // Adjust inner ImageView dimensions
             val imgLp = binding.imgAppIcon.layoutParams
-            imgLp.width = imgSizePx
-            imgLp.height = imgSizePx
+            imgLp.width = containerSizePx
+            imgLp.height = containerSizePx
             binding.imgAppIcon.layoutParams = imgLp
 
             // Custom Display Name or Default

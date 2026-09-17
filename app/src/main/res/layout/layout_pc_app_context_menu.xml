@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="240dp"
+    android:layout_width="220dp"
     android:layout_height="wrap_content"
     android:background="@drawable/bg_pc_context_menu"
-    android:elevation="16dp"
+    android:elevation="12dp"
     android:orientation="vertical"
-    android:padding="6dp">
+    android:padding="3dp">
 
     <!-- Header: App Icon & Name -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="36dp"
+        android:layout_height="32dp"
         android:gravity="center_vertical"
-        android:paddingHorizontal="10dp">
+        android:paddingHorizontal="8dp">
 
         <ImageView
             android:id="@+id/img_app_header_icon"
@@ -94,6 +94,62 @@
             android:layout_marginStart="10dp"
             android:layout_weight="1"
             android:text="Pin to Taskbar"
+            android:textColor="#EEEEEE"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <!-- 2a. Move Position Earlier / Top -->
+    <LinearLayout
+        android:id="@+id/item_app_move_up"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:background="@drawable/bg_pc_menu_item"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp">
+
+        <ImageView
+            android:id="@+id/img_action_move_up"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="Move Up / Left"
+            android:textColor="#EEEEEE"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <!-- 2b. Move Position Later / Down -->
+    <LinearLayout
+        android:id="@+id/item_app_move_down"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:background="@drawable/bg_pc_menu_item"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp">
+
+        <ImageView
+            android:id="@+id/img_action_move_down"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="Move Down / Right"
             android:textColor="#EEEEEE"
             android:textSize="13sp" />
     </LinearLayout>

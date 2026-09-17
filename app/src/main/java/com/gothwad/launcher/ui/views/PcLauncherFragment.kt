@@ -98,6 +98,12 @@ class PcLauncherFragment : Fragment() {
         observeData()
         startClockUpdates()
         registerStatusListeners()
+
+        binding.recyclerDesktopGrid.post {
+            if (_binding != null) {
+                updateGridDimensions()
+            }
+        }
     }
 
     private fun registerStatusListeners() {
@@ -127,7 +133,7 @@ class PcLauncherFragment : Fragment() {
     private fun setupTaskbar() {
         // Base taskbar buttons
         binding.btnStart.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_WINDOWS, 0xFF4FA7FA.toInt()))
-        binding.btnSearch.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_SEARCH, Color.WHITE))
+        binding.imgTaskbarSearchIcon.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_SEARCH, 0xCCFFFFFF.toInt()))
         binding.btnNotifications.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BELL, Color.WHITE))
         binding.imgTrayVolume.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_VOLUME, 0xFFCCCCCC.toInt()))
         binding.imgTrayNetwork.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_WIFI, 0xFFCCCCCC.toInt()))
@@ -487,24 +493,43 @@ class PcLauncherFragment : Fragment() {
 
     private fun updateGridDimensions() {
         val density = resources.displayMetrics.density
-        val widthPixels = resources.displayMetrics.widthPixels
+        val displayMetrics = resources.displayMetrics
         val scale = currentConfig.pcUiScale.coerceIn(0.6f, 1.5f)
         val iconSizeDp = currentConfig.pcIconSize.coerceIn(32, 64)
         val spacingDp = currentConfig.pcGridSpacing.coerceIn(6, 24)
 
-        // Item cell width including labels and padding
-        val itemWidthDp = (iconSizeDp + 26) * scale
-        val horizontalPaddingDp = spacingDp * 2
+        // Item cell dimensions (width ~70-90dp, height ~82-100dp including icon + label)
+        val itemHeightDp = (iconSizeDp + 36) * scale
+        val taskbarHeightPx = (currentConfig.pcTaskbarHeight * scale * density).toInt()
 
-        val availableWidthDp = (widthPixels / density) - horizontalPaddingDp
-        val spanCount = (availableWidthDp / itemWidthDp).toInt().coerceIn(3, 16)
+        // Available vertical height for desktop grid
+        val screenHeightPixels = displayMetrics.heightPixels
+        val recyclerHeightPx = if (binding.recyclerDesktopGrid.height > 0) {
+            binding.recyclerDesktopGrid.height
+        } else {
+            screenHeightPixels - taskbarHeightPx
+        }
+        val verticalPaddingDp = spacingDp * 2.2f
+        val availableHeightDp = (recyclerHeightPx / density) - verticalPaddingDp
 
-        binding.recyclerDesktopGrid.layoutManager = GridLayoutManager(requireContext(), spanCount)
+        // In HORIZONTAL GridLayoutManager, spanCount is the number of ROWS.
+        // Items flow top-to-bottom in column 1, then top-to-bottom in column 2 (authentic PC desktop behavior).
+        val rowSpanCount = (availableHeightDp / itemHeightDp).toInt().coerceIn(3, 14)
+
+        val currentLm = binding.recyclerDesktopGrid.layoutManager as? GridLayoutManager
+        if (currentLm == null || currentLm.spanCount != rowSpanCount || currentLm.orientation != RecyclerView.HORIZONTAL) {
+            binding.recyclerDesktopGrid.layoutManager = GridLayoutManager(
+                requireContext(),
+                rowSpanCount,
+                RecyclerView.HORIZONTAL,
+                false
+            )
+        }
+
         val padPx = (spacingDp * density).toInt()
         binding.recyclerDesktopGrid.setPadding(padPx, (padPx * 1.2f).toInt(), padPx, padPx)
 
         // Adjust Taskbar Height
-        val taskbarHeightPx = (currentConfig.pcTaskbarHeight * scale * density).toInt()
         val tbLp = binding.layoutTaskbar.layoutParams
         tbLp.height = taskbarHeightPx
         binding.layoutTaskbar.layoutParams = tbLp
@@ -676,17 +701,19 @@ class PcLauncherFragment : Fragment() {
         menuBinding.tvActionPin.text = if (isPinned) "Unpin from Taskbar" else "Pin to Taskbar"
 
         menuBinding.imgActionRename.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_PENCIL, Color.WHITE))
+        menuBinding.imgActionMoveUp.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_UP, Color.WHITE))
+        menuBinding.imgActionMoveDown.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_DOWN, Color.WHITE))
         menuBinding.imgActionHide.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_HIDE, Color.WHITE))
         menuBinding.imgActionInfo.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_INFO, Color.WHITE))
         menuBinding.imgActionUninstall.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_DELETE, 0xFFFF6B6B.toInt()))
 
         val popup = PopupWindow(
             menuBinding.root,
-            (240 * resources.displayMetrics.density).toInt(),
+            (220 * resources.displayMetrics.density).toInt(),
             ViewGroup.LayoutParams.WRAP_CONTENT,
             true
         ).apply {
-            elevation = 20f
+            elevation = 16f
             isOutsideTouchable = true
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         }
@@ -704,6 +731,20 @@ class PcLauncherFragment : Fragment() {
                     val updated = if (isPinned) cfg.pcPinnedApps.filter { it != app.pkg } else cfg.pcPinnedApps + app.pkg
                     cfg.copy(pcPinnedApps = updated)
                 }
+            }
+        }
+
+        menuBinding.itemAppMoveUp.setOnClickListener {
+            popup.dismiss()
+            if (desktopAdapter?.moveItemByPkg(app.pkg, -1) == true) {
+                saveCurrentDesktopOrder()
+            }
+        }
+
+        menuBinding.itemAppMoveDown.setOnClickListener {
+            popup.dismiss()
+            if (desktopAdapter?.moveItemByPkg(app.pkg, 1) == true) {
+                saveCurrentDesktopOrder()
             }
         }
 
@@ -749,7 +790,7 @@ class PcLauncherFragment : Fragment() {
             uninstallApp(app.pkg)
         }
 
-        showPopupAtSafeCoords(popup, touchX, touchY, (240 * resources.displayMetrics.density).toInt(), (260 * resources.displayMetrics.density).toInt())
+        showPopupAtSafeCoords(popup, touchX, touchY, (220 * resources.displayMetrics.density).toInt(), (320 * resources.displayMetrics.density).toInt())
     }
 
     private fun showPopupAtSafeCoords(popup: PopupWindow, rawX: Float, rawY: Float, widthPx: Int, heightPx: Int) {
