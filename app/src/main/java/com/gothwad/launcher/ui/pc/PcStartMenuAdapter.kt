@@ -1,4 +1,4 @@
-package com.gothwad.launcher.ui.views
+package com.gothwad.launcher.ui.pc
 
 import android.graphics.drawable.GradientDrawable
 import android.view.LayoutInflater
@@ -59,19 +59,20 @@ class PcStartMenuAdapter(
             binding.iconContainer.clipToOutline = true
 
             val imgLp = binding.imgAppIcon.layoutParams
-            imgLp.width = (30 * density).toInt()
-            imgLp.height = (30 * density).toInt()
+            imgLp.width = (36 * density).toInt()
+            imgLp.height = (36 * density).toInt()
             binding.imgAppIcon.layoutParams = imgLp
 
             binding.tvAppLabel.text = app.label
-            binding.tvAppLabel.textSize = 9.5f
             binding.tvAppLabel.visibility = View.VISIBLE
+            binding.tvAppLabel.textSize = 10.5f
             val labelLp = binding.tvAppLabel.layoutParams
             labelLp.width = (60 * density).toInt()
             binding.tvAppLabel.layoutParams = labelLp
 
-            if (app.icon != null) {
-                binding.imgAppIcon.setImageBitmap(app.icon)
+            val bitmap = app.icon
+            if (bitmap != null) {
+                binding.imgAppIcon.setImageBitmap(bitmap)
                 binding.imgAppIcon.visibility = View.VISIBLE
                 binding.tvFallbackLetter.visibility = View.GONE
             } else {

@@ -1,4 +1,4 @@
-package com.gothwad.launcher.ui.views
+package com.gothwad.launcher.ui.pc
 
 import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
@@ -19,6 +19,7 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.PopupWindow
 import android.widget.RelativeLayout
 import android.widget.SeekBar
@@ -494,13 +495,14 @@ class PcLauncherFragment : Fragment() {
     private fun updateGridDimensions() {
         val density = resources.displayMetrics.density
         val displayMetrics = resources.displayMetrics
-        val scale = currentConfig.pcUiScale.coerceIn(0.6f, 1.5f)
-        val iconSizeDp = currentConfig.pcIconSize.coerceIn(32, 64)
-        val spacingDp = currentConfig.pcGridSpacing.coerceIn(6, 24)
+        val scale = currentConfig.pcUiScale.coerceIn(0.5f, 1.3f)
+        val iconSizeDp = currentConfig.pcIconSize.coerceIn(28, 56)
+        val spacingDp = currentConfig.pcGridSpacing.coerceIn(4, 20)
 
-        // Item cell dimensions (width ~70-90dp, height ~82-100dp including icon + label)
-        val itemHeightDp = (iconSizeDp + 36) * scale
-        val taskbarHeightPx = (currentConfig.pcTaskbarHeight * scale * density).toInt()
+        // Item cell dimensions with scale
+        val itemHeightDp = (iconSizeDp + 30) * scale
+        val effectiveTbHeightDp = currentConfig.pcTaskbarHeight.coerceIn(30, 48)
+        val taskbarHeightPx = (effectiveTbHeightDp * scale * density).toInt().coerceAtLeast((28 * density).toInt())
 
         // Available vertical height for desktop grid
         val screenHeightPixels = displayMetrics.heightPixels
@@ -509,12 +511,11 @@ class PcLauncherFragment : Fragment() {
         } else {
             screenHeightPixels - taskbarHeightPx
         }
-        val verticalPaddingDp = spacingDp * 2.2f
+        val verticalPaddingDp = spacingDp * 2.0f
         val availableHeightDp = (recyclerHeightPx / density) - verticalPaddingDp
 
         // In HORIZONTAL GridLayoutManager, spanCount is the number of ROWS.
-        // Items flow top-to-bottom in column 1, then top-to-bottom in column 2 (authentic PC desktop behavior).
-        val rowSpanCount = (availableHeightDp / itemHeightDp).toInt().coerceIn(3, 14)
+        val rowSpanCount = (availableHeightDp / itemHeightDp).toInt().coerceIn(3, 16)
 
         val currentLm = binding.recyclerDesktopGrid.layoutManager as? GridLayoutManager
         if (currentLm == null || currentLm.spanCount != rowSpanCount || currentLm.orientation != RecyclerView.HORIZONTAL) {
@@ -527,9 +528,9 @@ class PcLauncherFragment : Fragment() {
         }
 
         val padPx = (spacingDp * density).toInt()
-        binding.recyclerDesktopGrid.setPadding(padPx, (padPx * 1.2f).toInt(), padPx, padPx)
+        binding.recyclerDesktopGrid.setPadding(padPx, (padPx * 1.1f).toInt(), padPx, padPx)
 
-        // Adjust Taskbar Height
+        // Dynamically adjust taskbar layout height
         val tbLp = binding.layoutTaskbar.layoutParams
         tbLp.height = taskbarHeightPx
         binding.layoutTaskbar.layoutParams = tbLp
@@ -549,6 +550,48 @@ class PcLauncherFragment : Fragment() {
             appsLp.addRule(RelativeLayout.ALIGN_PARENT_START, RelativeLayout.TRUE)
         }
         binding.layoutTaskbarApps.layoutParams = appsLp
+
+        // Adjust Taskbar button sizes proportionally to prevent oversized elements
+        val btnSizePx = (taskbarHeightPx - (8 * density)).toInt().coerceIn((26 * density).toInt(), (40 * density).toInt())
+        val btnPadPx = (btnSizePx * 0.20f).toInt().coerceAtLeast((3 * density).toInt())
+
+        val startLp = binding.btnStart.layoutParams
+        startLp.width = btnSizePx
+        startLp.height = btnSizePx
+        binding.btnStart.layoutParams = startLp
+        binding.btnStart.setPadding(btnPadPx, btnPadPx, btnPadPx, btnPadPx)
+
+        // Adjust Taskbar search bar size
+        val searchLp = binding.btnSearch.layoutParams
+        searchLp.height = (btnSizePx * 0.88f).toInt()
+        val searchWidthDp = (140 * scale).coerceIn(100f, 170f)
+        searchLp.width = (searchWidthDp * density).toInt()
+        binding.btnSearch.layoutParams = searchLp
+
+        // Adjust tray buttons and cluster height
+        val trayClusterLp = binding.layoutTrayCluster.layoutParams
+        trayClusterLp.height = btnSizePx
+        binding.layoutTrayCluster.layoutParams = trayClusterLp
+
+        val notifLp = binding.btnNotificationsContainer.layoutParams
+        notifLp.width = btnSizePx
+        notifLp.height = btnSizePx
+        binding.btnNotificationsContainer.layoutParams = notifLp
+
+        // Flyout positions offset above taskbar
+        val flyoutMarginBottomPx = taskbarHeightPx + (6 * density).toInt()
+        val startMenuLp = binding.containerStartMenu.layoutParams as FrameLayout.LayoutParams
+        startMenuLp.bottomMargin = flyoutMarginBottomPx
+        binding.containerStartMenu.layoutParams = startMenuLp
+
+        val qsLp = binding.containerQuickSettings.layoutParams as FrameLayout.LayoutParams
+        qsLp.bottomMargin = flyoutMarginBottomPx
+        binding.containerQuickSettings.layoutParams = qsLp
+
+        // Update pinned adapter sizes to fit taskbar perfectly
+        val pinnedItemSizePx = btnSizePx
+        val pinnedIconSizePx = (btnSizePx * 0.62f).toInt()
+        pinnedAdapter?.updateSizes(pinnedItemSizePx, pinnedIconSizePx)
     }
 
     private fun saveCurrentDesktopOrder() {
@@ -585,33 +628,40 @@ class PcLauncherFragment : Fragment() {
         menuBinding.tvCurrentScaleBadge.text = "$scalePct%"
 
         val sizeName = when (currentConfig.pcIconSize) {
-            in 0..38 -> "Small"
-            in 39..48 -> "Medium"
+            in 0..34 -> "Small"
+            in 35..44 -> "Medium"
             else -> "Large"
         }
         menuBinding.tvCurrentIconSizeBadge.text = sizeName
 
         val spacingName = when (currentConfig.pcGridSpacing) {
-            in 0..9 -> "Compact"
-            in 10..14 -> "Normal"
+            in 0..7 -> "Compact"
+            in 8..13 -> "Normal"
             else -> "Spacious"
         }
         menuBinding.tvCurrentSpacingBadge.text = spacingName
 
-        menuBinding.imgCheckLabels.setImageDrawable(
-            if (currentConfig.pcShowLabels) AppIcons.createDrawable(AppIcons.PATH_CHECK, 0xFF4FA7FA.toInt())
-            else null
-        )
+        // Show/Hide labels state
+        if (currentConfig.pcShowLabels) {
+            menuBinding.imgCheckLabels.setImageDrawable(
+                AppIcons.createDrawable(AppIcons.PATH_CHECK, 0xFF4FA7FA.toInt())
+            )
+            menuBinding.imgCheckLabels.visibility = View.VISIBLE
+        } else {
+            menuBinding.imgCheckLabels.setImageDrawable(null)
+            menuBinding.imgCheckLabels.visibility = View.INVISIBLE
+        }
 
-        menuBinding.tvCurrentSortBadge.text = if (currentConfig.pcSortOrder == 1) "Name (A-Z)" else "Custom"
+        // Sort state
+        menuBinding.tvCurrentSortBadge.text = if (currentConfig.pcSortOrder == 1) "A-Z" else "Custom"
 
         val popup = PopupWindow(
             menuBinding.root,
-            (260 * resources.displayMetrics.density).toInt(),
+            (250 * resources.displayMetrics.density).toInt(),
             ViewGroup.LayoutParams.WRAP_CONTENT,
             true
         ).apply {
-            elevation = 20f
+            elevation = 16f
             isOutsideTouchable = true
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         }
@@ -728,23 +778,13 @@ class PcLauncherFragment : Fragment() {
             popup.dismiss()
             viewLifecycleOwner.lifecycleScope.launch {
                 ConfigStore(context).update { cfg ->
-                    val updated = if (isPinned) cfg.pcPinnedApps.filter { it != app.pkg } else cfg.pcPinnedApps + app.pkg
-                    cfg.copy(pcPinnedApps = updated)
+                    val newPinned = if (isPinned) {
+                        cfg.pcPinnedApps.filter { it != app.pkg }
+                    } else {
+                        cfg.pcPinnedApps + app.pkg
+                    }
+                    cfg.copy(pcPinnedApps = newPinned)
                 }
-            }
-        }
-
-        menuBinding.itemAppMoveUp.setOnClickListener {
-            popup.dismiss()
-            if (desktopAdapter?.moveItemByPkg(app.pkg, -1) == true) {
-                saveCurrentDesktopOrder()
-            }
-        }
-
-        menuBinding.itemAppMoveDown.setOnClickListener {
-            popup.dismiss()
-            if (desktopAdapter?.moveItemByPkg(app.pkg, 1) == true) {
-                saveCurrentDesktopOrder()
             }
         }
 
@@ -769,6 +809,20 @@ class PcLauncherFragment : Fragment() {
                     }
                 }
             )
+        }
+
+        menuBinding.itemAppMoveUp.setOnClickListener {
+            popup.dismiss()
+            if (desktopAdapter?.moveItemByPkg(app.pkg, -1) == true) {
+                saveCurrentDesktopOrder()
+            }
+        }
+
+        menuBinding.itemAppMoveDown.setOnClickListener {
+            popup.dismiss()
+            if (desktopAdapter?.moveItemByPkg(app.pkg, 1) == true) {
+                saveCurrentDesktopOrder()
+            }
         }
 
         menuBinding.itemAppHide.setOnClickListener {
@@ -807,24 +861,26 @@ class PcLauncherFragment : Fragment() {
         popup.showAtLocation(binding.pcLauncherRoot, Gravity.NO_GRAVITY, safeX, safeY)
     }
 
-    // Dialog: PC UI Scale Picker
+    // Dialog: PC UI Scale Picker (Refined DPI options)
     private fun showScalePickerDialog() {
         val options = listOf(
-            PcDialogHelper.OptionItem("70% Ultra Compact", "Smallest DPI, high-density desktop", 0.70f),
-            PcDialogHelper.OptionItem("85% Sleek PC (Default)", "Balanced desktop scaling", 0.85f),
-            PcDialogHelper.OptionItem("100% Standard", "Medium desktop scale", 1.00f),
-            PcDialogHelper.OptionItem("115% Comfortable", "Larger text and icons", 1.15f)
+            PcDialogHelper.OptionItem("65% Ultra Compact", "Smallest DPI, for high-density PC setups", 0.65f),
+            PcDialogHelper.OptionItem("75% Compact (Recommended)", "Sleek PC look, removes bulky elements", 0.75f),
+            PcDialogHelper.OptionItem("85% Standard PC", "Balanced PC desktop scaling", 0.85f),
+            PcDialogHelper.OptionItem("100% Large", "Medium-large desktop scale", 1.00f),
+            PcDialogHelper.OptionItem("115% Extra Large", "For very distant viewing", 1.15f)
         )
-        val selectedIdx = when (currentConfig.pcUiScale) {
-            in 0f..0.77f -> 0
-            in 0.78f..0.92f -> 1
-            in 0.93f..1.08f -> 2
-            else -> 3
+        val selectedIdx = when {
+            currentConfig.pcUiScale <= 0.70f -> 0
+            currentConfig.pcUiScale <= 0.80f -> 1
+            currentConfig.pcUiScale <= 0.92f -> 2
+            currentConfig.pcUiScale <= 1.08f -> 3
+            else -> 4
         }
         PcDialogHelper.showOptionsPickerDialog(
             context = requireContext(),
             title = "PC UI Scale (DPI)",
-            subtitle = "Adjust overall desktop scaling and density",
+            subtitle = "Adjust overall desktop and toolbar scaling",
             options = options,
             selectedIndex = selectedIdx,
             onSelect = { opt ->
@@ -839,13 +895,13 @@ class PcLauncherFragment : Fragment() {
     // Dialog: Desktop Icon Size Picker
     private fun showIconSizePickerDialog() {
         val options = listOf(
-            PcDialogHelper.OptionItem("Small (36dp)", "Compact desktop view", 36),
-            PcDialogHelper.OptionItem("Medium (44dp)", "Standard desktop view", 44),
-            PcDialogHelper.OptionItem("Large (56dp)", "Spacious easy-to-tap view", 56)
+            PcDialogHelper.OptionItem("Small (32dp)", "Compact sleek desktop icons", 32),
+            PcDialogHelper.OptionItem("Medium (40dp)", "Standard desktop view", 40),
+            PcDialogHelper.OptionItem("Large (48dp)", "Spacious easy-to-tap view", 48)
         )
         val selectedIdx = when (currentConfig.pcIconSize) {
-            in 0..39 -> 0
-            in 40..50 -> 1
+            in 0..35 -> 0
+            in 36..44 -> 1
             else -> 2
         }
         PcDialogHelper.showOptionsPickerDialog(
@@ -866,13 +922,13 @@ class PcLauncherFragment : Fragment() {
     // Dialog: Desktop Spacing Picker
     private fun showSpacingPickerDialog() {
         val options = listOf(
-            PcDialogHelper.OptionItem("Compact Spacing (8dp)", "Tight icon packing", 8),
-            PcDialogHelper.OptionItem("Normal Spacing (12dp)", "Balanced desktop grid", 12),
-            PcDialogHelper.OptionItem("Spacious Spacing (18dp)", "Wide margins between icons", 18)
+            PcDialogHelper.OptionItem("Tight Spacing (6dp)", "Compact icon placement", 6),
+            PcDialogHelper.OptionItem("Normal Spacing (10dp)", "Balanced desktop grid", 10),
+            PcDialogHelper.OptionItem("Spacious Spacing (16dp)", "Wide margins between icons", 16)
         )
         val selectedIdx = when (currentConfig.pcGridSpacing) {
-            in 0..9 -> 0
-            in 10..14 -> 1
+            in 0..7 -> 0
+            in 8..12 -> 1
             else -> 2
         }
         PcDialogHelper.showOptionsPickerDialog(
@@ -914,56 +970,34 @@ class PcLauncherFragment : Fragment() {
     // Dialog: Taskbar Settings
     private fun showTaskbarSettingsDialog() {
         val options = listOf(
-            PcDialogHelper.OptionItem("Compact Taskbar (38dp)", "Maximizes desktop space", 38 to currentConfig.pcTaskbarCenter),
-            PcDialogHelper.OptionItem("Normal Taskbar (44dp)", "Standard height", 44 to currentConfig.pcTaskbarCenter),
-            PcDialogHelper.OptionItem("Tall Taskbar (52dp)", "Comfortable touch height", 52 to currentConfig.pcTaskbarCenter),
+            PcDialogHelper.OptionItem("Slim Toolbar (34dp)", "Minimal height, maximizes screen", 34 to currentConfig.pcTaskbarCenter),
+            PcDialogHelper.OptionItem("Compact Toolbar (38dp)", "Sleek modern PC taskbar", 38 to currentConfig.pcTaskbarCenter),
+            PcDialogHelper.OptionItem("Standard Toolbar (44dp)", "Standard taskbar height", 44 to currentConfig.pcTaskbarCenter),
             PcDialogHelper.OptionItem("Center Aligned (Windows 11)", "Centered taskbar apps", currentConfig.pcTaskbarHeight to true),
             PcDialogHelper.OptionItem("Left Aligned (Classic)", "Left-aligned taskbar apps", currentConfig.pcTaskbarHeight to false)
         )
+        val selectedIdx = when {
+            currentConfig.pcTaskbarHeight <= 35 -> 0
+            currentConfig.pcTaskbarHeight <= 40 -> 1
+            else -> 2
+        }
         PcDialogHelper.showOptionsPickerDialog(
             context = requireContext(),
             title = "Taskbar Settings",
-            subtitle = "Customize bottom toolbar layout",
+            subtitle = "Customize bottom toolbar height & alignment",
             options = options,
-            selectedIndex = 1,
+            selectedIndex = selectedIdx,
             onSelect = { opt ->
-                @Suppress("UNCHECKED_CAST")
-                val pair = opt.tag as Pair<Int, Boolean>
+                val pair = opt.tag as? Pair<*, *>
+                val height = (pair?.first as? Int) ?: currentConfig.pcTaskbarHeight
+                val center = (pair?.second as? Boolean) ?: currentConfig.pcTaskbarCenter
                 viewLifecycleOwner.lifecycleScope.launch {
-                    ConfigStore(requireContext()).update { it.copy(pcTaskbarHeight = pair.first, pcTaskbarCenter = pair.second) }
+                    ConfigStore(requireContext()).update {
+                        it.copy(pcTaskbarHeight = height, pcTaskbarCenter = center)
+                    }
                 }
             }
         )
-    }
-
-    private fun uninstallApp(pkg: String) {
-        try {
-            val intent = Intent(Intent.ACTION_UNINSTALL_PACKAGE).apply {
-                data = Uri.parse("package:$pkg")
-                putExtra(Intent.EXTRA_RETURN_RESULT, true)
-            }
-            startActivity(intent)
-        } catch (_: Exception) {}
-    }
-
-    private fun openFullSettingsDialog() {
-        SettingsBottomSheetFragment.newInstance(
-            config = currentConfig,
-            apps = allApps,
-            onWallpaperChanged = { applyWallpaper() },
-            onRerunWizard = {
-                SetupWizardDialogFragment.newInstance {}.show(parentFragmentManager, SetupWizardDialogFragment.TAG)
-            },
-            onModeSelected = {}
-        ).show(parentFragmentManager, SettingsBottomSheetFragment.TAG)
-    }
-
-    private fun openSearchDialog() {
-        SearchDialogFragment.newInstance(
-            apps = allApps,
-            config = currentConfig,
-            onLaunch = { app -> handleAppLaunch(app) }
-        ).show(parentFragmentManager, SearchDialogFragment.TAG)
     }
 
     private fun handleAppLaunch(app: AppEntry, skipLock: Boolean = false) {
@@ -993,6 +1027,43 @@ class PcLauncherFragment : Fragment() {
         } catch (_: Exception) {}
     }
 
+    private fun uninstallApp(pkg: String) {
+        try {
+            val intent = Intent(Intent.ACTION_UNINSTALL_PACKAGE).apply {
+                data = Uri.fromParts("package", pkg, null)
+                putExtra(Intent.EXTRA_RETURN_RESULT, true)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(intent)
+        } catch (_: Exception) {}
+    }
+
+    private fun openSearchDialog() {
+        SearchDialogFragment.newInstance(
+            apps = allApps,
+            config = currentConfig,
+            onLaunch = { app -> handleAppLaunch(app) }
+        ).show(parentFragmentManager, SearchDialogFragment.TAG)
+    }
+
+    private fun openFullSettingsDialog() {
+        SettingsBottomSheetFragment.newInstance(
+            config = currentConfig,
+            apps = allApps,
+            onWallpaperChanged = { applyWallpaper() },
+            onRerunWizard = { showSetupWizard() },
+            onModeSelected = { /* handled by ConfigStore */ }
+        ).show(parentFragmentManager, SettingsBottomSheetFragment.TAG)
+    }
+
+    private fun showSetupWizard() {
+        SetupWizardDialogFragment.newInstance {
+            viewLifecycleOwner.lifecycleScope.launch {
+                ConfigStore(requireContext()).update { it.copy(setupDone = true) }
+            }
+        }.show(parentFragmentManager, SetupWizardDialogFragment.TAG)
+    }
+
     private fun observeData() {
         val configStore = ConfigStore(requireContext())
 
@@ -1010,7 +1081,9 @@ class PcLauncherFragment : Fragment() {
                         if (prevConfig.pcUiScale != config.pcUiScale ||
                             prevConfig.pcIconSize != config.pcIconSize ||
                             prevConfig.pcShowLabels != config.pcShowLabels ||
-                            prevConfig.pcGridSpacing != config.pcGridSpacing) {
+                            prevConfig.pcGridSpacing != config.pcGridSpacing ||
+                            prevConfig.pcTaskbarHeight != config.pcTaskbarHeight ||
+                            prevConfig.pcTaskbarCenter != config.pcTaskbarCenter) {
                             updateGridDimensions()
                         }
                     }

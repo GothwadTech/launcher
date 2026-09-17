@@ -1,4 +1,4 @@
-package com.gothwad.launcher.ui.views
+package com.gothwad.launcher.ui.pc
 
 import android.annotation.SuppressLint
 import android.graphics.drawable.GradientDrawable
@@ -68,24 +68,22 @@ class PcDesktopIconAdapter(
         @SuppressLint("ClickableViewAccessibility")
         fun bind(app: AppEntry) {
             val density = binding.root.resources.displayMetrics.density
-            val scale = config.pcUiScale.coerceIn(0.6f, 1.5f)
-            val iconSizeDp = config.pcIconSize.coerceIn(32, 64)
+            val scale = config.pcUiScale.coerceIn(0.5f, 1.3f)
+            val iconSizeDp = config.pcIconSize.coerceIn(28, 56)
 
-            // Scaled dimensions
-            val itemWidthPx = ((iconSizeDp + 26) * scale * density).toInt()
+            // Scaled dimensions with refined proportional boundaries
+            val itemWidthPx = ((iconSizeDp + 20) * scale * density).toInt()
             val containerSizePx = (iconSizeDp * scale * density).toInt()
-            val imgSizePx = ((iconSizeDp - 6) * scale * density).toInt().coerceAtLeast((24 * density).toInt())
-            val cornerRadiusPx = 10f * scale * density
 
             // Adjust root item width and padding
             val rootLp = binding.pcIconRoot.layoutParams
             rootLp.width = itemWidthPx
             binding.pcIconRoot.layoutParams = rootLp
             binding.pcIconRoot.setPadding(
+                (3 * scale * density).toInt(),
                 (4 * scale * density).toInt(),
-                (6 * scale * density).toInt(),
-                (4 * scale * density).toInt(),
-                (6 * scale * density).toInt()
+                (3 * scale * density).toInt(),
+                (4 * scale * density).toInt()
             )
 
             // Adjust icon container dimensions
@@ -108,7 +106,7 @@ class PcDesktopIconAdapter(
             // Show or Hide labels
             if (config.pcShowLabels) {
                 binding.tvAppLabel.visibility = View.VISIBLE
-                binding.tvAppLabel.textSize = (10f * scale).coerceIn(8f, 14f)
+                binding.tvAppLabel.textSize = (9.5f * scale).coerceIn(7.5f, 12.5f)
                 val labelLp = binding.tvAppLabel.layoutParams
                 labelLp.width = itemWidthPx - (4 * density).toInt()
                 binding.tvAppLabel.layoutParams = labelLp
@@ -125,7 +123,7 @@ class PcDesktopIconAdapter(
             } else {
                 binding.imgAppIcon.visibility = View.GONE
                 binding.tvFallbackLetter.text = displayName.take(1).uppercase()
-                binding.tvFallbackLetter.textSize = (16f * scale).coerceIn(12f, 22f)
+                binding.tvFallbackLetter.textSize = (15f * scale).coerceIn(10f, 18f)
                 binding.tvFallbackLetter.visibility = View.VISIBLE
             }
 

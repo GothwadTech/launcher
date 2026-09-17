@@ -1,4 +1,4 @@
-package com.gothwad.launcher.ui.views
+package com.gothwad.launcher.ui.tv
 
 import android.content.Intent
 import android.graphics.BitmapFactory
@@ -31,8 +31,6 @@ import com.gothwad.launcher.ui.ACCENTS
 import com.gothwad.launcher.ui.WALLPAPERS
 import com.gothwad.launcher.ui.dialogs.PinEntryDialogFragment
 import com.gothwad.launcher.ui.dialogs.SetupWizardDialogFragment
-import com.gothwad.launcher.ui.view.CategoryRowItem
-import com.gothwad.launcher.ui.view.TvCategoryAdapter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch

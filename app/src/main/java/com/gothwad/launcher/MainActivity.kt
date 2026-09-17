@@ -35,7 +35,7 @@ import com.gothwad.launcher.ui.dialogs.SearchDialogFragment
 import com.gothwad.launcher.ui.dialogs.SettingsBottomSheetFragment
 import com.gothwad.launcher.ui.dialogs.SetupWizardDialogFragment
 import com.gothwad.launcher.ui.dialogs.VoiceSearchDialogFragment
-import com.gothwad.launcher.ui.views.TvLauncherFragment
+import com.gothwad.launcher.ui.tv.TvLauncherFragment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest

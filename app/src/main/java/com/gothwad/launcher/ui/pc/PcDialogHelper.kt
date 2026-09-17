@@ -1,4 +1,4 @@
-package com.gothwad.launcher.ui.views
+package com.gothwad.launcher.ui.pc
 
 import android.app.Dialog
 import android.content.Context

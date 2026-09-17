@@ -1,4 +1,4 @@
-package com.gothwad.launcher.ui.views
+package com.gothwad.launcher.ui.pc
 
 import android.view.LayoutInflater
 import android.view.View
@@ -10,9 +10,19 @@ import com.gothwad.launcher.databinding.ItemPcTaskbarPinnedBinding
 import com.gothwad.launcher.ui.view.AppCardDiffCallback
 
 class PcTaskbarPinnedAdapter(
+    private var itemSizePx: Int = 0,
+    private var iconSizePx: Int = 0,
     private val onLaunchApp: (AppEntry) -> Unit,
     private val onUnpinApp: (AppEntry, View) -> Unit,
 ) : ListAdapter<AppEntry, PcTaskbarPinnedAdapter.PinnedViewHolder>(AppCardDiffCallback()) {
+
+    fun updateSizes(itemPx: Int, iconPx: Int) {
+        if (itemSizePx != itemPx || iconSizePx != iconPx) {
+            itemSizePx = itemPx
+            iconSizePx = iconPx
+            notifyItemRangeChanged(0, itemCount)
+        }
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PinnedViewHolder {
         val binding = ItemPcTaskbarPinnedBinding.inflate(
@@ -32,6 +42,25 @@ class PcTaskbarPinnedAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(app: AppEntry) {
+            // Apply dynamic sizing if configured
+            if (itemSizePx > 0) {
+                val rootLp = binding.rootTaskbarPinned.layoutParams
+                rootLp.width = itemSizePx
+                rootLp.height = itemSizePx
+                binding.rootTaskbarPinned.layoutParams = rootLp
+            }
+            if (iconSizePx > 0) {
+                val iconLp = binding.imgTaskbarPinnedIcon.layoutParams
+                iconLp.width = iconSizePx
+                iconLp.height = iconSizePx
+                binding.imgTaskbarPinnedIcon.layoutParams = iconLp
+
+                val fallbackLp = binding.tvTaskbarPinnedFallback.layoutParams
+                fallbackLp.width = iconSizePx
+                fallbackLp.height = iconSizePx
+                binding.tvTaskbarPinnedFallback.layoutParams = fallbackLp
+            }
+
             val bitmap = app.icon
             if (bitmap != null) {
                 binding.imgTaskbarPinnedIcon.setImageBitmap(bitmap)
