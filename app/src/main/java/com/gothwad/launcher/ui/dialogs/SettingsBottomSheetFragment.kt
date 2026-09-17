@@ -18,6 +18,7 @@ import androidx.lifecycle.lifecycleScope
 import com.gothwad.launcher.Actions
 import com.gothwad.launcher.R
 import com.gothwad.launcher.data.AppEntry
+import com.gothwad.launcher.data.ButtonMappingManager
 import com.gothwad.launcher.data.ConfigStore
 import com.gothwad.launcher.data.LAYOUT_CAROUSEL
 import com.gothwad.launcher.data.LAYOUT_DOCK
@@ -25,10 +26,13 @@ import com.gothwad.launcher.data.LAYOUT_GRID
 import com.gothwad.launcher.data.LauncherConfig
 import com.gothwad.launcher.data.MODE_PC
 import com.gothwad.launcher.data.MODE_TV
+import com.gothwad.launcher.databinding.ItemButtonMappingBinding
+import com.gothwad.launcher.databinding.ItemPickAppBinding
 import com.gothwad.launcher.databinding.ItemRecentAppBinding
 import com.gothwad.launcher.databinding.SheetSettingsBinding
 import com.gothwad.launcher.ui.AppIcons
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -113,6 +117,7 @@ class SettingsBottomSheetFragment : DialogFragment() {
         bindAppsSettings()
         bindSecuritySettings()
         bindDevicePrefsSettings()
+        bindButtonMappingSettings()
         bindAboutSettings()
         setupBackKeyHandling()
     }
@@ -158,6 +163,9 @@ class SettingsBottomSheetFragment : DialogFragment() {
         binding.chevronSecurity.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_CHEVRON_RIGHT, chevronColor))
 
         binding.iconMode.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_TV, iconColor))
+
+        binding.iconButtonMapping.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_ACCESSIBILITY, iconColor))
+        binding.chevronButtonMapping.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_CHEVRON_RIGHT, chevronColor))
 
         binding.iconNetwork.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_WIFI, iconColor))
         binding.chevronNetwork.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_CHEVRON_RIGHT, chevronColor))
@@ -246,6 +254,14 @@ class SettingsBottomSheetFragment : DialogFragment() {
             binding.badgeMode.text = "TV"
         }
 
+        // Button Mapping Subtitle
+        val mappingCount = config.buttonMap.size
+        binding.txtButtonMappingSubtitle.text = if (mappingCount > 0) {
+            "$mappingCount buttons customized"
+        } else {
+            "Map dedicated TV remote hotkeys to apps"
+        }
+
         // Network Subtitle
         try {
             val wifi = requireContext().applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
@@ -294,6 +310,10 @@ class SettingsBottomSheetFragment : DialogFragment() {
                     if (newMode == MODE_PC) "Switched to PC Desktop Mode" else "Switched to Android TV Mode"
                 )
             }
+        }
+
+        binding.rowButtonMapping.setOnClickListener {
+            navigateToSubPage(binding.subpageButtonMapping, "Remote Button Mapping")
         }
 
         binding.rowNetwork.setOnClickListener {
@@ -345,11 +365,21 @@ class SettingsBottomSheetFragment : DialogFragment() {
         binding.pageSecurity.visibility = View.GONE
         binding.pageDevicePrefs.visibility = View.GONE
         binding.pageAbout.visibility = View.GONE
+        binding.subpageButtonMapping.visibility = View.GONE
+        binding.subpagePickApp.visibility = View.GONE
     }
 
     private fun setupBackKeyHandling() {
         dialog?.setOnKeyListener { _, keyCode, event ->
             if (keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_UP) {
+                if (binding.cardListeningForButton.visibility == View.VISIBLE) {
+                    cancelKeyListening()
+                    return@setOnKeyListener true
+                }
+                if (currentSubPage == binding.subpagePickApp) {
+                    navigateToSubPage(binding.subpageButtonMapping, "Remote Button Mapping")
+                    return@setOnKeyListener true
+                }
                 if (currentSubPage != null) {
                     navigateToRoot()
                     return@setOnKeyListener true
@@ -648,6 +678,182 @@ class SettingsBottomSheetFragment : DialogFragment() {
         binding.btnRestartLauncher.setOnClickListener {
             dismiss()
             activity?.recreate()
+        }
+    }
+
+    // =========================================================================
+    // SUB-PAGE 8: REMOTE BUTTON MAPPING (Phase 5)
+    // =========================================================================
+    private var capturedKeyCodeForMapping: Int? = null
+
+    private fun bindButtonMappingSettings() {
+        renderButtonMappingsList()
+
+        binding.btnAddButtonMapping.setOnClickListener {
+            startKeyListening()
+        }
+
+        binding.btnCancelListening.setOnClickListener {
+            cancelKeyListening()
+        }
+
+        // Listen for raw key events captured by LauncherAccessibilityService
+        viewLifecycleOwner.lifecycleScope.launch {
+            ButtonMappingManager.keyCaptureFlow.collectLatest { keyCode ->
+                handleKeyCaptured(keyCode)
+            }
+        }
+    }
+
+    private fun startKeyListening() {
+        ButtonMappingManager.startListening()
+        binding.cardListeningForButton.visibility = View.VISIBLE
+        binding.txtListeningStatus.text = getString(R.string.button_mapping_listening)
+        binding.btnAddButtonMapping.visibility = View.GONE
+        binding.btnCancelListening.requestFocus()
+    }
+
+    private fun cancelKeyListening() {
+        ButtonMappingManager.stopListening()
+        binding.cardListeningForButton.visibility = View.GONE
+        binding.btnAddButtonMapping.visibility = View.VISIBLE
+        binding.btnAddButtonMapping.requestFocus()
+    }
+
+    private fun handleKeyCaptured(keyCode: Int) {
+        if (ButtonMappingManager.isReservedKey(keyCode)) {
+            val keyName = ButtonMappingManager.getKeyName(keyCode)
+            Actions.toast(requireContext(), getString(R.string.button_mapping_reserved_error, keyName))
+            cancelKeyListening()
+            return
+        }
+
+        ButtonMappingManager.stopListening()
+        binding.cardListeningForButton.visibility = View.GONE
+        binding.btnAddButtonMapping.visibility = View.VISIBLE
+
+        capturedKeyCodeForMapping = keyCode
+        openAppPickerForMapping(keyCode)
+    }
+
+    private fun openAppPickerForMapping(keyCode: Int) {
+        val buttonName = ButtonMappingManager.getKeyName(keyCode)
+        binding.txtPickAppHeader.text = "Detected Key: $buttonName (Keycode $keyCode)"
+        populateAppPickerList(keyCode)
+        navigateToSubPage(binding.subpagePickApp, "Assign App to Button")
+    }
+
+    private fun populateAppPickerList(targetKeyCode: Int) {
+        val container = binding.layoutPickAppList
+        container.removeAllViews()
+
+        val sortedApps = apps.sortedBy { it.label.lowercase() }
+        val inflater = LayoutInflater.from(requireContext())
+
+        for (app in sortedApps) {
+            val itemBinding = ItemPickAppBinding.inflate(inflater, container, false)
+            itemBinding.txtAppLabel.text = app.label
+            itemBinding.txtAppPackage.text = app.pkg
+            if (app.icon != null) {
+                itemBinding.imgAppIcon.setImageBitmap(app.icon)
+            } else {
+                itemBinding.imgAppIcon.setImageDrawable(
+                    AppIcons.createDrawable(AppIcons.PATH_APPS, Color.WHITE)
+                )
+            }
+
+            itemBinding.root.setOnClickListener {
+                assignMapping(targetKeyCode, app.pkg, app.label)
+            }
+
+            container.addView(itemBinding.root)
+        }
+    }
+
+    private fun assignMapping(keyCode: Int, packageName: String, appLabel: String) {
+        lifecycleScope.launch {
+            val updatedMap = config.buttonMap.toMutableMap()
+            updatedMap[keyCode] = packageName
+
+            store.update { it.copy(buttonMap = updatedMap) }
+            config = config.copy(buttonMap = updatedMap)
+
+            updateSubtitles()
+            renderButtonMappingsList()
+
+            Actions.toast(
+                requireContext(),
+                getString(
+                    R.string.button_mapping_saved,
+                    ButtonMappingManager.getKeyName(keyCode),
+                    appLabel
+                )
+            )
+
+            navigateToSubPage(binding.subpageButtonMapping, "Remote Button Mapping")
+        }
+    }
+
+    private fun removeMapping(keyCode: Int) {
+        lifecycleScope.launch {
+            val updatedMap = config.buttonMap.toMutableMap()
+            updatedMap.remove(keyCode)
+
+            store.update { it.copy(buttonMap = updatedMap) }
+            config = config.copy(buttonMap = updatedMap)
+
+            updateSubtitles()
+            renderButtonMappingsList()
+
+            Actions.toast(requireContext(), getString(R.string.button_mapping_deleted))
+        }
+    }
+
+    private fun renderButtonMappingsList() {
+        val container = binding.layoutButtonMappingsList
+        container.removeAllViews()
+
+        val mappings = config.buttonMap
+        if (mappings.isEmpty()) {
+            binding.txtButtonMappingsEmpty.visibility = View.VISIBLE
+            return
+        }
+
+        binding.txtButtonMappingsEmpty.visibility = View.GONE
+        val inflater = LayoutInflater.from(requireContext())
+
+        for ((keyCode, pkg) in mappings) {
+            val itemBinding = ItemButtonMappingBinding.inflate(inflater, container, false)
+            val buttonName = ButtonMappingManager.getKeyName(keyCode)
+            itemBinding.txtButtonName.text = buttonName
+
+            val matchingApp = apps.find { it.pkg == pkg }
+            if (matchingApp != null) {
+                itemBinding.txtMappedAppName.text = "${matchingApp.label} • Key $keyCode"
+                if (matchingApp.icon != null) {
+                    itemBinding.imgMappedAppIcon.setImageBitmap(matchingApp.icon)
+                } else {
+                    itemBinding.imgMappedAppIcon.setImageDrawable(
+                        AppIcons.createDrawable(AppIcons.PATH_APPS, Color.WHITE)
+                    )
+                }
+            } else {
+                itemBinding.txtMappedAppName.text = "$pkg • Key $keyCode"
+                itemBinding.imgMappedAppIcon.setImageDrawable(
+                    AppIcons.createDrawable(AppIcons.PATH_APPS, Color.WHITE)
+                )
+            }
+
+            itemBinding.btnDeleteMapping.setOnClickListener {
+                removeMapping(keyCode)
+            }
+
+            itemBinding.root.setOnClickListener {
+                // Clicking on mapped row allows re-mapping to another app
+                openAppPickerForMapping(keyCode)
+            }
+
+            container.addView(itemBinding.root)
         }
     }
 

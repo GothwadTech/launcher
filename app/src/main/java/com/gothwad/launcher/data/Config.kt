@@ -93,6 +93,9 @@ data class LauncherConfig(
     val pcTaskbarCenter: Boolean = false,
     val pcGridSpacing: Int = 12,
     val pcSortOrder: Int = 0,
+    // ----- Remote Button Mapping (Phase 5) -----
+    val buttonMap: Map<Int, String> = emptyMap(),
+    val buttonMapDefaultsApplied: Boolean = false,
 )
 
 const val MODE_TV = 0

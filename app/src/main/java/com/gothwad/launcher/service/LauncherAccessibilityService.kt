@@ -5,16 +5,52 @@ import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings
+import android.util.Log
 import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
+import com.gothwad.launcher.Actions
 import com.gothwad.launcher.MainActivity
 import com.gothwad.launcher.data.BackgroundMediaTracker
+import com.gothwad.launcher.data.ButtonMappingManager
+import com.gothwad.launcher.data.ConfigStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 /**
  * Accessibility Service to handle Home key capture, OEM launcher overrides,
- * and Boot Ad / Stock Launcher suppression on Jio, Airtel, Google TV, and locked STBs.
+ * Remote button hotkey mapping, and Boot Ad / Stock Launcher suppression on Jio, Airtel, Google TV, and locked STBs.
  */
 class LauncherAccessibilityService : AccessibilityService() {
+
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    // Cached button mappings from ConfigStore to ensure ZERO blocking reads on keystrokes
+    @Volatile
+    private var cachedButtonMap: Map<Int, String> = emptyMap()
+
+    override fun onCreate() {
+        super.onCreate()
+        val store = ConfigStore(applicationContext)
+        serviceScope.launch {
+            val installedPackages = runCatching {
+                packageManager.getInstalledPackages(0).map { it.packageName }.toSet()
+            }.getOrDefault(emptySet())
+            ButtonMappingManager.seedDefaultMappings(store, installedPackages)
+
+            store.flow.collectLatest { cfg ->
+                cachedButtonMap = cfg.buttonMap
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        serviceScope.cancel()
+        super.onDestroy()
+    }
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -41,12 +77,38 @@ class LauncherAccessibilityService : AccessibilityService() {
     }
 
     override fun onKeyEvent(event: KeyEvent): Boolean {
-        if (event.keyCode == KeyEvent.KEYCODE_HOME) {
+        val keyCode = event.keyCode
+
+        // 1. If ButtonMappingManager is currently in "listen-mode" for learning a new button,
+        // capture the raw key event (on ACTION_UP to prevent double captures) and notify UI
+        if (ButtonMappingManager.isListening()) {
+            if (event.action == KeyEvent.ACTION_UP) {
+                val captured = ButtonMappingManager.onKeyCaptured(keyCode)
+                if (captured) return true
+            } else if (event.action == KeyEvent.ACTION_DOWN) {
+                // Consume DOWN event as well during capture mode
+                return true
+            }
+        }
+
+        // 2. Reserved Home key interception
+        if (keyCode == KeyEvent.KEYCODE_HOME) {
             if (event.action == KeyEvent.ACTION_UP) {
                 launchHome(this)
             }
             return true // Consume the HOME key event so locked stock TV launcher cannot react
         }
+
+        // 3. Custom Button Mapping hotkeys (Phase 5)
+        val mappedPkg = cachedButtonMap[keyCode]
+        if (!mappedPkg.isNullOrEmpty()) {
+            if (event.action == KeyEvent.ACTION_UP) {
+                Log.i("LauncherA11y", "Intercepted mapped hotkey $keyCode -> launching $mappedPkg")
+                Actions.launchApp(this, mappedPkg)
+            }
+            return true // Consume mapped hotkey event so underlying app doesn't receive it
+        }
+
         return super.onKeyEvent(event)
     }
 
@@ -106,6 +168,23 @@ class LauncherAccessibilityService : AccessibilityService() {
                     Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
             }
             context.startActivity(intent)
+        }
+
+        suspend fun launchHomeWithRetry(context: Context, maxAttempts: Int = 5) {
+            var delayMs = 150L
+            for (attempt in 1..maxAttempts) {
+                val success = runCatching {
+                    launchHome(context)
+                }.isSuccess
+                if (success) {
+                    if (attempt > 1) {
+                        android.util.Log.i("LauncherA11y", "launchHome succeeded on retry attempt $attempt")
+                    }
+                    return
+                }
+                kotlinx.coroutines.delay(delayMs)
+                delayMs *= 2 // Exponential backoff (150ms, 300ms, 600ms, 1200ms, 2400ms)
+            }
         }
 
         fun isEnabled(context: Context): Boolean {

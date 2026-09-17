@@ -18,6 +18,9 @@ object Actions {
             ?: pm.getLaunchIntentForPackage(pkg)
         if (intent != null) {
             runCatching {
+                if (context !is android.app.Activity) {
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
                 context.startActivity(intent)
                 com.gothwad.launcher.data.AppLaunchTracker.onAppLaunched(pkg)
             }.onFailure { toast(context, context.getString(R.string.toast_cannot_open)) }

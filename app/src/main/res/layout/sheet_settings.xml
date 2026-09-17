@@ -446,6 +446,60 @@
                             android:textStyle="bold" />
                     </LinearLayout>
 
+                    <!-- Item: Remote Button Mapping (Phase 5) -->
+                    <LinearLayout
+                        android:id="@+id/row_button_mapping"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="14dp"
+                        android:background="@drawable/bg_settings_row"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:minHeight="58dp"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="24dp"
+                        android:paddingVertical="8dp">
+
+                        <ImageView
+                            android:id="@+id/icon_button_mapping"
+                            android:layout_width="26dp"
+                            android:layout_height="26dp"
+                            android:layout_marginEnd="14dp"
+                            android:contentDescription="Remote Button Mapping"
+                            android:src="@drawable/ic_remote" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/button_mapping_title"
+                                android:textColor="#FFFFFF"
+                                android:textSize="15sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/txt_button_mapping_subtitle"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="@string/button_mapping_subtitle"
+                                android:textColor="#94A3B8"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+
+                        <ImageView
+                            android:id="@+id/chevron_button_mapping"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:contentDescription="Next" />
+                    </LinearLayout>
+
                     <!-- Section: DEVICE & SYSTEM -->
                     <TextView
                         android:layout_width="match_parent"
@@ -1800,6 +1854,167 @@
                         android:text="🔄 Restart Launcher"
                         android:textColor="#FFFFFF"
                         android:textSize="13sp" />
+                </LinearLayout>
+
+                <!-- ========================================================= -->
+                <!-- SUB-PAGE: REMOTE BUTTON MAPPING (Phase 5)                -->
+                <!-- ========================================================= -->
+                <LinearLayout
+                    android:id="@+id/subpage_button_mapping"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone"
+                    tools:visibility="visible">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingStart="24dp"
+                        android:paddingEnd="24dp"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginBottom="8dp"
+                        android:letterSpacing="0.05"
+                        android:text="HOTKEY MAPPINGS"
+                        android:textAllCaps="true"
+                        android:textColor="#4DD0E1"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <!-- Add Button Mapping Action Button -->
+                    <LinearLayout
+                        android:id="@+id/btn_add_button_mapping"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:background="@drawable/bg_settings_row"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:minHeight="54dp"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="24dp">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:layout_marginEnd="14dp"
+                            android:contentDescription="Add"
+                            android:src="@drawable/ic_add" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/button_mapping_add"
+                            android:textColor="#4DD0E1"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- Listen-mode card (shows when waiting for remote keypress) -->
+                    <LinearLayout
+                        android:id="@+id/card_listening_for_button"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="24dp"
+                        android:layout_marginBottom="16dp"
+                        android:background="@drawable/bg_dialog_card"
+                        android:orientation="vertical"
+                        android:padding="16dp"
+                        android:visibility="gone"
+                        tools:visibility="visible">
+
+                        <TextView
+                            android:id="@+id/txt_listening_prompt"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/button_mapping_press_prompt"
+                            android:textColor="#FFFFFF"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/txt_listening_status"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:text="@string/button_mapping_listening"
+                            android:textColor="#4DD0E1"
+                            android:textSize="13sp" />
+
+                        <Button
+                            android:id="@+id/btn_cancel_listening"
+                            android:layout_width="wrap_content"
+                            android:layout_height="40dp"
+                            android:layout_marginTop="12dp"
+                            android:background="@drawable/bg_dialog_button"
+                            android:text="Cancel"
+                            android:textColor="#FFFFFF"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <!-- Empty state text -->
+                    <TextView
+                        android:id="@+id/txt_button_mappings_empty"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingHorizontal="24dp"
+                        android:paddingVertical="16dp"
+                        android:text="@string/button_mapping_empty"
+                        android:textColor="#94A3B8"
+                        android:textSize="13sp"
+                        android:visibility="gone" />
+
+                    <!-- Container for dynamically added button mapping items -->
+                    <LinearLayout
+                        android:id="@+id/layout_button_mappings_list"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingHorizontal="16dp" />
+                </LinearLayout>
+
+                <!-- ========================================================= -->
+                <!-- SUB-PAGE: SELECT APP FOR MAPPING (Phase 5)                -->
+                <!-- ========================================================= -->
+                <LinearLayout
+                    android:id="@+id/subpage_pick_app"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/txt_pick_app_header"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingHorizontal="24dp"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginBottom="12dp"
+                        android:textColor="#4DD0E1"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        tools:text="Detected: Red Button (Key 183)" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingHorizontal="24dp"
+                        android:layout_marginBottom="8dp"
+                        android:letterSpacing="0.05"
+                        android:text="SELECT APP TO LAUNCH"
+                        android:textAllCaps="true"
+                        android:textColor="#94A3B8"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:id="@+id/layout_pick_app_list"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingHorizontal="16dp" />
                 </LinearLayout>
 
             </LinearLayout>

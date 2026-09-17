@@ -75,6 +75,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private val a11yAlertReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            checkAccessibilityState()
+        }
+    }
+
     private fun notifyFragmentRescan() {
         val navHostFragment = supportFragmentManager
             .findFragmentById(R.id.nav_host_fragment) as? NavHostFragment
@@ -87,6 +93,9 @@ class MainActivity : AppCompatActivity() {
     private fun refreshAppsList() {
         lifecycleScope.launch(Dispatchers.IO) {
             allApps = AppRepository.scan(this@MainActivity)
+            val store = ConfigStore(this@MainActivity)
+            val installedPackages = allApps.map { it.pkg }.toSet()
+            com.gothwad.launcher.data.ButtonMappingManager.seedDefaultMappings(store, installedPackages)
         }
     }
 
@@ -119,10 +128,41 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        setupA11yRecoveryBanner()
         setupNavigation()
         setupStatusBar()
         observeStatusBarData()
         refreshAppsList()
+    }
+
+    private fun setupA11yRecoveryBanner() {
+        binding.bannerA11yRecovery.btnA11yAction.setOnClickListener {
+            Actions.openAccessibilitySettings(this)
+        }
+        binding.bannerA11yRecovery.btnA11yDismiss.setOnClickListener {
+            binding.bannerA11yRecovery.cardA11yBanner.visibility = View.GONE
+        }
+
+        // Register receiver for watchdog alerts
+        ContextCompat.registerReceiver(
+            this,
+            a11yAlertReceiver,
+            IntentFilter(com.gothwad.launcher.service.LauncherWatchdogService.ACTION_ACCESSIBILITY_DISABLED_ALERT),
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+    }
+
+    override fun onResume() {
+        super.onResume()
+        checkAccessibilityState()
+    }
+
+    private fun checkAccessibilityState() {
+        val disabledAfterCrash = com.gothwad.launcher.data.AccessibilityStateTracker
+            .checkAccessibilityDisabledAfterCrash(this)
+
+        binding.bannerA11yRecovery.cardA11yBanner.visibility =
+            if (disabledAfterCrash) View.VISIBLE else View.GONE
     }
 
     private fun setupNavigation() {
@@ -309,7 +349,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        unregisterReceiver(packageReceiver)
+        runCatching { unregisterReceiver(packageReceiver) }
+        runCatching { unregisterReceiver(a11yAlertReceiver) }
         super.onDestroy()
     }
 

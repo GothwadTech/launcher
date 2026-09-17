@@ -292,4 +292,21 @@
     <string name="device_locked_title">TV Launcher is Locked</string>
     <string name="device_locked_desc">Enter PIN to unlock Gothwad Launcher</string>
     <string name="app_locked_title">App is Locked</string>
+    <string name="a11y_recovery_banner_title">HOME Key Interception Disabled</string>
+    <string name="a11y_recovery_banner_desc">Android disabled the accessibility permission after a crash. Re-enable it to restore HOME button and TV auto-return.</string>
+    <string name="a11y_recovery_banner_action">Re-enable in Settings</string>
+    <string name="a11y_recovery_banner_dismiss">Dismiss</string>
+    <!-- Remote Button Mapping (Phase 5) -->
+    <string name="button_mapping_title">Remote Button Mapping</string>
+    <string name="button_mapping_subtitle">Map dedicated TV remote hotkeys to apps</string>
+    <string name="button_mapping_add">Add Button Mapping</string>
+    <string name="button_mapping_empty">No remote buttons mapped yet. Tap \'Add Button Mapping\' to customize your remote.</string>
+    <string name="button_mapping_press_prompt">Press any button on your remote now…</string>
+    <string name="button_mapping_listening">Listening for remote keypress…</string>
+    <string name="button_mapping_captured_title">Button Detected</string>
+    <string name="button_mapping_captured_desc">Detected: %1$s (Key code %2$d)</string>
+    <string name="button_mapping_select_app">Select App to Launch</string>
+    <string name="button_mapping_reserved_error">This key is reserved for TV navigation (%1$s) and cannot be remapped.</string>
+    <string name="button_mapping_deleted">Mapping removed</string>
+    <string name="button_mapping_saved">Mapped %1$s to %2$s</string>
 </resources>

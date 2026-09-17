@@ -112,6 +112,12 @@
             </intent-filter>
         </service>
 
+        <!-- Ultra-lightweight crash & ANR self-healing watchdog running in isolated process -->
+        <service
+            android:name=".service.LauncherWatchdogService"
+            android:process=":watchdog"
+            android:exported="false" />
+
         <!-- Boot Receiver for TV Boot Auto-Start & OEM Boot Ad Shield -->
         <receiver
             android:name=".receiver.BootReceiver"
@@ -122,6 +128,7 @@
                 <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
                 <action android:name="android.intent.action.QUICKBOOT_POWERON" />
                 <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
     </application>
