@@ -100,6 +100,19 @@ data class LauncherConfig(
     val pcTaskbarCenter: Boolean = false,
     val pcGridSpacing: Int = 12,
     val pcSortOrder: Int = 0,
+    // ----- PC Window Manager (Windows/Linux style windowing) -----
+    val pcWindowingEnabled: Boolean = true, // Enable window cards with titlebar (min/max/close)
+    val pcFreeformEnabled: Boolean = false, // Try real Android freeform windowing on supported devices
+    val pcWindowDefaultWidth: Int = 480,
+    val pcWindowDefaultHeight: Int = 320,
+    val pcTaskbarOverlayEnabled: Boolean = false, // Show taskbar over other apps (requires overlay permission)
+    val pcTaskbarAutoHide: Boolean = false, // Auto-hide taskbar when app open (like Windows)
+    // ----- DPI Independence -----
+    val pcDpiIndependent: Boolean = true, // Ignore system DPI changes, use fixed DPI
+    val pcFixedDpi: Int = 320, // Fixed DPI value (240, 280, 320, 360, 400)
+    // ----- File Manager -----
+    val pcFileManagerShowHidden: Boolean = false,
+    val pcFileManagerSortBy: Int = 0, // 0=Name, 1=Size, 2=Date, 3=Type
     // ----- Remote Button Mapping (Phase 5) -----
     val buttonMap: Map<Int, String> = emptyMap(),
     val buttonMapDefaultsApplied: Boolean = false,

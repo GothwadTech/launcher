@@ -43,6 +43,7 @@ import com.gothwad.launcher.databinding.FragmentPcLauncherBinding
 import com.gothwad.launcher.databinding.LayoutPcAppContextMenuBinding
 import com.gothwad.launcher.databinding.LayoutPcContextMenuBinding
 import com.gothwad.launcher.service.NotificationManagerBridge
+import com.gothwad.launcher.service.PcTaskbarOverlayService
 import com.gothwad.launcher.ui.AppIcons
 import com.gothwad.launcher.ui.WALLPAPERS
 import com.gothwad.launcher.ui.dialogs.NotificationBottomSheetFragment
@@ -68,6 +69,7 @@ class PcLauncherFragment : Fragment() {
 
     private var desktopAdapter: PcDesktopIconAdapter? = null
     private var pinnedAdapter: PcTaskbarPinnedAdapter? = null
+    private var runningAdapter: PcTaskbarRunningAdapter? = null
     private var startMenuAdapter: PcStartMenuAdapter? = null
 
     private var currentConfig: LauncherConfig = LauncherConfig()
@@ -75,6 +77,10 @@ class PcLauncherFragment : Fragment() {
 
     private var itemTouchHelper: ItemTouchHelper? = null
     private var activePopupWindow: PopupWindow? = null
+
+    // Window Manager UI cache
+    private val windowViews = mutableMapOf<String, PcWindowView>()
+    private var focusedWindowId: String? = null
 
     private val batteryReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -97,6 +103,7 @@ class PcLauncherFragment : Fragment() {
         setupStartMenuFlyout()
         setupQuickSettingsFlyout()
         setupRecyclerView()
+        setupWindowManager()
         observeData()
         startClockUpdates()
         registerStatusListeners()
@@ -132,13 +139,192 @@ class PcLauncherFragment : Fragment() {
         binding.viewQuickSettings.imgQsBattery.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BATTERY, iconColor))
     }
 
+    // ==================== WINDOW MANAGER SETUP ====================
+
+    private fun setupWindowManager() {
+        // Observe windows flow to render window cards
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                PcWindowManager.windows.collectLatest { windows ->
+                    renderWindows(windows)
+                    updateRunningTaskbar(windows)
+                }
+            }
+        }
+
+        // Click on empty windows layer to focus desktop (deselect windows)
+        binding.containerWindowsLayer.setOnClickListener {
+            // If clicking empty space, defocus all? Or keep focused
+            // For now, close flyouts and defocus
+            closeAllFlyouts()
+            focusedWindowId = null
+            // Update focus visuals
+            PcWindowManager.getWindows().forEach { w ->
+                windowViews[w.id]?.let { view ->
+                    view.bind(w, false)
+                }
+            }
+            runningAdapter?.setFocusedWindow(null)
+        }
+    }
+
+    private fun renderWindows(windows: List<PcWindow>) {
+        if (_binding == null) return
+
+        val container = binding.containerWindowsLayer
+        val visibleWindows = windows.filter { !it.isMinimized }.sortedBy { it.zIndex }
+
+        // Remove views for closed windows
+        val currentIds = windows.map { it.id }.toSet()
+        val toRemove = windowViews.keys.filter { it !in currentIds }
+        toRemove.forEach { id ->
+            windowViews[id]?.let { view ->
+                container.removeView(view)
+            }
+            windowViews.remove(id)
+            if (focusedWindowId == id) focusedWindowId = null
+        }
+
+        // Determine focused window (highest zIndex among visible)
+        val newFocusedId = visibleWindows.maxByOrNull { it.zIndex }?.id
+
+        // Add or update views
+        visibleWindows.forEach { win ->
+            var winView = windowViews[win.id]
+            if (winView == null) {
+                winView = PcWindowView(requireContext()).apply {
+                    layoutParams = FrameLayout.LayoutParams(win.width, win.height).apply {
+                        leftMargin = win.x.toInt()
+                        topMargin = win.y.toInt()
+                    }
+                    onAction = { window, action ->
+                        handleWindowAction(window, action)
+                    }
+                }
+                windowViews[win.id] = winView
+                container.addView(winView)
+                // Animate in like Windows
+                winView.alpha = 0f
+                winView.scaleX = 0.92f
+                winView.scaleY = 0.92f
+                winView.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(180).start()
+            }
+            val isFocused = win.id == newFocusedId
+            winView.bind(win, isFocused)
+            winView.bringToFront()
+        }
+
+        // Ensure z-order in view hierarchy matches zIndex
+        visibleWindows.sortedBy { it.zIndex }.forEach { win ->
+            windowViews[win.id]?.bringToFront()
+        }
+
+        focusedWindowId = newFocusedId
+        runningAdapter?.setFocusedWindow(newFocusedId)
+
+        // Show/hide windows layer
+        container.visibility = if (visibleWindows.isNotEmpty()) View.VISIBLE else View.GONE
+    }
+
+    private fun updateRunningTaskbar(windows: List<PcWindow>) {
+        if (_binding == null) return
+        val hasRunning = windows.isNotEmpty()
+        binding.viewTaskbarSeparator.visibility = if (hasRunning) View.VISIBLE else View.GONE
+        binding.recyclerTaskbarRunning.visibility = if (hasRunning) View.VISIBLE else View.GONE
+        runningAdapter?.submitList(windows.sortedBy { it.zIndex })
+    }
+
+    private fun handleWindowAction(window: PcWindow, action: PcWindowAction) {
+        if (_binding == null) return
+        val displayMetrics = resources.displayMetrics
+        val taskbarHeight = binding.layoutTaskbar.height.takeIf { it > 0 } ?: (44 * displayMetrics.density).toInt()
+
+        when (action) {
+            PcWindowAction.CLOSE -> {
+                // Animate out then close
+                windowViews[window.id]?.let { view ->
+                    view.animate()
+                        .alpha(0f)
+                        .scaleX(0.85f)
+                        .scaleY(0.85f)
+                        .setDuration(150)
+                        .withEndAction {
+                            PcWindowManager.closeWindow(window.id)
+                            // Optionally kill app background process
+                            Actions.close(requireContext(), window.app.pkg)
+                        }
+                        .start()
+                } ?: run {
+                    PcWindowManager.closeWindow(window.id)
+                    Actions.close(requireContext(), window.app.pkg)
+                }
+            }
+            PcWindowAction.MINIMIZE -> {
+                // Minimize animation towards taskbar
+                windowViews[window.id]?.let { view ->
+                    view.animate()
+                        .alpha(0f)
+                        .scaleX(0.5f)
+                        .scaleY(0.5f)
+                        .translationY(100f)
+                        .setDuration(200)
+                        .withEndAction {
+                            PcWindowManager.minimizeWindow(window.id)
+                            view.translationY = 0f
+                            view.scaleX = 1f
+                            view.scaleY = 1f
+                            view.alpha = 1f
+                        }
+                        .start()
+                } ?: PcWindowManager.minimizeWindow(window.id)
+            }
+            PcWindowAction.MAXIMIZE_RESTORE -> {
+                PcWindowManager.toggleMaximize(window.id, displayMetrics.widthPixels, displayMetrics.heightPixels, taskbarHeight)
+            }
+            PcWindowAction.FOCUS -> {
+                PcWindowManager.focusWindow(window.id)
+            }
+            PcWindowAction.MOVE, PcWindowAction.RESIZE -> {
+                // Already handled via drag, just ensure focus
+            }
+            PcWindowAction.LAUNCH -> {
+                // Launch app fullscreen (or freeform if supported)
+                closeAllFlyouts()
+                val ctx = requireContext()
+                // Try freeform if device supports, else normal
+                val launched = Actions.launchAppInWindowedMode(ctx, window.app.pkg)
+                if (!launched) {
+                    Actions.launchApp(ctx, window.app.pkg)
+                }
+                // Keep window but minimize it to show app is running? Or keep visible?
+                // For simulated windowing, we minimize our window card when real app opens
+                // So user sees taskbar entry as running
+                PcWindowManager.minimizeWindow(window.id)
+            }
+        }
+    }
+
+    // ==================== TASKBAR SETUP ====================
+
     private fun setupTaskbar() {
-        // Base taskbar buttons
-        binding.btnStart.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_WINDOWS, 0xFF4FA7FA.toInt()))
+        // Base taskbar buttons - Use launcher's own square curved icon instead of Windows
+        binding.btnStart.setBackgroundResource(com.gothwad.launcher.R.drawable.bg_pc_start_btn)
+        try {
+            binding.btnStart.setImageResource(com.gothwad.launcher.R.mipmap.ic_launcher)
+        } catch (_: Exception) {
+            binding.btnStart.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_APPS, 0xFF4FA7FA.toInt()))
+        }
+        binding.btnTaskbarFileManager.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_FOLDER, 0xFFFFCA28.toInt()))
         binding.imgTaskbarSearchIcon.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_SEARCH, 0xCCFFFFFF.toInt()))
         binding.btnNotifications.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BELL, Color.WHITE))
         binding.imgTrayVolume.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_VOLUME, 0xFFCCCCCC.toInt()))
         binding.imgTrayNetwork.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_WIFI, 0xFFCCCCCC.toInt()))
+
+        // File Manager Button - PC Level
+        binding.btnTaskbarFileManager.setOnClickListener {
+            closeAllFlyouts()
+            openFileManager()
+        }
 
         // Start Menu Toggle
         binding.btnStart.setOnClickListener {
@@ -168,10 +354,25 @@ class PcLauncherFragment : Fragment() {
             toggleQuickSettings()
         }
 
-        // Show Desktop Peek Button
+        // Show Desktop Peek Button - Windows style: minimize all windows
         binding.btnShowDesktop.setOnClickListener {
             closeAllFlyouts()
-            binding.recyclerDesktopGrid.smoothScrollToPosition(0)
+            val windows = PcWindowManager.getWindows()
+            if (windows.any { !it.isMinimized }) {
+                // Minimize all
+                windows.forEach { w ->
+                    if (!w.isMinimized) {
+                        windowViews[w.id]?.animate()?.alpha(0f)?.scaleX(0.5f)?.scaleY(0.5f)?.setDuration(150)?.start()
+                    }
+                }
+                // Delay then actually minimize in manager
+                binding.btnShowDesktop.postDelayed({
+                    windows.forEach { PcWindowManager.minimizeWindow(it.id) }
+                }, 160)
+            } else {
+                // Restore all minimized
+                windows.forEach { PcWindowManager.restoreWindow(it.id) }
+            }
         }
 
         // Pinned Apps on Taskbar
@@ -187,6 +388,29 @@ class PcLauncherFragment : Fragment() {
         binding.recyclerTaskbarPinned.apply {
             layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
             adapter = pinnedAdapter
+            setHasFixedSize(true)
+        }
+
+        // Running Windows (Open Apps) on Taskbar - Windows style
+        runningAdapter = PcTaskbarRunningAdapter(
+            onClickWindow = { win ->
+                closeAllFlyouts()
+                if (win.isMinimized) {
+                    PcWindowManager.restoreWindow(win.id)
+                } else if (win.id == focusedWindowId) {
+                    // If already focused, minimize (like Windows)
+                    PcWindowManager.minimizeWindow(win.id)
+                } else {
+                    PcWindowManager.focusWindow(win.id)
+                }
+            },
+            onCloseWindow = { win ->
+                handleWindowAction(win, PcWindowAction.CLOSE)
+            }
+        )
+        binding.recyclerTaskbarRunning.apply {
+            layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+            adapter = runningAdapter
             setHasFixedSize(true)
         }
 
@@ -248,8 +472,14 @@ class PcLauncherFragment : Fragment() {
 
         startBinding.imgStartSearchIcon.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_SEARCH, 0xFF8AB4F8.toInt()))
         startBinding.imgUserAvatar.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_PERSON, 0xFF4FA7FA.toInt()))
+        startBinding.btnStartFileManager.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_FOLDER, 0xFFFFCA28.toInt()))
         startBinding.btnStartTvMode.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_TV, 0xFF60A5FA.toInt()))
         startBinding.btnStartSettings.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_GEAR, Color.WHITE))
+
+        startBinding.btnStartFileManager.setOnClickListener {
+            closeAllFlyouts()
+            openFileManager()
+        }
 
         startBinding.startSearchContainer.setOnClickListener {
             closeAllFlyouts()
@@ -391,7 +621,7 @@ class PcLauncherFragment : Fragment() {
         binding.containerQuickSettings.visibility = View.GONE
     }
 
-    @SuppressLint("ClickableViewAccessibility")
+    @SuppressLint(\"ClickableViewAccessibility\")
     private fun setupRecyclerView() {
         desktopAdapter = PcDesktopIconAdapter(
             onLaunchApp = { app ->
@@ -506,8 +736,14 @@ class PcLauncherFragment : Fragment() {
     }
 
     private fun updateGridDimensions() {
-        val density = resources.displayMetrics.density
-        val displayMetrics = resources.displayMetrics
+        // Use fixed DPI metrics if DPI independence enabled, else system metrics
+        // This makes UI independent from system DPI setting (320/400/200)
+        val displayMetrics = if (currentConfig.pcDpiIndependent) {
+            com.gothwad.launcher.data.DpiHelper.getFixedMetrics(requireContext(), currentConfig.pcFixedDpi)
+        } else {
+            resources.displayMetrics
+        }
+        val density = displayMetrics.density
         val scale = currentConfig.pcUiScale.coerceIn(0.5f, 1.3f)
         val iconSizeDp = currentConfig.pcIconSize.coerceIn(28, 56)
         val spacingDp = currentConfig.pcGridSpacing.coerceIn(4, 20)
@@ -548,10 +784,14 @@ class PcLauncherFragment : Fragment() {
         tbLp.height = taskbarHeightPx
         binding.layoutTaskbar.layoutParams = tbLp
 
-        // Adjust Taskbar margin on recycler
+        // Adjust Taskbar margin on recycler and windows layer
         val gridLp = binding.recyclerDesktopGrid.layoutParams as ViewGroup.MarginLayoutParams
         gridLp.bottomMargin = taskbarHeightPx
         binding.recyclerDesktopGrid.layoutParams = gridLp
+
+        val winLayerLp = binding.containerWindowsLayer.layoutParams as ViewGroup.MarginLayoutParams
+        winLayerLp.bottomMargin = taskbarHeightPx
+        binding.containerWindowsLayer.layoutParams = winLayerLp
 
         // Taskbar Center vs Left Alignment
         val appsLp = binding.layoutTaskbarApps.layoutParams as RelativeLayout.LayoutParams
@@ -615,7 +855,7 @@ class PcLauncherFragment : Fragment() {
         }
     }
 
-    // Windows / Linux style Desktop Context Menu
+    // Windows 11 / Linux Professional Desktop Context Menu
     private fun showDesktopContextMenu(touchX: Float, touchY: Float) {
         if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
             return
@@ -624,17 +864,27 @@ class PcLauncherFragment : Fragment() {
         val inflater = LayoutInflater.from(context)
         val menuBinding = LayoutPcContextMenuBinding.inflate(inflater)
 
+        // Professional icons for new menu
         menuBinding.imgMenuHeaderIcon.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_DESKTOP, 0xFF4FA7FA.toInt()))
+        menuBinding.imgIconView.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_APPS, 0xFF8AB4F8.toInt()))
+        menuBinding.imgIconSort.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_DOWN, 0xFF8AB4F8.toInt()))
+        menuBinding.imgIconRefresh.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_REFRESH, 0xFF4DD0E1.toInt()))
+        menuBinding.imgIconNew.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_ADD, 0xFF81C784.toInt()))
+        menuBinding.imgIconFileManager.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_FOLDER, 0xFFFFCA28.toInt()))
+        menuBinding.imgIconTerminal.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_VOLUME, 0xFFB39DDB.toInt())) // Terminal icon
         menuBinding.imgIconScale.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_DISPLAY, Color.WHITE))
         menuBinding.imgIconSize.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_APPS, Color.WHITE))
         menuBinding.imgIconSpacing.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_MOVE, Color.WHITE))
         menuBinding.imgIconLabels.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_PENCIL, Color.WHITE))
-        menuBinding.imgIconSort.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_DOWN, Color.WHITE))
         menuBinding.imgIconTaskbar.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_STORAGE, Color.WHITE))
-        menuBinding.imgIconRefresh.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_REFRESH, Color.WHITE))
-        menuBinding.imgIconPersonalize.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_PALETTE, Color.WHITE))
+        menuBinding.imgIconDisplaySettings.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_DISPLAY, 0xFF4FA7FA.toInt()))
+        menuBinding.imgIconPersonalize.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_PALETTE, 0xFFCE93D8.toInt()))
         menuBinding.imgIconSettings.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_GEAR, Color.WHITE))
 
+        // Arrows for submenus
+        menuBinding.imgArrowView.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_CHEVRON_RIGHT, 0xFF9AA0A6.toInt()))
+        menuBinding.imgArrowSort.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_CHEVRON_RIGHT, 0xFF9AA0A6.toInt()))
+        menuBinding.imgArrowNew.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_CHEVRON_RIGHT, 0xFF9AA0A6.toInt()))
         menuBinding.imgArrowScale.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_CHEVRON_RIGHT, 0xFF9AA0A6.toInt()))
         menuBinding.imgArrowIconSize.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_CHEVRON_RIGHT, 0xFF9AA0A6.toInt()))
         menuBinding.imgArrowTaskbar.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_CHEVRON_RIGHT, 0xFF9AA0A6.toInt()))
@@ -664,7 +914,6 @@ class PcLauncherFragment : Fragment() {
             )
             menuBinding.imgCheckLabels.visibility = View.VISIBLE
         } else {
-            menuBinding.imgCheckLabels.setImageDrawable(null)
             menuBinding.imgCheckLabels.visibility = View.INVISIBLE
         }
 
@@ -673,35 +922,74 @@ class PcLauncherFragment : Fragment() {
 
         val popup = PopupWindow(
             menuBinding.root,
-            (250 * resources.displayMetrics.density).toInt(),
+            (280 * resources.displayMetrics.density).toInt(),
             ViewGroup.LayoutParams.WRAP_CONTENT,
             true
         ).apply {
-            elevation = 16f
+            elevation = 20f
             isOutsideTouchable = true
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         }
         activePopupWindow = popup
 
-        // 1. PC UI Scale Option
+        // View > Large/Medium/Small/Auto arrange
+        menuBinding.itemView.setOnClickListener {
+            popup.dismiss()
+            showViewOptionsDialog()
+        }
+
+        // Sort by
+        menuBinding.itemSortDesktop.setOnClickListener {
+            popup.dismiss()
+            showSortPickerDialog()
+        }
+
+        // Refresh
+        menuBinding.itemRefreshDesktop.setOnClickListener {
+            popup.dismiss()
+            viewLifecycleOwner.lifecycleScope.launch {
+                loadApps()
+                android.widget.Toast.makeText(context, "Desktop refreshed", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // New > Folder/Document/Shortcut
+        menuBinding.itemNew.setOnClickListener {
+            popup.dismiss()
+            showNewOptionsDialog()
+        }
+
+        // File Manager
+        menuBinding.itemFileManager.setOnClickListener {
+            popup.dismiss()
+            openFileManager()
+        }
+
+        // Open Terminal
+        menuBinding.itemTerminal.setOnClickListener {
+            popup.dismiss()
+            tryOpenTerminal()
+        }
+
+        // Display Scale
         menuBinding.itemPcUiScale.setOnClickListener {
             popup.dismiss()
             showScalePickerDialog()
         }
 
-        // 2. Icon Size Option
+        // Icon Size
         menuBinding.itemIconSize.setOnClickListener {
             popup.dismiss()
             showIconSizePickerDialog()
         }
 
-        // 3. Spacing Option
+        // Spacing
         menuBinding.itemDesktopSpacing.setOnClickListener {
             popup.dismiss()
             showSpacingPickerDialog()
         }
 
-        // 4. Toggle Labels Option
+        // Toggle Labels
         menuBinding.itemToggleLabels.setOnClickListener {
             popup.dismiss()
             viewLifecycleOwner.lifecycleScope.launch {
@@ -709,42 +997,160 @@ class PcLauncherFragment : Fragment() {
             }
         }
 
-        // 5. Sort Icons Option
-        menuBinding.itemSortDesktop.setOnClickListener {
-            popup.dismiss()
-            showSortPickerDialog()
-        }
-
-        // 6. Taskbar Settings Option
+        // Taskbar Settings
         menuBinding.itemTaskbarSettings.setOnClickListener {
             popup.dismiss()
             showTaskbarSettingsDialog()
         }
 
-        // 7. Refresh Desktop Option
-        menuBinding.itemRefreshDesktop.setOnClickListener {
+        // Display Settings - opens Android display settings
+        menuBinding.itemDisplaySettings.setOnClickListener {
             popup.dismiss()
-            viewLifecycleOwner.lifecycleScope.launch {
-                loadApps()
+            try {
+                val intent = Intent(Settings.ACTION_DISPLAY_SETTINGS).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                startActivity(intent)
+            } catch (e: Exception) {
+                try {
+                    val intent = Intent(Settings.ACTION_SETTINGS).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    startActivity(intent)
+                } catch (_: Exception) {
+                    android.widget.Toast.makeText(context, "Display Settings not available", android.widget.Toast.LENGTH_SHORT).show()
+                }
             }
         }
 
-        // 8. Wallpaper / Personalize Option
+        // Personalize
         menuBinding.itemPersonalize.setOnClickListener {
             popup.dismiss()
             openFullSettingsDialog()
         }
 
-        // 9. Full Settings Option
+        // Launcher Settings
         menuBinding.itemOpenSettings.setOnClickListener {
             popup.dismiss()
             openFullSettingsDialog()
         }
 
-        showPopupAtSafeCoords(popup, touchX, touchY, (260 * resources.displayMetrics.density).toInt(), (360 * resources.displayMetrics.density).toInt())
+        showPopupAtSafeCoords(popup, touchX, touchY, (280 * resources.displayMetrics.density).toInt(), (520 * resources.displayMetrics.density).toInt())
     }
 
-    // Windows / Linux style App Icon Context Menu
+    private fun showViewOptionsDialog() {
+        val options = listOf(
+            PcDialogHelper.OptionItem("Large Icons", "Big desktop icons (56dp)", 56),
+            PcDialogHelper.OptionItem("Medium Icons", "Standard desktop icons (42dp)", 42),
+            PcDialogHelper.OptionItem("Small Icons", "Compact desktop icons (32dp)", 32),
+            PcDialogHelper.OptionItem("Auto Arrange Icons", if (currentConfig.pcSortOrder == 1) "✓ Currently enabled" else "Arrange automatically", -1),
+            PcDialogHelper.OptionItem("Align Icons to Grid", "Snap icons to grid", -2),
+            PcDialogHelper.OptionItem("Show Desktop Icons", if (currentConfig.hidden.isEmpty()) "✓ All icons visible" else "Some icons hidden", -3)
+        )
+        val selectedIdx = when (currentConfig.pcIconSize) {
+            in 0..35 -> 2
+            in 36..45 -> 1
+            else -> 0
+        }
+        PcDialogHelper.showOptionsPickerDialog(
+            context = requireContext(),
+            title = "View",
+            subtitle = "Desktop view options - Windows 11 style",
+            options = options,
+            selectedIndex = selectedIdx,
+            onSelect = { opt ->
+                val size = opt.tag as Int
+                when {
+                    size > 0 -> {
+                        viewLifecycleOwner.lifecycleScope.launch {
+                            ConfigStore(requireContext()).update { it.copy(pcIconSize = size) }
+                        }
+                    }
+                    size == -1 -> {
+                        viewLifecycleOwner.lifecycleScope.launch {
+                            ConfigStore(requireContext()).update { it.copy(pcSortOrder = if (it.pcSortOrder == 1) 0 else 1) }
+                        }
+                    }
+                    size == -2 -> {
+                        android.widget.Toast.makeText(requireContext(), "Icons aligned to grid", android.widget.Toast.LENGTH_SHORT).show()
+                        updateGridDimensions()
+                    }
+                    size == -3 -> {
+                        // Toggle show desktop icons - unhide all
+                        viewLifecycleOwner.lifecycleScope.launch {
+                            ConfigStore(requireContext()).update { it.copy(hidden = emptySet()) }
+                        }
+                    }
+                }
+            }
+        )
+    }
+
+    private fun showNewOptionsDialog() {
+        val options = listOf(
+            PcDialogHelper.OptionItem("Folder", "Create new folder (via File Manager)", "folder"),
+            PcDialogHelper.OptionItem("Text Document", "Create new text file", "text"),
+            PcDialogHelper.OptionItem("Shortcut", "Create app shortcut on desktop", "shortcut"),
+            PcDialogHelper.OptionItem("Bitmap Image", "Create new image file", "image")
+        )
+        PcDialogHelper.showOptionsPickerDialog(
+            context = requireContext(),
+            title = "New",
+            subtitle = "Create new item on desktop",
+            options = options,
+            selectedIndex = 0,
+            onSelect = { opt ->
+                when (opt.tag as String) {
+                    "folder" -> {
+                        android.widget.Toast.makeText(requireContext(), "Open File Manager to create folder", android.widget.Toast.LENGTH_SHORT).show()
+                        openFileManager()
+                    }
+                    "text" -> {
+                        android.widget.Toast.makeText(requireContext(), "Open File Manager to create text file", android.widget.Toast.LENGTH_SHORT).show()
+                        openFileManager()
+                    }
+                    "shortcut" -> {
+                        android.widget.Toast.makeText(requireContext(), "Long press app to create shortcut", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                    "image" -> {
+                        android.widget.Toast.makeText(requireContext(), "Open File Manager to create image", android.widget.Toast.LENGTH_SHORT).show()
+                        openFileManager()
+                    }
+                }
+            }
+        )
+    }
+
+    private fun tryOpenTerminal() {
+        val terminalPackages = listOf(
+            "com.termux",
+            "jackpal.androidterm",
+            "org.connectbot",
+            "com.sonelli.juicessh",
+            "com.server.auditor.ssh.client"
+        )
+        for (pkg in terminalPackages) {
+            try {
+                val intent = requireContext().packageManager.getLaunchIntentForPackage(pkg)
+                if (intent != null) {
+                    startActivity(intent)
+                    return
+                }
+            } catch (_: Exception) {}
+        }
+        // Fallback - try to open via ADB shell or show toast
+        android.widget.Toast.makeText(requireContext(), "No terminal app found. Install Termux from Play Store.", android.widget.Toast.LENGTH_LONG).show()
+        try {
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                data = android.net.Uri.parse("https://play.google.com/store/apps/details?id=com.termux")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(intent)
+        } catch (_: Exception) {}
+    }
+
+
+    // Windows 11 Professional App Context Menu - Full Windows/Linux level
     private fun showAppContextMenu(app: AppEntry, view: View, touchX: Float, touchY: Float) {
         if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
             return
@@ -754,6 +1160,7 @@ class PcLauncherFragment : Fragment() {
 
         val displayName = currentConfig.pcCustomLabels[app.pkg] ?: app.label
         menuBinding.tvAppHeaderLabel.text = displayName
+        menuBinding.tvAppHeaderPkg.text = app.pkg
 
         if (app.icon != null) {
             menuBinding.imgAppHeaderIcon.setImageBitmap(app.icon)
@@ -768,21 +1175,22 @@ class PcLauncherFragment : Fragment() {
             else AppIcons.createDrawable(AppIcons.PATH_PIN, Color.WHITE)
         )
         menuBinding.tvActionPin.text = if (isPinned) "Unpin from Taskbar" else "Pin to Taskbar"
-
+        menuBinding.imgActionPinStart.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_PIN, 0xFF8AB4F8.toInt()))
         menuBinding.imgActionRename.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_PENCIL, Color.WHITE))
         menuBinding.imgActionMoveUp.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_UP, Color.WHITE))
         menuBinding.imgActionMoveDown.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_DOWN, Color.WHITE))
+        menuBinding.imgActionOpenLocation.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_FOLDER, 0xFFFFCA28.toInt()))
         menuBinding.imgActionHide.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_HIDE, Color.WHITE))
         menuBinding.imgActionInfo.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_INFO, Color.WHITE))
         menuBinding.imgActionUninstall.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_DELETE, 0xFFFF6B6B.toInt()))
 
         val popup = PopupWindow(
             menuBinding.root,
-            (220 * resources.displayMetrics.density).toInt(),
+            (260 * resources.displayMetrics.density).toInt(),
             ViewGroup.LayoutParams.WRAP_CONTENT,
             true
         ).apply {
-            elevation = 16f
+            elevation = 20f
             isOutsideTouchable = true
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         }
@@ -805,6 +1213,19 @@ class PcLauncherFragment : Fragment() {
                     cfg.copy(pcPinnedApps = newPinned)
                 }
             }
+        }
+
+        menuBinding.itemAppPinStart.setOnClickListener {
+            popup.dismiss()
+            // For now, also pin to taskbar as Start pinning is same in this launcher
+            viewLifecycleOwner.lifecycleScope.launch {
+                ConfigStore(context).update { cfg ->
+                    if (app.pkg !in cfg.pcPinnedApps) {
+                        cfg.copy(pcPinnedApps = cfg.pcPinnedApps + app.pkg)
+                    } else cfg
+                }
+            }
+            android.widget.Toast.makeText(context, "${displayName} pinned to Start", android.widget.Toast.LENGTH_SHORT).show()
         }
 
         menuBinding.itemAppRename.setOnClickListener {
@@ -844,6 +1265,12 @@ class PcLauncherFragment : Fragment() {
             }
         }
 
+        menuBinding.itemAppOpenLocation.setOnClickListener {
+            popup.dismiss()
+            // Open app info which shows storage location
+            openAppDetails(app.pkg)
+        }
+
         menuBinding.itemAppHide.setOnClickListener {
             popup.dismiss()
             viewLifecycleOwner.lifecycleScope.launch {
@@ -863,10 +1290,10 @@ class PcLauncherFragment : Fragment() {
             uninstallApp(app.pkg)
         }
 
-        showPopupAtSafeCoords(popup, touchX, touchY, (220 * resources.displayMetrics.density).toInt(), (320 * resources.displayMetrics.density).toInt())
+        showPopupAtSafeCoords(popup, touchX, touchY, (260 * resources.displayMetrics.density).toInt(), (460 * resources.displayMetrics.density).toInt())
     }
 
-    private fun showPopupAtSafeCoords(popup: PopupWindow, rawX: Float, rawY: Float, widthPx: Int, heightPx: Int) {
+        private fun showPopupAtSafeCoords(popup: PopupWindow, rawX: Float, rawY: Float, widthPx: Int, heightPx: Int) {
         val displayMetrics = resources.displayMetrics
         val screenWidth = displayMetrics.widthPixels
         val screenHeight = displayMetrics.heightPixels
@@ -883,11 +1310,11 @@ class PcLauncherFragment : Fragment() {
     // Dialog: PC UI Scale Picker (Refined DPI options)
     private fun showScalePickerDialog() {
         val options = listOf(
-            PcDialogHelper.OptionItem("65% Ultra Compact", "Smallest DPI, for high-density PC setups", 0.65f),
-            PcDialogHelper.OptionItem("75% Compact (Recommended)", "Sleek PC look, removes bulky elements", 0.75f),
-            PcDialogHelper.OptionItem("85% Standard PC", "Balanced PC desktop scaling", 0.85f),
-            PcDialogHelper.OptionItem("100% Large", "Medium-large desktop scale", 1.00f),
-            PcDialogHelper.OptionItem("115% Extra Large", "For very distant viewing", 1.15f)
+            PcDialogHelper.OptionItem(\"65% Ultra Compact\", \"Smallest DPI, for high-density PC setups\", 0.65f),
+            PcDialogHelper.OptionItem(\"75% Compact (Recommended)\", \"Sleek PC look, removes bulky elements\", 0.75f),
+            PcDialogHelper.OptionItem(\"85% Standard PC\", \"Balanced PC desktop scaling\", 0.85f),
+            PcDialogHelper.OptionItem(\"100% Large\", \"Medium-large desktop scale\", 1.00f),
+            PcDialogHelper.OptionItem(\"115% Extra Large\", \"For very distant viewing\", 1.15f)
         )
         val selectedIdx = when {
             currentConfig.pcUiScale <= 0.70f -> 0
@@ -898,8 +1325,8 @@ class PcLauncherFragment : Fragment() {
         }
         PcDialogHelper.showOptionsPickerDialog(
             context = requireContext(),
-            title = "PC UI Scale (DPI)",
-            subtitle = "Adjust overall desktop and toolbar scaling",
+            title = \"PC UI Scale (DPI)\",
+            subtitle = \"Adjust overall desktop and toolbar scaling\",
             options = options,
             selectedIndex = selectedIdx,
             onSelect = { opt ->
@@ -914,9 +1341,9 @@ class PcLauncherFragment : Fragment() {
     // Dialog: Desktop Icon Size Picker
     private fun showIconSizePickerDialog() {
         val options = listOf(
-            PcDialogHelper.OptionItem("Small (32dp)", "Compact sleek desktop icons", 32),
-            PcDialogHelper.OptionItem("Medium (40dp)", "Standard desktop view", 40),
-            PcDialogHelper.OptionItem("Large (48dp)", "Spacious easy-to-tap view", 48)
+            PcDialogHelper.OptionItem(\"Small (32dp)\", \"Compact sleek desktop icons\", 32),
+            PcDialogHelper.OptionItem(\"Medium (40dp)\", \"Standard desktop view\", 40),
+            PcDialogHelper.OptionItem(\"Large (48dp)\", \"Spacious easy-to-tap view\", 48)
         )
         val selectedIdx = when (currentConfig.pcIconSize) {
             in 0..35 -> 0
@@ -925,8 +1352,8 @@ class PcLauncherFragment : Fragment() {
         }
         PcDialogHelper.showOptionsPickerDialog(
             context = requireContext(),
-            title = "Desktop Icon Size",
-            subtitle = "Choose app icon size on desktop",
+            title = \"Desktop Icon Size\",
+            subtitle = \"Choose app icon size on desktop\",
             options = options,
             selectedIndex = selectedIdx,
             onSelect = { opt ->
@@ -941,9 +1368,9 @@ class PcLauncherFragment : Fragment() {
     // Dialog: Desktop Spacing Picker
     private fun showSpacingPickerDialog() {
         val options = listOf(
-            PcDialogHelper.OptionItem("Tight Spacing (6dp)", "Compact icon placement", 6),
-            PcDialogHelper.OptionItem("Normal Spacing (10dp)", "Balanced desktop grid", 10),
-            PcDialogHelper.OptionItem("Spacious Spacing (16dp)", "Wide margins between icons", 16)
+            PcDialogHelper.OptionItem(\"Tight Spacing (6dp)\", \"Compact icon placement\", 6),
+            PcDialogHelper.OptionItem(\"Normal Spacing (10dp)\", \"Balanced desktop grid\", 10),
+            PcDialogHelper.OptionItem(\"Spacious Spacing (16dp)\", \"Wide margins between icons\", 16)
         )
         val selectedIdx = when (currentConfig.pcGridSpacing) {
             in 0..7 -> 0
@@ -952,8 +1379,8 @@ class PcLauncherFragment : Fragment() {
         }
         PcDialogHelper.showOptionsPickerDialog(
             context = requireContext(),
-            title = "Grid Spacing",
-            subtitle = "Choose spacing between desktop icons",
+            title = \"Grid Spacing\",
+            subtitle = \"Choose spacing between desktop icons\",
             options = options,
             selectedIndex = selectedIdx,
             onSelect = { opt ->
@@ -968,13 +1395,13 @@ class PcLauncherFragment : Fragment() {
     // Dialog: Sort Picker
     private fun showSortPickerDialog() {
         val options = listOf(
-            PcDialogHelper.OptionItem("Custom (Drag & Drop)", "Arranged manually by user", 0),
-            PcDialogHelper.OptionItem("Name (A to Z)", "Alphabetical sort", 1)
+            PcDialogHelper.OptionItem(\"Custom (Drag & Drop)\", \"Arranged manually by user\", 0),
+            PcDialogHelper.OptionItem(\"Name (A to Z)\", \"Alphabetical sort\", 1)
         )
         PcDialogHelper.showOptionsPickerDialog(
             context = requireContext(),
-            title = "Sort Desktop Icons",
-            subtitle = "Choose how apps are arranged",
+            title = \"Sort Desktop Icons\",
+            subtitle = \"Choose how apps are arranged\",
             options = options,
             selectedIndex = currentConfig.pcSortOrder,
             onSelect = { opt ->
@@ -989,11 +1416,11 @@ class PcLauncherFragment : Fragment() {
     // Dialog: Taskbar Settings
     private fun showTaskbarSettingsDialog() {
         val options = listOf(
-            PcDialogHelper.OptionItem("Slim Toolbar (34dp)", "Minimal height, maximizes screen", 34 to currentConfig.pcTaskbarCenter),
-            PcDialogHelper.OptionItem("Compact Toolbar (38dp)", "Sleek modern PC taskbar", 38 to currentConfig.pcTaskbarCenter),
-            PcDialogHelper.OptionItem("Standard Toolbar (44dp)", "Standard taskbar height", 44 to currentConfig.pcTaskbarCenter),
-            PcDialogHelper.OptionItem("Center Aligned (Windows 11)", "Centered taskbar apps", currentConfig.pcTaskbarHeight to true),
-            PcDialogHelper.OptionItem("Left Aligned (Classic)", "Left-aligned taskbar apps", currentConfig.pcTaskbarHeight to false)
+            PcDialogHelper.OptionItem(\"Slim Toolbar (34dp)\", \"Minimal height, maximizes screen\", 34 to currentConfig.pcTaskbarCenter),
+            PcDialogHelper.OptionItem(\"Compact Toolbar (38dp)\", \"Sleek modern PC taskbar\", 38 to currentConfig.pcTaskbarCenter),
+            PcDialogHelper.OptionItem(\"Standard Toolbar (44dp)\", \"Standard taskbar height\", 44 to currentConfig.pcTaskbarCenter),
+            PcDialogHelper.OptionItem(\"Center Aligned (Windows 11)\", \"Centered taskbar apps\", currentConfig.pcTaskbarHeight to true),
+            PcDialogHelper.OptionItem(\"Left Aligned (Classic)\", \"Left-aligned taskbar apps\", currentConfig.pcTaskbarHeight to false)
         )
         val selectedIdx = when {
             currentConfig.pcTaskbarHeight <= 35 -> 0
@@ -1002,8 +1429,8 @@ class PcLauncherFragment : Fragment() {
         }
         PcDialogHelper.showOptionsPickerDialog(
             context = requireContext(),
-            title = "Taskbar Settings",
-            subtitle = "Customize bottom toolbar height & alignment",
+            title = \"Taskbar Settings\",
+            subtitle = \"Customize bottom toolbar height & alignment\",
             options = options,
             selectedIndex = selectedIdx,
             onSelect = { opt ->
@@ -1019,12 +1446,19 @@ class PcLauncherFragment : Fragment() {
         )
     }
 
+    /**
+     * WINDOWED LAUNCH LOGIC (Windows/Linux style):
+     * - If windowing disabled: direct launch (old behavior)
+     * - If windowing enabled: creates a window card with titlebar (min/max/close)
+     *   Window card has: icon + title + minimize/maximize/close buttons
+     *   Taskbar shows running windows like Windows
+     * - If freeform enabled + device supports: tries real Android freeform window
+     *   On Samsung DeX, Android 12L+, ChromeOS etc, gives real floating window
+     */
     private fun handleAppLaunch(app: AppEntry, skipLock: Boolean = false) {
         if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
             return
         }
-        // UX-only in-launcher check to avoid overlay flicker on first click.
-        // The authoritative, unbypassable security enforcement layer is in LauncherAccessibilityService.
         if (!skipLock && currentConfig.appLock.enabled && currentConfig.appLock.value.isNotEmpty() && app.pkg in currentConfig.lockedApps) {
             PinEntryDialogFragment.newInstance(
                 title = "App Locked",
@@ -1037,14 +1471,45 @@ class PcLauncherFragment : Fragment() {
                 }
             ).show(parentFragmentManager, PinEntryDialogFragment.TAG)
         } else {
-            Actions.launchApp(requireContext(), app.pkg)
+            if (!currentConfig.pcWindowingEnabled) {
+                Actions.launchApp(requireContext(), app.pkg)
+                return
+            }
+
+            val displayMetrics = resources.displayMetrics
+            val taskbarHeight = binding.layoutTaskbar.height.takeIf { it > 0 } ?: (44 * displayMetrics.density).toInt()
+
+            val win = PcWindowManager.openWindow(
+                app = app,
+                screenWidth = displayMetrics.widthPixels,
+                screenHeight = displayMetrics.heightPixels,
+                taskbarHeight = taskbarHeight
+            )
+
+            if (currentConfig.pcFreeformEnabled) {
+                val launched = Actions.launchAppInWindowedMode(requireContext(), app.pkg)
+                if (launched) {
+                    PcWindowManager.minimizeWindow(win.id)
+                }
+            }
         }
+    }
+
+    /**
+     * Direct launch without windowing (used for Start Menu search etc if needed)
+     */
+    private fun handleAppLaunchDirect(app: AppEntry) {
+        Actions.launchApp(requireContext(), app.pkg)
+        // Also create window tracking
+        val displayMetrics = resources.displayMetrics
+        val taskbarHeight = binding.layoutTaskbar.height.takeIf { it > 0 } ?: (44 * displayMetrics.density).toInt()
+        PcWindowManager.openWindow(app, displayMetrics.widthPixels, displayMetrics.heightPixels, taskbarHeight)
     }
 
     private fun openAppDetails(pkg: String) {
         try {
             val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                data = Uri.fromParts("package", pkg, null)
+                data = Uri.fromParts(\"package\", pkg, null)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             startActivity(intent)
@@ -1054,7 +1519,7 @@ class PcLauncherFragment : Fragment() {
     private fun uninstallApp(pkg: String) {
         try {
             val intent = Intent(Intent.ACTION_UNINSTALL_PACKAGE).apply {
-                data = Uri.fromParts("package", pkg, null)
+                data = Uri.fromParts(\"package\", pkg, null)
                 putExtra(Intent.EXTRA_RETURN_RESULT, true)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
@@ -1071,6 +1536,19 @@ class PcLauncherFragment : Fragment() {
             config = currentConfig,
             onLaunch = { app -> handleAppLaunch(app) }
         ).show(parentFragmentManager, SearchDialogFragment.TAG)
+    }
+
+    private fun openFileManager() {
+        if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
+            return
+        }
+        // Check storage permission
+        try {
+            PcFileManagerDialogFragment.newInstance()
+                .show(parentFragmentManager, PcFileManagerDialogFragment.TAG)
+        } catch (e: Exception) {
+            android.widget.Toast.makeText(requireContext(), "File Manager: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun openFullSettingsDialog() {
@@ -1108,12 +1586,43 @@ class PcLauncherFragment : Fragment() {
                         updateVisibleApps()
                         updatePinnedApps()
 
+                        // Sync DPI prefs for independence (so GothwadApplication can read it in attachBaseContext next launch)
+                        try {
+                            val dpiPrefs = requireContext().getSharedPreferences("launcher_dpi_prefs", android.content.Context.MODE_PRIVATE)
+                            dpiPrefs.edit()
+                                .putBoolean("dpi_independent", config.pcDpiIndependent)
+                                .putInt("fixed_dpi", config.pcFixedDpi)
+                                .apply()
+                        } catch (_: Exception) {}
+
+                        // Handle taskbar overlay service (taskbar over apps like Windows)
+                        try {
+                            if (config.pcTaskbarOverlayEnabled) {
+                                if (!PcTaskbarOverlayService.isRunning) {
+                                    // Check overlay permission
+                                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                                        if (android.provider.Settings.canDrawOverlays(requireContext())) {
+                                            PcTaskbarOverlayService.start(requireContext())
+                                        }
+                                    } else {
+                                        PcTaskbarOverlayService.start(requireContext())
+                                    }
+                                }
+                            } else {
+                                if (PcTaskbarOverlayService.isRunning) {
+                                    PcTaskbarOverlayService.stop(requireContext())
+                                }
+                            }
+                        } catch (_: Exception) {}
+
                         if (prevConfig.pcUiScale != config.pcUiScale ||
                             prevConfig.pcIconSize != config.pcIconSize ||
                             prevConfig.pcShowLabels != config.pcShowLabels ||
                             prevConfig.pcGridSpacing != config.pcGridSpacing ||
                             prevConfig.pcTaskbarHeight != config.pcTaskbarHeight ||
-                            prevConfig.pcTaskbarCenter != config.pcTaskbarCenter) {
+                            prevConfig.pcTaskbarCenter != config.pcTaskbarCenter ||
+                            prevConfig.pcDpiIndependent != config.pcDpiIndependent ||
+                            prevConfig.pcFixedDpi != config.pcFixedDpi) {
                             updateGridDimensions()
                         }
                     }
@@ -1129,7 +1638,7 @@ class PcLauncherFragment : Fragment() {
                         val iconRes = if (net.wifi) AppIcons.PATH_WIFI else if (net.ethernet) AppIcons.PATH_ETHERNET else AppIcons.PATH_WIFI_OFF
                         binding.imgTrayNetwork.setImageDrawable(AppIcons.createDrawable(iconRes, Color.WHITE))
                         binding.viewQuickSettings.imgQsWifi.setImageDrawable(AppIcons.createDrawable(iconRes, 0xFF4FA7FA.toInt()))
-                        binding.viewQuickSettings.tvQsNetwork.text = if (net.connected) (if (net.ssid.isNotEmpty()) net.ssid else "Connected") else "Disconnected"
+                        binding.viewQuickSettings.tvQsNetwork.text = if (net.connected) (if (net.ssid.isNotEmpty()) net.ssid else \"Connected\") else \"Disconnected\"
                     }
                 }
 
@@ -1139,10 +1648,10 @@ class PcLauncherFragment : Fragment() {
                         if (notifs.isNotEmpty()) {
                             binding.tvNotifBadge.text = notifs.size.toString()
                             binding.tvNotifBadge.visibility = View.VISIBLE
-                            binding.viewQuickSettings.tvTileNotifCount.text = "${notifs.size} New"
+                            binding.viewQuickSettings.tvTileNotifCount.text = \"${notifs.size} New\"
                         } else {
                             binding.tvNotifBadge.visibility = View.GONE
-                            binding.viewQuickSettings.tvTileNotifCount.text = "None"
+                            binding.viewQuickSettings.tvTileNotifCount.text = \"None\"
                         }
                     }
                 }
@@ -1153,7 +1662,7 @@ class PcLauncherFragment : Fragment() {
     private fun applyWallpaper() {
         lifecycleScope.launch {
             if (currentConfig.useCustomWallpaper) {
-                val file = File(requireContext().filesDir, "wallpaper.jpg")
+                val file = File(requireContext().filesDir, \"wallpaper.jpg\")
                 if (file.exists()) {
                     val bmp = withContext(Dispatchers.IO) {
                         BitmapFactory.decodeFile(file.absolutePath)
@@ -1179,15 +1688,21 @@ class PcLauncherFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 while (isActive) {
                     val now = Date()
-                    val timePattern = if (currentConfig.h24) "HH:mm" else "hh:mm a"
+                    val timePattern = if (currentConfig.h24) \"HH:mm\" else \"hh:mm a\"
                     val timeStr = SimpleDateFormat(timePattern, Locale.ENGLISH).format(now)
-                    val dateStr = SimpleDateFormat("d MMM • EEE", Locale.ENGLISH).format(now)
+                    val dateStr = SimpleDateFormat(\"d MMM • EEE\", Locale.ENGLISH).format(now)
 
                     binding.tvTaskbarTime.text = timeStr
                     binding.tvTaskbarDate.text = dateStr
                     delay(1000)
                 }
             }
+        }
+    }
+
+    fun onRescanRequested() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            loadApps()
         }
     }
 

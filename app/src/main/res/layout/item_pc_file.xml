@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="52dp"
+    android:background="@drawable/bg_pc_menu_item"
+    android:clickable="true"
+    android:focusable="true"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingHorizontal="10dp">
+
+    <FrameLayout
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:background="#22FFFFFF">
+
+        <ImageView
+            android:id="@+id/img_file_icon"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_gravity="center"
+            android:scaleType="fitCenter" />
+
+        <TextView
+            android:id="@+id/tv_file_fallback"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            tools:text="F" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tv_file_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="middle"
+            android:maxLines="1"
+            android:singleLine="true"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            tools:text="MyDocument.pdf" />
+
+        <TextView
+            android:id="@+id/tv_file_details"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="#88FFFFFF"
+            android:textSize="10sp"
+            tools:text="2.4 MB • 12 Sep 2024" />
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/img_file_more"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_marginStart="6dp"
+        android:alpha="0.5"
+        android:contentDescription="More" />
+
+</LinearLayout>
