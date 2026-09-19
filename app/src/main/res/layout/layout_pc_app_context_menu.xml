@@ -1,85 +1,67 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="260dp"
+    android:layout_width="220dp"
     android:layout_height="wrap_content"
-    android:background="@drawable/bg_pc_context_menu_pro"
-    android:elevation="20dp"
+    android:background="@drawable/bg_pc_context_menu"
+    android:elevation="12dp"
     android:orientation="vertical"
-    android:padding="6dp">
+    android:padding="3dp">
 
     <!-- Header: App Icon & Name -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="44dp"
+        android:layout_height="32dp"
         android:gravity="center_vertical"
-        android:paddingHorizontal="12dp"
-        android:background="@drawable/bg_pc_menu_header">
+        android:paddingHorizontal="8dp">
 
         <ImageView
             android:id="@+id/img_app_header_icon"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
-            android:contentDescription="App Icon" />
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:contentDescription="@null" />
 
-        <LinearLayout
+        <TextView
+            android:id="@+id/tv_app_header_label"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="8dp"
             android:layout_weight="1"
-            android:orientation="vertical">
-
-            <TextView
-                android:id="@+id/tv_app_header_label"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:text="App Name"
-                android:textColor="#FFFFFF"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tv_app_header_pkg"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:text="com.example.app"
-                android:textColor="#88FFFFFF"
-                android:textSize="10sp" />
-        </LinearLayout>
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="App Name"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:layout_marginVertical="6dp"
-        android:layout_marginHorizontal="8dp"
-        android:background="#15FFFFFF" />
+        android:layout_marginVertical="3dp"
+        android:background="#20FFFFFF" />
 
-    <!-- Open -->
+    <!-- 1. Open App -->
     <LinearLayout
         android:id="@+id/item_app_open"
         android:layout_width="match_parent"
-        android:layout_height="40dp"
-        android:background="@drawable/bg_pc_menu_item_pro_accent"
+        android:layout_height="36dp"
+        android:background="@drawable/bg_pc_menu_item"
         android:clickable="true"
         android:focusable="true"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="12dp">
+        android:paddingHorizontal="10dp">
 
         <ImageView
             android:id="@+id/img_action_open"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:contentDescription="Open" />
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:contentDescription="@null" />
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="10dp"
             android:layout_weight="1"
             android:text="Open"
             android:textColor="#FFFFFF"
@@ -87,274 +69,203 @@
             android:textStyle="bold" />
     </LinearLayout>
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginVertical="6dp"
-        android:layout_marginHorizontal="8dp"
-        android:background="#12FFFFFF" />
-
-    <!-- Pin / Unpin -->
+    <!-- 2. Pin / Unpin from Taskbar -->
     <LinearLayout
         android:id="@+id/item_app_pin_taskbar"
         android:layout_width="match_parent"
-        android:layout_height="38dp"
-        android:background="@drawable/bg_pc_menu_item_pro"
+        android:layout_height="36dp"
+        android:background="@drawable/bg_pc_menu_item"
         android:clickable="true"
         android:focusable="true"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="12dp">
+        android:paddingHorizontal="10dp">
 
         <ImageView
             android:id="@+id/img_action_pin"
             android:layout_width="18dp"
             android:layout_height="18dp"
-            android:contentDescription="Pin" />
+            android:contentDescription="@null" />
 
         <TextView
             android:id="@+id/tv_action_pin"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="10dp"
             android:layout_weight="1"
             android:text="Pin to Taskbar"
             android:textColor="#EEEEEE"
             android:textSize="13sp" />
     </LinearLayout>
 
-    <!-- Pin to Start -->
-    <LinearLayout
-        android:id="@+id/item_app_pin_start"
-        android:layout_width="match_parent"
-        android:layout_height="38dp"
-        android:background="@drawable/bg_pc_menu_item_pro"
-        android:clickable="true"
-        android:focusable="true"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="12dp">
-
-        <ImageView
-            android:id="@+id/img_action_pin_start"
-            android:layout_width="18dp"
-            android:layout_height="18dp"
-            android:contentDescription="Pin to Start" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_weight="1"
-            android:text="Pin to Start"
-            android:textColor="#EEEEEE"
-            android:textSize="13sp" />
-    </LinearLayout>
-
-    <!-- Rename -->
-    <LinearLayout
-        android:id="@+id/item_app_rename"
-        android:layout_width="match_parent"
-        android:layout_height="38dp"
-        android:background="@drawable/bg_pc_menu_item_pro"
-        android:clickable="true"
-        android:focusable="true"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="12dp">
-
-        <ImageView
-            android:id="@+id/img_action_rename"
-            android:layout_width="18dp"
-            android:layout_height="18dp"
-            android:contentDescription="Rename" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_weight="1"
-            android:text="Rename"
-            android:textColor="#EEEEEE"
-            android:textSize="13sp" />
-    </LinearLayout>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginVertical="6dp"
-        android:layout_marginHorizontal="8dp"
-        android:background="#12FFFFFF" />
-
-    <!-- Move Up -->
+    <!-- 2a. Move Position Earlier / Top -->
     <LinearLayout
         android:id="@+id/item_app_move_up"
         android:layout_width="match_parent"
-        android:layout_height="38dp"
-        android:background="@drawable/bg_pc_menu_item_pro"
+        android:layout_height="36dp"
+        android:background="@drawable/bg_pc_menu_item"
         android:clickable="true"
         android:focusable="true"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="12dp">
+        android:paddingHorizontal="10dp">
 
         <ImageView
             android:id="@+id/img_action_move_up"
             android:layout_width="18dp"
             android:layout_height="18dp"
-            android:contentDescription="Move Up" />
+            android:contentDescription="@null" />
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="10dp"
             android:layout_weight="1"
-            android:text="Move Up"
+            android:text="Move Up / Left"
             android:textColor="#EEEEEE"
             android:textSize="13sp" />
     </LinearLayout>
 
-    <!-- Move Down -->
+    <!-- 2b. Move Position Later / Down -->
     <LinearLayout
         android:id="@+id/item_app_move_down"
         android:layout_width="match_parent"
-        android:layout_height="38dp"
-        android:background="@drawable/bg_pc_menu_item_pro"
+        android:layout_height="36dp"
+        android:background="@drawable/bg_pc_menu_item"
         android:clickable="true"
         android:focusable="true"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="12dp">
+        android:paddingHorizontal="10dp">
 
         <ImageView
             android:id="@+id/img_action_move_down"
             android:layout_width="18dp"
             android:layout_height="18dp"
-            android:contentDescription="Move Down" />
+            android:contentDescription="@null" />
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="10dp"
             android:layout_weight="1"
-            android:text="Move Down"
+            android:text="Move Down / Right"
             android:textColor="#EEEEEE"
             android:textSize="13sp" />
     </LinearLayout>
 
-    <!-- Open File Location -->
+    <!-- 3. Rename Shortcut -->
     <LinearLayout
-        android:id="@+id/item_app_open_location"
+        android:id="@+id/item_app_rename"
         android:layout_width="match_parent"
-        android:layout_height="38dp"
-        android:background="@drawable/bg_pc_menu_item_pro"
+        android:layout_height="36dp"
+        android:background="@drawable/bg_pc_menu_item"
         android:clickable="true"
         android:focusable="true"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="12dp">
+        android:paddingHorizontal="10dp">
 
         <ImageView
-            android:id="@+id/img_action_open_location"
+            android:id="@+id/img_action_rename"
             android:layout_width="18dp"
             android:layout_height="18dp"
-            android:contentDescription="Location" />
+            android:contentDescription="@null" />
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="10dp"
             android:layout_weight="1"
-            android:text="Open File Location"
+            android:text="Rename Shortcut"
             android:textColor="#EEEEEE"
             android:textSize="13sp" />
     </LinearLayout>
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginVertical="6dp"
-        android:layout_marginHorizontal="8dp"
-        android:background="#12FFFFFF" />
-
-    <!-- Hide -->
+    <!-- 4. Hide from Desktop -->
     <LinearLayout
         android:id="@+id/item_app_hide"
         android:layout_width="match_parent"
-        android:layout_height="38dp"
-        android:background="@drawable/bg_pc_menu_item_pro"
+        android:layout_height="36dp"
+        android:background="@drawable/bg_pc_menu_item"
         android:clickable="true"
         android:focusable="true"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="12dp">
+        android:paddingHorizontal="10dp">
 
         <ImageView
             android:id="@+id/img_action_hide"
             android:layout_width="18dp"
             android:layout_height="18dp"
-            android:contentDescription="Hide" />
+            android:contentDescription="@null" />
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="10dp"
             android:layout_weight="1"
             android:text="Hide from Desktop"
             android:textColor="#EEEEEE"
             android:textSize="13sp" />
     </LinearLayout>
 
-    <!-- App Info -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginVertical="3dp"
+        android:background="#20FFFFFF" />
+
+    <!-- 5. App Info -->
     <LinearLayout
         android:id="@+id/item_app_info"
         android:layout_width="match_parent"
-        android:layout_height="38dp"
-        android:background="@drawable/bg_pc_menu_item_pro"
+        android:layout_height="36dp"
+        android:background="@drawable/bg_pc_menu_item"
         android:clickable="true"
         android:focusable="true"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="12dp">
+        android:paddingHorizontal="10dp">
 
         <ImageView
             android:id="@+id/img_action_info"
             android:layout_width="18dp"
             android:layout_height="18dp"
-            android:contentDescription="Info" />
+            android:contentDescription="@null" />
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="10dp"
             android:layout_weight="1"
-            android:text="Properties"
+            android:text="App Info"
             android:textColor="#EEEEEE"
             android:textSize="13sp" />
     </LinearLayout>
 
-    <!-- Uninstall -->
+    <!-- 6. Uninstall App -->
     <LinearLayout
         android:id="@+id/item_app_uninstall"
         android:layout_width="match_parent"
-        android:layout_height="38dp"
-        android:background="@drawable/bg_pc_menu_item_pro"
+        android:layout_height="36dp"
+        android:background="@drawable/bg_pc_menu_item"
         android:clickable="true"
         android:focusable="true"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="12dp">
+        android:paddingHorizontal="10dp">
 
         <ImageView
             android:id="@+id/img_action_uninstall"
             android:layout_width="18dp"
             android:layout_height="18dp"
-            android:contentDescription="Uninstall" />
+            android:contentDescription="@null" />
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="10dp"
             android:layout_weight="1"
             android:text="Uninstall"
             android:textColor="#FF6B6B"

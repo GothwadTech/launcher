@@ -5,25 +5,15 @@
     android:background="#D9000000"
     android:padding="20dp">
 
-    <ScrollView
-        android:id="@+id/scroll_dialog_container"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:fillViewport="true"
-        android:scrollbars="none"
-        android:overScrollMode="never">
-
     <LinearLayout
         android:id="@+id/card_dialog_container"
-        android:layout_width="440dp"
+        android:layout_width="520dp"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:background="@drawable/bg_dialog_rounded"
         android:gravity="center_horizontal"
         android:orientation="vertical"
-        android:paddingHorizontal="24dp"
-        android:paddingVertical="18dp">
+        android:padding="24dp">
 
         <ImageView
             android:id="@+id/img_pin_icon"
@@ -422,5 +412,4 @@
             android:textSize="13sp" />
 
     </LinearLayout>
-    </ScrollView>
 </FrameLayout>

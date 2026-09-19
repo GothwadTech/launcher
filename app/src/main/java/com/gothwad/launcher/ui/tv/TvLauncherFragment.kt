@@ -118,15 +118,8 @@ class TvLauncherFragment : Fragment() {
         }
     }
 
-    private fun isDeviceLocked(): Boolean {
-        if (GothwadApplication.hasUnlockedDeviceThisProcess) return false
-        if (currentConfig.deviceLock.enabled && currentConfig.deviceLock.value.isNotEmpty()) return true
-        val prefs = context?.getSharedPreferences("launcher_lock_cache", android.content.Context.MODE_PRIVATE)
-        return prefs?.getBoolean("device_lock_enabled", false) ?: false
-    }
-
     private fun handleAppLaunch(app: AppEntry, skipLock: Boolean = false) {
-        if (isDeviceLocked()) {
+        if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
             return
         }
         // UX-only in-launcher check to avoid overlay flicker on first click.

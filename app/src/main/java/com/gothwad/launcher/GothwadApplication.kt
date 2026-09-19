@@ -6,11 +6,9 @@ import android.app.PendingIntent
 import android.content.ComponentCallbacks2
 import android.content.Context
 import android.content.Intent
-import android.content.res.Configuration
 import android.os.SystemClock
 import android.util.Log
 import com.gothwad.launcher.data.AppLaunchTracker
-import com.gothwad.launcher.data.DpiHelper
 import com.gothwad.launcher.service.LauncherWatchdogService
 import java.io.File
 import java.io.PrintWriter
@@ -24,37 +22,11 @@ import java.util.Locale
  * Acts as an application-level memory guardian on low-RAM (2GB) STB/TV devices,
  * automatically trimming tracked background processes under system memory pressure,
  * and installing a crash self-healing watchdog.
- * 
- * Also handles DPI independence - forces fixed DPI so system DPI changes don't break UI.
  */
 class GothwadApplication : Application() {
 
-    override fun attachBaseContext(base: Context) {
-        // Apply DPI independence BEFORE super.onCreate
-        val prefs = base.getSharedPreferences("launcher_dpi_prefs", MODE_PRIVATE)
-        val dpiIndependent = prefs.getBoolean("dpi_independent", true)
-        val fixedDpi = prefs.getInt("fixed_dpi", DpiHelper.FIXED_DENSITY_DPI)
-
-        val newBase = if (dpiIndependent) {
-            DpiHelper.applyFixedDensity(base, fixedDpi)
-        } else {
-            base
-        }
-        super.attachBaseContext(newBase)
-    }
-
     override fun onCreate() {
         super.onCreate()
-        
-        // Patch resources again after creation to ensure fixed DPI
-        val prefs = getSharedPreferences("launcher_dpi_prefs", MODE_PRIVATE)
-        val dpiIndependent = prefs.getBoolean("dpi_independent", true)
-        val fixedDpi = prefs.getInt("fixed_dpi", DpiHelper.FIXED_DENSITY_DPI)
-        if (dpiIndependent) {
-            DpiHelper.patchResources(resources, fixedDpi)
-            Log.i(TAG, DpiHelper.getSystemDpiInfo(this))
-        }
-
         val currentProc = com.gothwad.launcher.data.ProcessHelper.currentProcessName()
         Log.i(TAG, "GothwadApplication initialized in process: $currentProc")
 
@@ -62,18 +34,6 @@ class GothwadApplication : Application() {
         if (currentProc.isEmpty() || currentProc == packageName) {
             setupCrashSelfHealing()
             LauncherWatchdogService.start(this)
-        }
-    }
-
-    override fun onConfigurationChanged(newConfig: Configuration) {
-        super.onConfigurationChanged(newConfig)
-        // Re-apply fixed DPI when system config changes (e.g., DPI change)
-        val prefs = getSharedPreferences("launcher_dpi_prefs", MODE_PRIVATE)
-        val dpiIndependent = prefs.getBoolean("dpi_independent", true)
-        val fixedDpi = prefs.getInt("fixed_dpi", DpiHelper.FIXED_DENSITY_DPI)
-        if (dpiIndependent) {
-            DpiHelper.patchResources(resources, fixedDpi)
-            Log.i(TAG, "Configuration changed, re-applied fixed DPI: ${DpiHelper.getSystemDpiInfo(this)}")
         }
     }
 

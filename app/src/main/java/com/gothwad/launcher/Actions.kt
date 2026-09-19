@@ -13,78 +13,18 @@ object Actions {
     }
 
     fun launchApp(context: Context, pkg: String) {
-        launchAppInternal(context, pkg, tryFreeform = false)
-    }
-
-    /**
-     * Launch app in windowed mode if possible.
-     * On Android 12L+ / Samsung DeX / devices with freeform enabled, this will open as real floating window.
-     * Otherwise falls back to normal fullscreen launch but keeps window tracking for our simulated windowing.
-     */
-    fun launchAppInWindowedMode(context: Context, pkg: String): Boolean {
-        return launchAppInternal(context, pkg, tryFreeform = true)
-    }
-
-    private fun launchAppInternal(context: Context, pkg: String, tryFreeform: Boolean, taskbarHeightPx: Int = 0): Boolean {
         val pm = context.packageManager
         val intent = pm.getLeanbackLaunchIntentForPackage(pkg)
             ?: pm.getLaunchIntentForPackage(pkg)
         if (intent != null) {
-            return runCatching {
+            runCatching {
                 if (context !is android.app.Activity) {
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
-                // Try freeform windowing on supported devices
-                if (tryFreeform) {
-                    try {
-                        // Android 7+ freeform windowing mode
-                        val options = android.app.ActivityOptions.makeBasic()
-                        // WINDOWING_MODE_FREEFORM = 5
-                        options.javaClass.getMethod("setLaunchWindowingMode", Int::class.java)
-                            .invoke(options, 5)
-                        // Set bounds excluding taskbar area so app doesn't hide behind taskbar
-                        // This is the correct fix for "taskbar hides app content"
-                        val displayMetrics = context.resources.displayMetrics
-                        val tbHeight = if (taskbarHeightPx > 0) taskbarHeightPx else (44 * displayMetrics.density).toInt()
-                        val width = (displayMetrics.widthPixels * 0.75f).toInt()
-                        val height = (displayMetrics.heightPixels - tbHeight - (20 * displayMetrics.density).toInt())
-                        val left = (displayMetrics.widthPixels - width) / 2
-                        val top = (20 * displayMetrics.density).toInt()
-                        try {
-                            val rect = android.graphics.Rect(left, top, left + width, top + height)
-                            options.javaClass.getMethod("setLaunchBounds", android.graphics.Rect::class.java)
-                                .invoke(options, rect)
-                        } catch (_: Exception) {}
-
-                        if (context is android.app.Activity) {
-                            context.startActivity(intent, options.toBundle())
-                        } else {
-                            context.startActivity(intent, options.toBundle())
-                        }
-                    } catch (e: Exception) {
-                        // Fallback to normal launch if freeform not supported
-                        context.startActivity(intent)
-                    }
-                } else {
-                    context.startActivity(intent)
-                }
+                context.startActivity(intent)
                 com.gothwad.launcher.data.AppLaunchTracker.onAppLaunched(pkg)
-                true
-            }.onFailure { 
-                toast(context, context.getString(R.string.toast_cannot_open)) 
-                false
-            }.getOrDefault(false)
-        } else {
-            toast(context, context.getString(R.string.toast_no_launchable))
-            return false
-        }
-    }
-
-    /**
-     * Launch with taskbar-aware bounds - app opens above taskbar, not behind it
-     */
-    fun launchAppWithTaskbarBounds(context: Context, pkg: String, taskbarHeightPx: Int): Boolean {
-        return launchAppInternal(context, pkg, tryFreeform = true, taskbarHeightPx = taskbarHeightPx)
+            }.onFailure { toast(context, context.getString(R.string.toast_cannot_open)) }
+        } else toast(context, context.getString(R.string.toast_no_launchable))
     }
 
     fun openAppInfo(context: Context, pkg: String) {

@@ -38,7 +38,6 @@ import com.gothwad.launcher.ui.dialogs.VoiceSearchDialogFragment
 import com.gothwad.launcher.ui.tv.TvLauncherFragment
 import com.gothwad.launcher.ui.view.DeviceLockViewController
 import android.view.KeyEvent
-import android.view.MotionEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
@@ -104,34 +103,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun attachBaseContext(newBase: Context) {
-        // 1. Apply DPI independence first
-        val dpiPrefs = newBase.getSharedPreferences("launcher_dpi_prefs", MODE_PRIVATE)
-        val dpiIndependent = dpiPrefs.getBoolean("dpi_independent", true)
-        val fixedDpi = dpiPrefs.getInt("fixed_dpi", com.gothwad.launcher.data.DpiHelper.FIXED_DENSITY_DPI)
-        
-        var context = if (dpiIndependent) {
-            com.gothwad.launcher.data.DpiHelper.applyFixedDensity(newBase, fixedDpi)
-        } else {
-            newBase
-        }
-
-        // 2. Then apply locale
-        val lang = context.getSharedPreferences(LOCALE_PREFS, MODE_PRIVATE)
+        val lang = newBase.getSharedPreferences(LOCALE_PREFS, MODE_PRIVATE)
             .getString(LOCALE_KEY, "").orEmpty()
-        context = if (lang.isEmpty()) context else applyLocale(context, lang)
-
-        super.attachBaseContext(context)
-    }
-
-    override fun onConfigurationChanged(newConfig: Configuration) {
-        super.onConfigurationChanged(newConfig)
-        // Re-apply DPI fix when system DPI changes
-        val dpiPrefs = getSharedPreferences("launcher_dpi_prefs", MODE_PRIVATE)
-        val dpiIndependent = dpiPrefs.getBoolean("dpi_independent", true)
-        val fixedDpi = dpiPrefs.getInt("fixed_dpi", com.gothwad.launcher.data.DpiHelper.FIXED_DENSITY_DPI)
-        if (dpiIndependent) {
-            com.gothwad.launcher.data.DpiHelper.patchResources(resources, fixedDpi)
-        }
+        super.attachBaseContext(if (lang.isEmpty()) newBase else applyLocale(newBase, lang))
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -169,46 +143,27 @@ class MainActivity : AppCompatActivity() {
 
     private var deviceLockController: DeviceLockViewController? = null
 
-    private fun isDeviceLockActive(): Boolean {
-        if (GothwadApplication.hasUnlockedDeviceThisProcess) return false
-        if (currentConfig.deviceLock.enabled) return true
-        val prefs = getSharedPreferences("launcher_lock_cache", MODE_PRIVATE)
-        return prefs.getBoolean("device_lock_enabled", false)
-    }
-
     private fun checkDeviceLockOnColdStart() {
         if (GothwadApplication.hasUnlockedDeviceThisProcess) {
             binding.deviceLockContainer.visibility = View.GONE
             return
         }
 
-        val prefs = getSharedPreferences("launcher_lock_cache", MODE_PRIVATE)
-        val cachedLockEnabled = prefs.getBoolean("device_lock_enabled", false)
-
-        // If lock is enabled in cache or config, display lock container synchronously
-        if (cachedLockEnabled || currentConfig.deviceLock.enabled) {
-            binding.deviceLockContainer.visibility = View.VISIBLE
-            binding.deviceLockContainer.bringToFront()
-        }
+        // Show solid lock container immediately so not even a single frame of home UI is leaked
+        binding.deviceLockContainer.visibility = View.VISIBLE
+        binding.deviceLockContainer.bringToFront()
 
         lifecycleScope.launch {
             val store = ConfigStore(this@MainActivity)
             val config = store.flow.first()
             currentConfig = config
-            prefs.edit().putBoolean("device_lock_enabled", config.deviceLock.enabled).apply()
-
             if (config.deviceLock.enabled && config.deviceLock.value.isNotEmpty()) {
-                binding.deviceLockContainer.visibility = View.VISIBLE
-                binding.deviceLockContainer.bringToFront()
-
                 deviceLockController = DeviceLockViewController(
                     container = binding.deviceLockContainer,
                     credential = config.deviceLock,
-                    isPcMode = (config.launcherMode == MODE_PC),
                     onUnlocked = {
                         GothwadApplication.hasUnlockedDeviceThisProcess = true
                         deviceLockController = null
-                        binding.deviceLockContainer.visibility = View.GONE
                     }
                 )
                 deviceLockController?.show()
@@ -328,31 +283,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openSettingsDialog() {
-        if (!GothwadApplication.hasUnlockedDeviceThisProcess || isDeviceLockActive()) {
+        if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
             return
         }
-        val primaryLock = when {
-            currentConfig.deviceLock.enabled && currentConfig.deviceLock.value.isNotEmpty() -> currentConfig.deviceLock
-            currentConfig.appLock.enabled && currentConfig.appLock.value.isNotEmpty() -> currentConfig.appLock
-            currentConfig.hiddenAppsLock.enabled && currentConfig.hiddenAppsLock.value.isNotEmpty() -> currentConfig.hiddenAppsLock
-            else -> null
-        }
-        if (primaryLock != null) {
-            PinEntryDialogFragment.newInstance(
-                title = "Launcher Settings",
-                subtitle = "Enter credential to access settings",
-                credential = primaryLock,
-                isCancelable = true,
-                onSuccess = {
-                    showActualSettingsDialog()
-                }
-            ).show(supportFragmentManager, PinEntryDialogFragment.TAG)
-        } else {
-            showActualSettingsDialog()
-        }
-    }
-
-    private fun showActualSettingsDialog() {
         SettingsBottomSheetFragment.newInstance(
             config = currentConfig,
             apps = allApps,
@@ -464,30 +397,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (!GothwadApplication.hasUnlockedDeviceThisProcess && isDeviceLockActive()) {
+        if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
             if (deviceLockController?.handleKeyEvent(event.keyCode, event) == true) {
                 return true
             }
-            // Block all other keys (Back, Home, Settings, Volume etc.) while device lock is active
-            return true
+            if (event.keyCode == KeyEvent.KEYCODE_BACK) {
+                return true
+            }
         }
         return super.dispatchKeyEvent(event)
-    }
-
-    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
-        if (!GothwadApplication.hasUnlockedDeviceThisProcess && isDeviceLockActive()) {
-            // Forward touch events directly and exclusively to the device lock container
-            return binding.deviceLockContainer.dispatchTouchEvent(ev)
-        }
-        return super.dispatchTouchEvent(ev)
-    }
-
-    override fun dispatchGenericMotionEvent(ev: MotionEvent): Boolean {
-        if (!GothwadApplication.hasUnlockedDeviceThisProcess && isDeviceLockActive()) {
-            // Forward mouse/right-click/trackpad events directly and exclusively to the device lock container
-            return binding.deviceLockContainer.dispatchGenericMotionEvent(ev)
-        }
-        return super.dispatchGenericMotionEvent(ev)
     }
 
     override fun onDestroy() {

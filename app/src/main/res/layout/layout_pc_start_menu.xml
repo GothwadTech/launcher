@@ -83,7 +83,7 @@
         android:layout_marginBottom="12dp"
         android:background="#20FFFFFF" />
 
-    <!-- Footer Bar: User Profile, File Manager, TV Mode, Settings -->
+    <!-- Footer Bar: User Profile, TV Mode, Settings -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="40dp"
@@ -107,18 +107,9 @@
             android:textStyle="bold" />
 
         <ImageButton
-            android:id="@+id/btn_start_file_manager"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:background="@drawable/bg_pc_taskbar_btn"
-            android:contentDescription="File Manager"
-            android:padding="6dp" />
-
-        <ImageButton
             android:id="@+id/btn_start_tv_mode"
             android:layout_width="32dp"
             android:layout_height="32dp"
-            android:layout_marginStart="4dp"
             android:background="@drawable/bg_pc_taskbar_btn"
             android:contentDescription="Switch to TV Mode"
             android:padding="6dp" />
