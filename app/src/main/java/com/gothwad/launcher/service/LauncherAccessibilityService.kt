@@ -66,14 +66,9 @@ class LauncherAccessibilityService : AccessibilityService() {
         }
     }
 
-    override fun onDestroy() {
-        dismissLockOverlay()
-        serviceScope.cancel()
-        super.onDestroy()
-    }
-
     override fun onServiceConnected() {
         super.onServiceConnected()
+        instance = this
         val info = serviceInfo ?: AccessibilityServiceInfo()
         info.apply {
             eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
@@ -82,6 +77,15 @@ class LauncherAccessibilityService : AccessibilityService() {
             notificationTimeout = 100
         }
         serviceInfo = info
+    }
+
+    override fun onDestroy() {
+        if (instance == this) {
+            instance = null
+        }
+        dismissLockOverlay()
+        serviceScope.cancel()
+        super.onDestroy()
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -312,5 +316,17 @@ class LauncherAccessibilityService : AccessibilityService() {
 
         /** In-memory set of unlocked packages for current foreground session */
         val unlockedPackagesSession: MutableSet<String> = java.util.Collections.synchronizedSet(mutableSetOf<String>())
+
+        @Volatile
+        var instance: LauncherAccessibilityService? = null
+            internal set
+
+        /**
+         * Global action to return to Home immediately if foreground is displaying any external app
+         */
+        fun forceReturnHome(): Boolean {
+            val service = instance ?: return false
+            return service.performGlobalAction(GLOBAL_ACTION_HOME)
+        }
     }
 }

@@ -1,15 +1,11 @@
 package com.gothwad.launcher.data
 
+import android.app.Activity
 import android.app.ActivityManager
-import android.app.AlarmManager
-import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
-import android.os.Process
-import android.os.SystemClock
 import android.util.Log
 import android.widget.Toast
 import com.gothwad.launcher.MainActivity
@@ -17,21 +13,20 @@ import com.gothwad.launcher.service.LauncherAccessibilityService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.io.File
 
 /**
- * System-level Deep Refresh & Instant Reboot Simulation Engine.
+ * System-level Fast Refresh Engine (Windows F5 style instant desktop refresh).
  *
- * In 1-2 seconds, this performs:
- * 1. Audio silencing & background media termination.
- * 2. Background task & cached process termination across all installed non-essential apps.
- * 3. Cache clearing of temporary app images/drawables and memory GC.
- * 4. Scheduling an instant cold relaunch of Gothwad Launcher via AlarmManager (or clean restart).
- * 5. Clean process termination of the launcher, delivering a pristine post-boot state with freed RAM.
+ * Characteristics:
+ * 1. Instant 1-second execution with Windows-style subtle UI blink (no blackout, no launcher crash).
+ * 2. Remains solidly on Gothwad Launcher (never drops to OEM/stock TV launcher).
+ * 3. Kills background running apps (Termux, Chrome, Youtube, etc.) via ActivityManager.killBackgroundProcesses.
+ * 4. Silences background media and terminates rogue audio.
+ * 5. Clears unlocked app session tokens and resets memory caches.
+ * 6. Triggers immediate GC and rescans all apps/widgets.
  */
 object SystemRefreshEngine {
     private const val TAG = "SystemRefreshEngine"
-    private const val RESTART_REQUEST_CODE = 9988
 
     // Critical system packages that must never be terminated
     private val PROTECTED_PACKAGES = setOf(
@@ -48,102 +43,81 @@ object SystemRefreshEngine {
         val appContext = context.applicationContext
         val mainHandler = Handler(Looper.getMainLooper())
 
-        // Provide immediate visual feedback
-        Toast.makeText(appContext, "⚡ System Refreshing… Freeing RAM & background apps", Toast.LENGTH_SHORT).show()
+        // 1. Windows-style Fast Visual Blink on the active MainActivity
+        if (context is MainActivity) {
+            context.triggerInstantVisualBlink()
+        }
+
+        // 2. Ensure launcher is firmly brought to foreground / forced Home
+        LauncherAccessibilityService.forceReturnHome()
 
         CoroutineScope(Dispatchers.Default).launch {
             try {
-                // 1. Terminate audio playback
+                // 3. Terminate background audio / media
                 BackgroundMediaTracker.silenceAudio(appContext)
 
-                // 2. Kill all non-system background apps and cached tasks
+                // 4. Force kill background running app processes (Termux, Chrome, browsers, players, etc.)
                 val am = appContext.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
                 val pm = appContext.packageManager
                 val myPkg = appContext.packageName
 
                 if (am != null) {
-                    val installedPkgs = runCatching {
-                        pm.getInstalledPackages(0).map { it.packageName }
-                    }.getOrDefault(emptyList())
+                    // Method A: Query running app processes
+                    runCatching {
+                        val runningProcesses = am.runningAppProcesses
+                        if (runningProcesses != null) {
+                            for (proc in runningProcesses) {
+                                val pkgList = proc.pkgList ?: continue
+                                for (pkg in pkgList) {
+                                    if (pkg != myPkg &&
+                                        pkg !in PROTECTED_PACKAGES &&
+                                        !LauncherAccessibilityService.isStockTvLauncher(pkg)
+                                    ) {
+                                        am.killBackgroundProcesses(pkg)
+                                    }
+                                }
+                            }
+                        }
+                    }
 
-                    for (pkg in installedPkgs) {
-                        if (pkg != myPkg &&
-                            pkg !in PROTECTED_PACKAGES &&
-                            !LauncherAccessibilityService.isStockTvLauncher(pkg)
-                        ) {
-                            runCatching {
+                    // Method B: Exhaustive kill on all installed non-system packages
+                    runCatching {
+                        val installedPkgs = pm.getInstalledPackages(0).map { it.packageName }
+                        for (pkg in installedPkgs) {
+                            if (pkg != myPkg &&
+                                pkg !in PROTECTED_PACKAGES &&
+                                !LauncherAccessibilityService.isStockTvLauncher(pkg)
+                            ) {
                                 am.killBackgroundProcesses(pkg)
                             }
                         }
                     }
                 }
 
-                // 3. Clear application memory caches
+                // 5. Invalidate temporary session states (lock tokens, temporary states)
+                LauncherAccessibilityService.unlockedPackagesSession.clear()
+
+                // 6. Clear image & glide/disk caches in launcher
                 runCatching {
                     appContext.cacheDir?.deleteRecursively()
                     appContext.codeCacheDir?.deleteRecursively()
                 }
 
-                // 4. Invalidate temporary session states
-                LauncherAccessibilityService.unlockedPackagesSession.clear()
-
-                // 5. Force garbage collection
+                // 7. Force garbage collection to free RAM immediately
                 System.gc()
                 Runtime.getRuntime().gc()
 
-                // 6. Schedule instant cold relaunch (within 350ms) and restart process
-                mainHandler.postDelayed({
-                    scheduleRelaunchAndExit(appContext)
-                }, 350L)
+                // 8. Refresh launcher apps and state
+                mainHandler.post {
+                    if (context is MainActivity) {
+                        context.notifyFragmentRescan()
+                    }
+                    Toast.makeText(appContext, "⚡ System Refreshed • Background apps killed & RAM freed", Toast.LENGTH_SHORT).show()
+                }
 
             } catch (e: Throwable) {
                 Log.e(TAG, "Error performing system refresh", e)
-                mainHandler.post {
-                    scheduleRelaunchAndExit(appContext)
-                }
             }
         }
-    }
-
-    private fun scheduleRelaunchAndExit(context: Context) {
-        runCatching {
-            val intent = Intent(context, MainActivity::class.java).apply {
-                action = Intent.ACTION_MAIN
-                addCategory(Intent.CATEGORY_HOME)
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_CLEAR_TASK or
-                    Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
-            }
-
-            val pendingIntent = PendingIntent.getActivity(
-                context,
-                RESTART_REQUEST_CODE,
-                intent,
-                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_CANCEL_CURRENT
-            )
-
-            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager
-            if (alarmManager != null) {
-                val triggerAtMillis = SystemClock.elapsedRealtime() + 400L
-                alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.ELAPSED_REALTIME_WAKEUP,
-                    triggerAtMillis,
-                    pendingIntent
-                )
-                Log.i(TAG, "Scheduled pristine restart via AlarmManager in 400ms")
-            } else {
-                context.startActivity(intent)
-            }
-        }
-
-        // Exit process immediately to release all graphics, native, and JVM memory
-        Handler(Looper.getMainLooper()).postDelayed({
-            try {
-                Process.killProcess(Process.myPid())
-                System.exit(0)
-            } catch (t: Throwable) {
-                Log.e(TAG, "Process kill error", t)
-            }
-        }, 150L)
     }
 }

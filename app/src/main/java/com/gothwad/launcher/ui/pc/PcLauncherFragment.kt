@@ -143,7 +143,8 @@ class PcLauncherFragment : Fragment() {
         // Refresh Button
         binding.btnTaskbarRefresh.setOnClickListener {
             closeAllFlyouts()
-            com.gothwad.launcher.data.SystemRefreshEngine.performSystemRefresh(requireContext())
+            val act = activity ?: requireContext()
+            com.gothwad.launcher.data.SystemRefreshEngine.performSystemRefresh(act)
         }
 
         // Start Menu Toggle
@@ -260,7 +261,8 @@ class PcLauncherFragment : Fragment() {
 
         startBinding.btnStartRefresh.setOnClickListener {
             closeAllFlyouts()
-            com.gothwad.launcher.data.SystemRefreshEngine.performSystemRefresh(requireContext())
+            val act = activity ?: requireContext()
+            com.gothwad.launcher.data.SystemRefreshEngine.performSystemRefresh(act)
         }
 
         startBinding.startSearchContainer.setOnClickListener {
@@ -355,7 +357,8 @@ class PcLauncherFragment : Fragment() {
 
         qsBinding.tileQsRefresh.setOnClickListener {
             closeAllFlyouts()
-            com.gothwad.launcher.data.SystemRefreshEngine.performSystemRefresh(requireContext())
+            val act = activity ?: requireContext()
+            com.gothwad.launcher.data.SystemRefreshEngine.performSystemRefresh(act)
         }
 
         qsBinding.btnQsSettings.setOnClickListener {
@@ -727,7 +730,8 @@ class PcLauncherFragment : Fragment() {
         // 7. Refresh Desktop Option
         menuBinding.itemRefreshDesktop.setOnClickListener {
             popup.dismiss()
-            com.gothwad.launcher.data.SystemRefreshEngine.performSystemRefresh(requireContext())
+            val act = activity ?: requireContext()
+            com.gothwad.launcher.data.SystemRefreshEngine.performSystemRefresh(act)
         }
 
         // 8. Wallpaper / Personalize Option
@@ -1177,6 +1181,12 @@ class PcLauncherFragment : Fragment() {
                     delay(1000)
                 }
             }
+        }
+    }
+
+    fun onRescanRequested() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            loadApps()
         }
     }
 

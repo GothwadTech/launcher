@@ -83,11 +83,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun notifyFragmentRescan() {
+    fun notifyFragmentRescan() {
         val navHostFragment = supportFragmentManager
             .findFragmentById(R.id.nav_host_fragment) as? NavHostFragment
         val currentFragment = navHostFragment?.childFragmentManager?.fragments?.firstOrNull()
         if (currentFragment is TvLauncherFragment) {
+            currentFragment.onRescanRequested()
+        } else if (currentFragment is com.gothwad.launcher.ui.pc.PcLauncherFragment) {
             currentFragment.onRescanRequested()
         }
     }
@@ -406,6 +408,22 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    fun triggerInstantVisualBlink() {
+        // Windows-style fast blink (fade down to 0.3 and bounce back in 220ms)
+        binding.root.animate()
+            .alpha(0.25f)
+            .setDuration(90)
+            .withEndAction {
+                notifyFragmentRescan()
+                refreshAppsList()
+                binding.root.animate()
+                    .alpha(1f)
+                    .setDuration(130)
+                    .start()
+            }
+            .start()
     }
 
     override fun onDestroy() {
