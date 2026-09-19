@@ -124,6 +124,11 @@ object AppIcons {
     const val PATH_PIN = "M16 9V4l1 0c.55 0 1-.45 1-1s-.45-1-1-1H7c-.55 0-1 .45-1 1s.45 1 1 1l1 0v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3z"
     const val PATH_UNPIN = "M17 15h2v2h-2zm0-4h2v2h-2zm0-4h2v2h-2zm-3.2-3.8l1.4 1.4L13.8 6H16V4h-3.8l1.6-1.6-1.4-1.4L9 4.4 7.6 3 6.2 4.4 7.6 5.8 5 8.4V11h2.6l4.6-4.6 1.6 1.4zM2 19h20v2H2z"
     const val PATH_WIZARD = "M7.5 5.6L10 7 8.6 4.5 10 2 7.5 3.4 5 2l1.4 2.5L5 7zm12 9.8L17 14l1.4 2.5L17 19l2.5-1.4L22 19l-1.4-2.5L22 14zM22 2l-2.5 1.4L17 2l1.4 2.5L17 7l2.5-1.4L22 7l-1.4-2.5zm-7.63 5.29c-.39-.39-1.02-.39-1.41 0L1.29 18.96c-.39.39-.39 1.02 0 1.41l2.34 2.34c.39.39 1.02.39 1.41 0L16.7 11.05c.39-.39.39-1.02 0-1.41l-2.33-2.35zm-1.03 5.49l-2.12-2.12 2.44-2.44 2.12 2.12-2.44 2.44z"
+    // Window Manager icons (Windows style)
+    const val PATH_MINUS = "M19 13H5v-2h14v2z"
+    const val PATH_MAXIMIZE = "M19 19H5V5h14v14zM7 7v10h10V7H7z"
+    const val PATH_RESTORE = "M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"
+    const val PATH_RESIZE = "M22 22H20V20H22V22ZM22 18H20V14H22V18ZM18 22H14V20H18V22ZM11 19.59L19.59 11H17V8H20H22V11V14H19.59L11 22.59L11 19.59Z"
 
     /**
      * Native Android Drawable constructor from SVG path data.

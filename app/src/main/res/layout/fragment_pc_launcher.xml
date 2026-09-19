@@ -35,6 +35,15 @@
         android:paddingEnd="16dp"
         android:paddingBottom="16dp" />
 
+    <!-- PC Windows Layer - Holds all floating window cards (like Windows/Linux) -->
+    <FrameLayout
+        android:id="@+id/container_windows_layer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginBottom="44dp"
+        android:clipChildren="false"
+        android:clipToPadding="false" />
+
     <!-- Start Menu Container (Flyout above taskbar) -->
     <FrameLayout
         android:id="@+id/container_start_menu"
@@ -98,6 +107,15 @@
                 android:contentDescription="Start Menu"
                 android:padding="6dp" />
 
+            <ImageButton
+                android:id="@+id/btn_taskbar_file_manager"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="2dp"
+                android:background="@drawable/bg_pc_taskbar_btn"
+                android:contentDescription="File Manager"
+                android:padding="6dp" />
+
             <!-- Windows / Linux style Taskbar Search Bar -->
             <LinearLayout
                 android:id="@+id/btn_search"
@@ -135,6 +153,24 @@
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:layout_marginStart="4dp"
+                android:clipToPadding="false"
+                android:orientation="horizontal"
+                android:overScrollMode="never" />
+
+            <!-- Separator between pinned and running -->
+            <View
+                android:id="@+id/view_taskbar_separator"
+                android:layout_width="1dp"
+                android:layout_height="18dp"
+                android:layout_marginHorizontal="6dp"
+                android:background="#33FFFFFF"
+                android:visibility="gone" />
+
+            <!-- Running Windows (Open Apps) List - Windows style taskbar -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recycler_taskbar_running"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
                 android:clipToPadding="false"
                 android:orientation="horizontal"
                 android:overScrollMode="never" />

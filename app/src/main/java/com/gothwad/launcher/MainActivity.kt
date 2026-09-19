@@ -103,9 +103,34 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun attachBaseContext(newBase: Context) {
-        val lang = newBase.getSharedPreferences(LOCALE_PREFS, MODE_PRIVATE)
+        // 1. Apply DPI independence first
+        val dpiPrefs = newBase.getSharedPreferences("launcher_dpi_prefs", MODE_PRIVATE)
+        val dpiIndependent = dpiPrefs.getBoolean("dpi_independent", true)
+        val fixedDpi = dpiPrefs.getInt("fixed_dpi", com.gothwad.launcher.data.DpiHelper.FIXED_DENSITY_DPI)
+        
+        var context = if (dpiIndependent) {
+            com.gothwad.launcher.data.DpiHelper.applyFixedDensity(newBase, fixedDpi)
+        } else {
+            newBase
+        }
+
+        // 2. Then apply locale
+        val lang = context.getSharedPreferences(LOCALE_PREFS, MODE_PRIVATE)
             .getString(LOCALE_KEY, "").orEmpty()
-        super.attachBaseContext(if (lang.isEmpty()) newBase else applyLocale(newBase, lang))
+        context = if (lang.isEmpty()) context else applyLocale(context, lang)
+
+        super.attachBaseContext(context)
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        // Re-apply DPI fix when system DPI changes
+        val dpiPrefs = getSharedPreferences("launcher_dpi_prefs", MODE_PRIVATE)
+        val dpiIndependent = dpiPrefs.getBoolean("dpi_independent", true)
+        val fixedDpi = dpiPrefs.getInt("fixed_dpi", com.gothwad.launcher.data.DpiHelper.FIXED_DENSITY_DPI)
+        if (dpiIndependent) {
+            com.gothwad.launcher.data.DpiHelper.patchResources(resources, fixedDpi)
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
