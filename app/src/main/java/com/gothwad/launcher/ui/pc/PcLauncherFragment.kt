@@ -135,9 +135,16 @@ class PcLauncherFragment : Fragment() {
         // Base taskbar buttons
         binding.btnStart.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_WINDOWS, 0xFF4FA7FA.toInt()))
         binding.imgTaskbarSearchIcon.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_SEARCH, 0xCCFFFFFF.toInt()))
+        binding.btnTaskbarRefresh.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_REFRESH, 0xFF4DD0E1.toInt()))
         binding.btnNotifications.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BELL, Color.WHITE))
         binding.imgTrayVolume.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_VOLUME, 0xFFCCCCCC.toInt()))
         binding.imgTrayNetwork.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_WIFI, 0xFFCCCCCC.toInt()))
+
+        // Refresh Button
+        binding.btnTaskbarRefresh.setOnClickListener {
+            closeAllFlyouts()
+            com.gothwad.launcher.data.SystemRefreshEngine.performSystemRefresh(requireContext())
+        }
 
         // Start Menu Toggle
         binding.btnStart.setOnClickListener {
@@ -247,8 +254,14 @@ class PcLauncherFragment : Fragment() {
 
         startBinding.imgStartSearchIcon.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_SEARCH, 0xFF8AB4F8.toInt()))
         startBinding.imgUserAvatar.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_PERSON, 0xFF4FA7FA.toInt()))
+        startBinding.btnStartRefresh.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_REFRESH, 0xFF4DD0E1.toInt()))
         startBinding.btnStartTvMode.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_TV, 0xFF60A5FA.toInt()))
         startBinding.btnStartSettings.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_GEAR, Color.WHITE))
+
+        startBinding.btnStartRefresh.setOnClickListener {
+            closeAllFlyouts()
+            com.gothwad.launcher.data.SystemRefreshEngine.performSystemRefresh(requireContext())
+        }
 
         startBinding.startSearchContainer.setOnClickListener {
             closeAllFlyouts()
@@ -291,6 +304,7 @@ class PcLauncherFragment : Fragment() {
         qsBinding.imgTileHome.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_HOME, 0xFF4FA7FA.toInt()))
         qsBinding.imgTileTv.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_TV, 0xFF60A5FA.toInt()))
         qsBinding.imgTileNotifs.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BELL, Color.WHITE))
+        qsBinding.imgTileRefresh.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_REFRESH, 0xFF4DD0E1.toInt()))
         qsBinding.imgQsVolume.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_VOLUME, Color.WHITE))
         qsBinding.imgQsWifi.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_WIFI, 0xFF8AB4F8.toInt()))
 
@@ -337,6 +351,11 @@ class PcLauncherFragment : Fragment() {
             closeAllFlyouts()
             NotificationBottomSheetFragment.newInstance()
                 .show(parentFragmentManager, NotificationBottomSheetFragment.TAG)
+        }
+
+        qsBinding.tileQsRefresh.setOnClickListener {
+            closeAllFlyouts()
+            com.gothwad.launcher.data.SystemRefreshEngine.performSystemRefresh(requireContext())
         }
 
         qsBinding.btnQsSettings.setOnClickListener {
@@ -708,9 +727,7 @@ class PcLauncherFragment : Fragment() {
         // 7. Refresh Desktop Option
         menuBinding.itemRefreshDesktop.setOnClickListener {
             popup.dismiss()
-            viewLifecycleOwner.lifecycleScope.launch {
-                loadApps()
-            }
+            com.gothwad.launcher.data.SystemRefreshEngine.performSystemRefresh(requireContext())
         }
 
         // 8. Wallpaper / Personalize Option

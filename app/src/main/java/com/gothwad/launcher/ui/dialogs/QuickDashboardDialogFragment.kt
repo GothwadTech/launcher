@@ -85,6 +85,14 @@ class QuickDashboardDialogFragment : DialogFragment() {
             dismiss()
         }
 
+        // System Refresh action
+        binding.imgRefreshIcon.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_REFRESH, 0xFF4DD0E1.toInt()))
+        binding.tileSystemRefresh.setOnClickListener {
+            val ctx = requireContext().applicationContext
+            dismiss()
+            com.gothwad.launcher.data.SystemRefreshEngine.performSystemRefresh(ctx)
+        }
+
         // Launcher settings
         binding.btnLauncherSettings.setOnClickListener {
             dismiss()

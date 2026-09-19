@@ -149,6 +149,16 @@
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
+            <!-- System Quick Refresh Button in Taskbar -->
+            <ImageButton
+                android:id="@+id/btn_taskbar_refresh"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_marginEnd="2dp"
+                android:background="@drawable/bg_pc_taskbar_btn"
+                android:contentDescription="System Refresh"
+                android:padding="5dp" />
+
             <!-- Clickable Tray Cluster (Opens Quick Settings) -->
             <LinearLayout
                 android:id="@+id/layout_tray_cluster"

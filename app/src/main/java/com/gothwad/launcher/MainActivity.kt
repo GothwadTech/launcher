@@ -252,6 +252,10 @@ class MainActivity : AppCompatActivity() {
                 ).show(supportFragmentManager, QuickDashboardDialogFragment.TAG)
             }
 
+            onRefreshClick = {
+                com.gothwad.launcher.data.SystemRefreshEngine.performSystemRefresh(this@MainActivity)
+            }
+
             onSearchClick = {
                 SearchDialogFragment.newInstance(
                     apps = allApps,
