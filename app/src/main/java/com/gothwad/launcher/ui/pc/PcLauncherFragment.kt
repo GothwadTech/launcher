@@ -1001,14 +1001,16 @@ class PcLauncherFragment : Fragment() {
     }
 
     private fun handleAppLaunch(app: AppEntry, skipLock: Boolean = false) {
-        if (!skipLock && currentConfig.appLockEnabled && currentConfig.appLockPin.isNotEmpty() && app.pkg in currentConfig.lockedApps) {
+        // UX-only in-launcher check to avoid overlay flicker on first click.
+        // The authoritative, unbypassable security enforcement layer is in LauncherAccessibilityService.
+        if (!skipLock && currentConfig.appLock.enabled && currentConfig.appLock.value.isNotEmpty() && app.pkg in currentConfig.lockedApps) {
             PinEntryDialogFragment.newInstance(
                 title = "App Locked",
-                subtitle = "Enter PIN to launch ${app.label}",
-                correctPin = currentConfig.appLockPin,
-                pinLength = currentConfig.appLockPinLength,
+                subtitle = "Enter PIN/Password to launch ${app.label}",
+                credential = currentConfig.appLock,
                 isCancelable = true,
                 onSuccess = {
+                    com.gothwad.launcher.service.LauncherAccessibilityService.unlockedPackagesSession.add(app.pkg)
                     handleAppLaunch(app, skipLock = true)
                 }
             ).show(parentFragmentManager, PinEntryDialogFragment.TAG)

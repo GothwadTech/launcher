@@ -3,33 +3,34 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#D9000000"
-    android:padding="24dp">
+    android:padding="20dp">
 
     <LinearLayout
-        android:layout_width="440dp"
+        android:id="@+id/card_dialog_container"
+        android:layout_width="520dp"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:background="@drawable/bg_dialog_rounded"
         android:gravity="center_horizontal"
         android:orientation="vertical"
-        android:padding="28dp">
+        android:padding="24dp">
 
         <ImageView
             android:id="@+id/img_pin_icon"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
             android:background="@drawable/bg_dialog_card"
             android:contentDescription="Lock"
-            android:padding="12dp" />
+            android:padding="10dp" />
 
         <TextView
             android:id="@+id/tv_setup_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="Set Up PIN"
+            android:layout_marginTop="10dp"
+            android:text="Set Up Security Lock"
             android:textColor="#FFFFFF"
-            android:textSize="20sp"
+            android:textSize="19sp"
             android:textStyle="bold" />
 
         <TextView
@@ -37,238 +38,374 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
+            android:gravity="center"
             android:text="Step 1 of 2: Choose your PIN"
             android:textColor="#99FFFFFF"
-            android:textSize="13sp" />
+            android:textSize="12.5sp" />
+
+        <!-- Credential Type Selector: PIN vs Password -->
+        <LinearLayout
+            android:id="@+id/layout_type_selector"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btn_type_pin"
+                android:layout_width="wrap_content"
+                android:layout_height="34dp"
+                android:background="@drawable/bg_dialog_button"
+                android:paddingHorizontal="16dp"
+                android:text="PIN (Numeric)"
+                android:textColor="#4C8DFF"
+                android:textSize="11.5sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btn_type_password"
+                android:layout_width="wrap_content"
+                android:layout_height="34dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/bg_dialog_button"
+                android:paddingHorizontal="16dp"
+                android:text="Password (Alphanumeric)"
+                android:textColor="#99FFFFFF"
+                android:textSize="11.5sp"
+                android:textStyle="bold" />
+        </LinearLayout>
 
         <!-- PIN Length Selector (4 vs 6 digits) -->
         <LinearLayout
             android:id="@+id/layout_length_selector"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="8dp"
             android:orientation="horizontal">
 
             <Button
                 android:id="@+id/btn_length_4"
                 android:layout_width="wrap_content"
-                android:layout_height="36dp"
+                android:layout_height="32dp"
                 android:background="@drawable/bg_dialog_button"
-                android:paddingHorizontal="16dp"
+                android:paddingHorizontal="14dp"
                 android:text="4 Digits"
-                android:textColor="#FFFFFF"
-                android:textSize="12sp"
+                android:textColor="#4C8DFF"
+                android:textSize="11sp"
                 android:textStyle="bold" />
 
             <Button
                 android:id="@+id/btn_length_6"
                 android:layout_width="wrap_content"
-                android:layout_height="36dp"
+                android:layout_height="32dp"
                 android:layout_marginStart="8dp"
                 android:background="@drawable/bg_dialog_button"
-                android:paddingHorizontal="16dp"
+                android:paddingHorizontal="14dp"
                 android:text="6 Digits"
-                android:textColor="#FFFFFF"
-                android:textSize="12sp"
+                android:textColor="#99FFFFFF"
+                android:textSize="11sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- PIN Dots Container -->
+        <!-- Input Mode Selector (Remote / TV vs Keyboard / PC) -->
         <LinearLayout
-            android:id="@+id/layout_pin_dots"
+            android:id="@+id/layout_input_mode_toggle"
             android:layout_width="wrap_content"
-            android:layout_height="32dp"
-            android:layout_marginTop="16dp"
-            android:gravity="center"
-            android:orientation="horizontal" />
-
-        <!-- Keypad (4 rows) -->
-        <LinearLayout
-            android:layout_width="280dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <Button
+                android:id="@+id/btn_mode_tv_grid"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:background="@drawable/bg_dialog_button"
+                android:paddingHorizontal="14dp"
+                android:text="Remote / TV Keypad"
+                android:textColor="#4C8DFF"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btn_mode_pc_keyboard"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/bg_dialog_button"
+                android:paddingHorizontal="14dp"
+                android:text="Keyboard / PC"
+                android:textColor="#99FFFFFF"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- ================= PIN MODE UI ================= -->
+        <LinearLayout
+            android:id="@+id/layout_pin_section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
             android:orientation="vertical">
 
-            <!-- Row 1: 1, 2, 3 -->
+            <!-- PIN Dots Container -->
             <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                android:id="@+id/layout_pin_dots"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:layout_marginTop="12dp"
+                android:gravity="center"
+                android:orientation="horizontal" />
 
-                <Button
-                    android:id="@+id/btn_key_1"
-                    android:layout_width="0dp"
-                    android:layout_height="52dp"
-                    android:layout_margin="4dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_dialog_button"
-                    android:text="1"
-                    android:textColor="#FFFFFF"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
-
-                <Button
-                    android:id="@+id/btn_key_2"
-                    android:layout_width="0dp"
-                    android:layout_height="52dp"
-                    android:layout_margin="4dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_dialog_button"
-                    android:text="2"
-                    android:textColor="#FFFFFF"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
-
-                <Button
-                    android:id="@+id/btn_key_3"
-                    android:layout_width="0dp"
-                    android:layout_height="52dp"
-                    android:layout_margin="4dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_dialog_button"
-                    android:text="3"
-                    android:textColor="#FFFFFF"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <!-- Row 2: 4, 5, 6 -->
+            <!-- Keypad (4 rows) -->
             <LinearLayout
-                android:layout_width="match_parent"
+                android:layout_width="280dp"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                android:layout_marginTop="14dp"
+                android:orientation="vertical">
 
-                <Button
-                    android:id="@+id/btn_key_4"
-                    android:layout_width="0dp"
-                    android:layout_height="52dp"
-                    android:layout_margin="4dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_dialog_button"
-                    android:text="4"
-                    android:textColor="#FFFFFF"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
 
-                <Button
-                    android:id="@+id/btn_key_5"
-                    android:layout_width="0dp"
-                    android:layout_height="52dp"
-                    android:layout_margin="4dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_dialog_button"
-                    android:text="5"
-                    android:textColor="#FFFFFF"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
+                    <Button
+                        android:id="@+id/btn_key_1"
+                        android:layout_width="0dp"
+                        android:layout_height="50dp"
+                        android:layout_margin="3dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_dialog_button"
+                        android:text="1"
+                        android:textColor="#FFFFFF"
+                        android:textSize="19sp"
+                        android:textStyle="bold" />
 
-                <Button
-                    android:id="@+id/btn_key_6"
-                    android:layout_width="0dp"
-                    android:layout_height="52dp"
-                    android:layout_margin="4dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_dialog_button"
-                    android:text="6"
-                    android:textColor="#FFFFFF"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
+                    <Button
+                        android:id="@+id/btn_key_2"
+                        android:layout_width="0dp"
+                        android:layout_height="50dp"
+                        android:layout_margin="3dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_dialog_button"
+                        android:text="2"
+                        android:textColor="#FFFFFF"
+                        android:textSize="19sp"
+                        android:textStyle="bold" />
 
-            <!-- Row 3: 7, 8, 9 -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                    <Button
+                        android:id="@+id/btn_key_3"
+                        android:layout_width="0dp"
+                        android:layout_height="50dp"
+                        android:layout_margin="3dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_dialog_button"
+                        android:text="3"
+                        android:textColor="#FFFFFF"
+                        android:textSize="19sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
 
-                <Button
-                    android:id="@+id/btn_key_7"
-                    android:layout_width="0dp"
-                    android:layout_height="52dp"
-                    android:layout_margin="4dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_dialog_button"
-                    android:text="7"
-                    android:textColor="#FFFFFF"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
 
-                <Button
-                    android:id="@+id/btn_key_8"
-                    android:layout_width="0dp"
-                    android:layout_height="52dp"
-                    android:layout_margin="4dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_dialog_button"
-                    android:text="8"
-                    android:textColor="#FFFFFF"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
+                    <Button
+                        android:id="@+id/btn_key_4"
+                        android:layout_width="0dp"
+                        android:layout_height="50dp"
+                        android:layout_margin="3dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_dialog_button"
+                        android:text="4"
+                        android:textColor="#FFFFFF"
+                        android:textSize="19sp"
+                        android:textStyle="bold" />
 
-                <Button
-                    android:id="@+id/btn_key_9"
-                    android:layout_width="0dp"
-                    android:layout_height="52dp"
-                    android:layout_margin="4dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_dialog_button"
-                    android:text="9"
-                    android:textColor="#FFFFFF"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
+                    <Button
+                        android:id="@+id/btn_key_5"
+                        android:layout_width="0dp"
+                        android:layout_height="50dp"
+                        android:layout_margin="3dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_dialog_button"
+                        android:text="5"
+                        android:textColor="#FFFFFF"
+                        android:textSize="19sp"
+                        android:textStyle="bold" />
 
-            <!-- Row 4: C, 0, ⌫ -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                    <Button
+                        android:id="@+id/btn_key_6"
+                        android:layout_width="0dp"
+                        android:layout_height="50dp"
+                        android:layout_margin="3dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_dialog_button"
+                        android:text="6"
+                        android:textColor="#FFFFFF"
+                        android:textSize="19sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
 
-                <Button
-                    android:id="@+id/btn_key_clear"
-                    android:layout_width="0dp"
-                    android:layout_height="52dp"
-                    android:layout_margin="4dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_dialog_button"
-                    android:text="C"
-                    android:textColor="#FF5252"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
 
-                <Button
-                    android:id="@+id/btn_key_0"
-                    android:layout_width="0dp"
-                    android:layout_height="52dp"
-                    android:layout_margin="4dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_dialog_button"
-                    android:text="0"
-                    android:textColor="#FFFFFF"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
+                    <Button
+                        android:id="@+id/btn_key_7"
+                        android:layout_width="0dp"
+                        android:layout_height="50dp"
+                        android:layout_margin="3dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_dialog_button"
+                        android:text="7"
+                        android:textColor="#FFFFFF"
+                        android:textSize="19sp"
+                        android:textStyle="bold" />
 
-                <Button
-                    android:id="@+id/btn_key_backspace"
-                    android:layout_width="0dp"
-                    android:layout_height="52dp"
-                    android:layout_margin="4dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_dialog_button"
-                    android:text="⌫"
-                    android:textColor="#FFFFFF"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
+                    <Button
+                        android:id="@+id/btn_key_8"
+                        android:layout_width="0dp"
+                        android:layout_height="50dp"
+                        android:layout_margin="3dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_dialog_button"
+                        android:text="8"
+                        android:textColor="#FFFFFF"
+                        android:textSize="19sp"
+                        android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/btn_key_9"
+                        android:layout_width="0dp"
+                        android:layout_height="50dp"
+                        android:layout_margin="3dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_dialog_button"
+                        android:text="9"
+                        android:textColor="#FFFFFF"
+                        android:textSize="19sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/btn_key_clear"
+                        android:layout_width="0dp"
+                        android:layout_height="50dp"
+                        android:layout_margin="3dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_dialog_button"
+                        android:text="C"
+                        android:textColor="#FF5252"
+                        android:textSize="17sp"
+                        android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/btn_key_0"
+                        android:layout_width="0dp"
+                        android:layout_height="50dp"
+                        android:layout_margin="3dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_dialog_button"
+                        android:text="0"
+                        android:textColor="#FFFFFF"
+                        android:textSize="19sp"
+                        android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/btn_key_backspace"
+                        android:layout_width="0dp"
+                        android:layout_height="50dp"
+                        android:layout_margin="3dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_dialog_button"
+                        android:text="⌫"
+                        android:textColor="#FFFFFF"
+                        android:textSize="17sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
             </LinearLayout>
         </LinearLayout>
 
+        <!-- ================= PASSWORD MODE UI ================= -->
+        <LinearLayout
+            android:id="@+id/layout_password_section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <!-- Password Input Bar -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_dialog_card"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="12dp">
+
+                <EditText
+                    android:id="@+id/et_password"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@null"
+                    android:focusable="true"
+                    android:focusableInTouchMode="true"
+                    android:hint="Enter password"
+                    android:imeOptions="actionDone"
+                    android:inputType="textPassword"
+                    android:singleLine="true"
+                    android:textColor="#FFFFFF"
+                    android:textColorHint="#66FFFFFF"
+                    android:textSize="15sp" />
+
+                <ImageButton
+                    android:id="@+id/btn_toggle_password_visibility"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:background="@drawable/bg_dialog_button"
+                    android:contentDescription="Toggle Password Visibility"
+                    android:padding="6dp" />
+            </LinearLayout>
+
+            <!-- On-Screen QWERTY Keyboard for TV remote navigation -->
+            <com.gothwad.launcher.ui.view.OnScreenKeyboardView
+                android:id="@+id/on_screen_keyboard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp" />
+
+            <Button
+                android:id="@+id/btn_next_password"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_dialog_button"
+                android:paddingHorizontal="24dp"
+                android:text="Next"
+                android:textColor="#4C8DFF"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Dialog Action Buttons -->
         <Button
             android:id="@+id/btn_cancel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="14dp"
             android:background="@drawable/bg_dialog_button"
-            android:minHeight="44dp"
+            android:minHeight="40dp"
             android:paddingHorizontal="24dp"
             android:text="Cancel"
             android:textColor="#99FFFFFF"

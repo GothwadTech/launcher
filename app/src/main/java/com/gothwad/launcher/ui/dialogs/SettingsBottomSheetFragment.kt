@@ -26,9 +26,11 @@ import com.gothwad.launcher.data.LAYOUT_GRID
 import com.gothwad.launcher.data.LauncherConfig
 import com.gothwad.launcher.data.MODE_PC
 import com.gothwad.launcher.data.MODE_TV
+import com.gothwad.launcher.databinding.DialogEditTextBinding
 import com.gothwad.launcher.databinding.ItemButtonMappingBinding
 import com.gothwad.launcher.databinding.ItemPickAppBinding
 import com.gothwad.launcher.databinding.ItemRecentAppBinding
+import com.gothwad.launcher.databinding.ItemToggleAppBinding
 import com.gothwad.launcher.databinding.SheetSettingsBinding
 import com.gothwad.launcher.ui.AppIcons
 import kotlinx.coroutines.Dispatchers
@@ -138,7 +140,13 @@ class SettingsBottomSheetFragment : DialogFragment() {
             AppIcons.createDrawable(AppIcons.PATH_BACK, Color.WHITE)
         )
         binding.btnBack.setOnClickListener {
-            navigateToRoot()
+            if (currentSubPage == binding.subpagePickApp) {
+                navigateToSubPage(binding.subpageButtonMapping, "Remote Button Mapping")
+            } else if (currentSubPage == binding.subpageToggleApps) {
+                navigateToSubPage(binding.pageSecurity, "Security & Locks")
+            } else {
+                navigateToRoot()
+            }
         }
     }
 
@@ -236,14 +244,16 @@ class SettingsBottomSheetFragment : DialogFragment() {
         binding.txtAppsSubtitle.text = if (hiddenCount > 0) "$hiddenCount apps protected" else "Recent apps • Auto-sort"
         binding.txtHiddenAppsCount.text = "$hiddenCount apps configured in secret vault"
 
-        // Security subtitle
-        val secStatus = when {
-            config.deviceLockEnabled && config.appLockEnabled -> "Device & App PIN Active"
-            config.deviceLockEnabled -> "Device Lock Active"
-            config.appLockEnabled -> "App Lock Active"
-            else -> "No PIN set"
+        // Security subtitle (Phase 6: independent status summary per section)
+        val activeLocks = mutableListOf<String>()
+        if (config.deviceLock.enabled) activeLocks.add("Device")
+        if (config.appLock.enabled) activeLocks.add("App")
+        if (config.hiddenAppsLock.enabled) activeLocks.add("Vault")
+        binding.txtSecuritySubtitle.text = if (activeLocks.isNotEmpty()) {
+            activeLocks.joinToString(" & ") + " Lock Active"
+        } else {
+            "No Locks Active"
         }
-        binding.txtSecuritySubtitle.text = secStatus
 
         // Mode subtitle
         if (config.launcherMode == MODE_PC) {
@@ -367,6 +377,7 @@ class SettingsBottomSheetFragment : DialogFragment() {
         binding.pageAbout.visibility = View.GONE
         binding.subpageButtonMapping.visibility = View.GONE
         binding.subpagePickApp.visibility = View.GONE
+        binding.subpageToggleApps.visibility = View.GONE
     }
 
     private fun setupBackKeyHandling() {
@@ -378,6 +389,10 @@ class SettingsBottomSheetFragment : DialogFragment() {
                 }
                 if (currentSubPage == binding.subpagePickApp) {
                     navigateToSubPage(binding.subpageButtonMapping, "Remote Button Mapping")
+                    return@setOnKeyListener true
+                }
+                if (currentSubPage == binding.subpageToggleApps) {
+                    navigateToSubPage(binding.pageSecurity, "Security & Locks")
                     return@setOnKeyListener true
                 }
                 if (currentSubPage != null) {
@@ -601,41 +616,275 @@ class SettingsBottomSheetFragment : DialogFragment() {
     }
 
     // =========================================================================
-    // SUB-PAGE 5: SECURITY & PIN
+    // SUB-PAGE 5: SECURITY & LOCKS (Phase 6: 3 Independent Sections)
     // =========================================================================
     private fun bindSecuritySettings() {
-        binding.switchDeviceLock.isChecked = config.deviceLockEnabled
+        // --- 1. DEVICE LOCK ---
+        binding.switchDeviceLock.isChecked = config.deviceLock.enabled
         binding.rowToggleDeviceLock.setOnClickListener {
-            val newVal = !binding.switchDeviceLock.isChecked
-            binding.switchDeviceLock.isChecked = newVal
-            lifecycleScope.launch {
-                store.update { it.copy(deviceLockEnabled = newVal) }
-                config = config.copy(deviceLockEnabled = newVal)
-                updateSubtitles()
-            }
-        }
-
-        binding.switchAppLock.isChecked = config.appLockEnabled
-        binding.rowToggleAppLock.setOnClickListener {
-            val newVal = !binding.switchAppLock.isChecked
-            binding.switchAppLock.isChecked = newVal
-            lifecycleScope.launch {
-                store.update { it.copy(appLockEnabled = newVal) }
-                config = config.copy(appLockEnabled = newVal)
-                updateSubtitles()
-            }
-        }
-
-        binding.btnSetupPin.setOnClickListener {
-            PinSetupDialogFragment.newInstance { pin ->
-                lifecycleScope.launch {
-                    store.update { it.copy(appLockPin = pin, deviceLockPin = pin) }
-                    config = config.copy(appLockPin = pin, deviceLockPin = pin)
-                    updateSubtitles()
-                    Actions.toast(requireContext(), "Security PIN updated")
+            if (!config.deviceLock.enabled) {
+                if (config.deviceLock.value.isEmpty()) {
+                    PinSetupDialogFragment.newInstance(
+                        initialType = config.deviceLock.type,
+                        initialPinLength = config.deviceLock.pinLength
+                    ) { newCred ->
+                        lifecycleScope.launch {
+                            val updatedCred = newCred.copy(enabled = true)
+                            store.update { it.copy(deviceLock = updatedCred) }
+                            config = config.copy(deviceLock = updatedCred)
+                            binding.switchDeviceLock.isChecked = true
+                            updateSubtitles()
+                            Actions.toast(requireContext(), "Device Lock Enabled")
+                        }
+                    }.show(parentFragmentManager, PinSetupDialogFragment.TAG)
+                } else {
+                    val updated = config.deviceLock.copy(enabled = true)
+                    binding.switchDeviceLock.isChecked = true
+                    lifecycleScope.launch {
+                        store.update { it.copy(deviceLock = updated) }
+                        config = config.copy(deviceLock = updated)
+                        updateSubtitles()
+                    }
                 }
-            }.show(parentFragmentManager, "PinSetupDialog")
+            } else {
+                val updated = config.deviceLock.copy(enabled = false)
+                binding.switchDeviceLock.isChecked = false
+                lifecycleScope.launch {
+                    store.update { it.copy(deviceLock = updated) }
+                    config = config.copy(deviceLock = updated)
+                    updateSubtitles()
+                }
+            }
         }
+
+        binding.btnSetupDeviceLock.setOnClickListener {
+            PinSetupDialogFragment.newInstance(
+                initialType = config.deviceLock.type,
+                initialPinLength = config.deviceLock.pinLength
+            ) { newCred ->
+                lifecycleScope.launch {
+                    val updatedCred = newCred.copy(enabled = true)
+                    store.update { it.copy(deviceLock = updatedCred) }
+                    config = config.copy(deviceLock = updatedCred)
+                    binding.switchDeviceLock.isChecked = true
+                    updateSubtitles()
+                    Actions.toast(requireContext(), "Device Lock credential updated")
+                }
+            }.show(parentFragmentManager, PinSetupDialogFragment.TAG)
+        }
+
+        // --- 2. APP LOCK ---
+        binding.switchAppLock.isChecked = config.appLock.enabled
+        binding.rowToggleAppLock.setOnClickListener {
+            if (!config.appLock.enabled) {
+                if (config.appLock.value.isEmpty()) {
+                    PinSetupDialogFragment.newInstance(
+                        initialType = config.appLock.type,
+                        initialPinLength = config.appLock.pinLength
+                    ) { newCred ->
+                        lifecycleScope.launch {
+                            val updatedCred = newCred.copy(enabled = true)
+                            store.update { it.copy(appLock = updatedCred) }
+                            config = config.copy(appLock = updatedCred)
+                            binding.switchAppLock.isChecked = true
+                            updateSubtitles()
+                            Actions.toast(requireContext(), "App Lock Enabled")
+                        }
+                    }.show(parentFragmentManager, PinSetupDialogFragment.TAG)
+                } else {
+                    val updated = config.appLock.copy(enabled = true)
+                    binding.switchAppLock.isChecked = true
+                    lifecycleScope.launch {
+                        store.update { it.copy(appLock = updated) }
+                        config = config.copy(appLock = updated)
+                        updateSubtitles()
+                    }
+                }
+            } else {
+                val updated = config.appLock.copy(enabled = false)
+                binding.switchAppLock.isChecked = false
+                lifecycleScope.launch {
+                    store.update { it.copy(appLock = updated) }
+                    config = config.copy(appLock = updated)
+                    updateSubtitles()
+                }
+            }
+        }
+
+        binding.btnSetupAppLock.setOnClickListener {
+            PinSetupDialogFragment.newInstance(
+                initialType = config.appLock.type,
+                initialPinLength = config.appLock.pinLength
+            ) { newCred ->
+                lifecycleScope.launch {
+                    val updatedCred = newCred.copy(enabled = true)
+                    store.update { it.copy(appLock = updatedCred) }
+                    config = config.copy(appLock = updatedCred)
+                    binding.switchAppLock.isChecked = true
+                    updateSubtitles()
+                    Actions.toast(requireContext(), "App Lock credential updated")
+                }
+            }.show(parentFragmentManager, PinSetupDialogFragment.TAG)
+        }
+
+        binding.btnManageLockedApps.setOnClickListener {
+            openManageAppsScreen(isForHidden = false)
+        }
+
+        // --- 3. HIDDEN APPS VAULT ---
+        binding.switchHiddenLock.isChecked = config.hiddenAppsLock.enabled
+        binding.rowToggleHiddenLock.setOnClickListener {
+            if (!config.hiddenAppsLock.enabled) {
+                if (config.hiddenAppsLock.value.isEmpty()) {
+                    PinSetupDialogFragment.newInstance(
+                        initialType = config.hiddenAppsLock.type,
+                        initialPinLength = config.hiddenAppsLock.pinLength
+                    ) { newCred ->
+                        lifecycleScope.launch {
+                            val updatedCred = newCred.copy(enabled = true)
+                            store.update { it.copy(hiddenAppsLock = updatedCred) }
+                            config = config.copy(hiddenAppsLock = updatedCred)
+                            binding.switchHiddenLock.isChecked = true
+                            updateSubtitles()
+                            Actions.toast(requireContext(), "Hidden Apps 2nd Layer Lock Enabled")
+                        }
+                    }.show(parentFragmentManager, PinSetupDialogFragment.TAG)
+                } else {
+                    val updated = config.hiddenAppsLock.copy(enabled = true)
+                    binding.switchHiddenLock.isChecked = true
+                    lifecycleScope.launch {
+                        store.update { it.copy(hiddenAppsLock = updated) }
+                        config = config.copy(hiddenAppsLock = updated)
+                        updateSubtitles()
+                    }
+                }
+            } else {
+                val updated = config.hiddenAppsLock.copy(enabled = false)
+                binding.switchHiddenLock.isChecked = false
+                lifecycleScope.launch {
+                    store.update { it.copy(hiddenAppsLock = updated) }
+                    config = config.copy(hiddenAppsLock = updated)
+                    updateSubtitles()
+                }
+            }
+        }
+
+        updateRevealCodeLabel()
+        binding.rowHiddenRevealCode.setOnClickListener {
+            showEditRevealCodeDialog()
+        }
+
+        binding.btnSetupHiddenLock.setOnClickListener {
+            PinSetupDialogFragment.newInstance(
+                initialType = config.hiddenAppsLock.type,
+                initialPinLength = config.hiddenAppsLock.pinLength
+            ) { newCred ->
+                lifecycleScope.launch {
+                    val updatedCred = newCred.copy(enabled = true)
+                    store.update { it.copy(hiddenAppsLock = updatedCred) }
+                    config = config.copy(hiddenAppsLock = updatedCred)
+                    binding.switchHiddenLock.isChecked = true
+                    updateSubtitles()
+                    Actions.toast(requireContext(), "Hidden Apps Vault Credential updated")
+                }
+            }.show(parentFragmentManager, PinSetupDialogFragment.TAG)
+        }
+
+        binding.btnManageHiddenApps.setOnClickListener {
+            openManageAppsScreen(isForHidden = true)
+        }
+    }
+
+    private fun updateRevealCodeLabel() {
+        binding.txtHiddenRevealCodeValue.text = if (config.hiddenAppsRevealCode.isNotEmpty()) {
+            "Active: \"${config.hiddenAppsRevealCode}\" (type in search)"
+        } else {
+            "Not set — click to set reveal code"
+        }
+    }
+
+    private fun showEditRevealCodeDialog() {
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_edit_text, null)
+        val dialogBinding = DialogEditTextBinding.bind(dialogView)
+        dialogBinding.etRevealCode.setText(config.hiddenAppsRevealCode)
+        dialogBinding.etRevealCode.setSelection(dialogBinding.etRevealCode.text.length)
+
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(requireContext(), R.style.Theme_LiteTV_Dialog)
+            .setView(dialogView)
+            .create()
+
+        dialogBinding.btnCancelRevealCode.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialogBinding.btnSaveRevealCode.setOnClickListener {
+            val code = dialogBinding.etRevealCode.text.toString().trim()
+            lifecycleScope.launch {
+                store.update { it.copy(hiddenAppsRevealCode = code) }
+                config = config.copy(hiddenAppsRevealCode = code)
+                updateRevealCodeLabel()
+                Actions.toast(requireContext(), if (code.isNotEmpty()) "Reveal code saved" else "Reveal code cleared")
+                dialog.dismiss()
+            }
+        }
+
+        dialog.show()
+    }
+
+    private fun openManageAppsScreen(isForHidden: Boolean) {
+        val title = if (isForHidden) "Manage Hidden Apps" else "Manage Locked Apps"
+        val subtitle = if (isForHidden) {
+            "Selected apps will be hidden from launcher grid and only shown via reveal code in search"
+        } else {
+            "Selected apps will require App Lock credential to open"
+        }
+
+        binding.txtToggleAppsHeader.text = title
+        binding.txtToggleAppsSub.text = subtitle
+
+        val container = binding.layoutToggleAppsList
+        container.removeAllViews()
+        val inflater = LayoutInflater.from(requireContext())
+
+        for (app in apps) {
+            val itemBinding = ItemToggleAppBinding.inflate(inflater, container, false)
+            itemBinding.txtAppLabel.text = app.label
+            itemBinding.txtAppPackage.text = app.pkg
+
+            if (app.icon != null) {
+                itemBinding.imgAppIcon.setImageBitmap(app.icon)
+            } else {
+                itemBinding.imgAppIcon.setImageDrawable(
+                    AppIcons.createDrawable(AppIcons.PATH_APPS, Color.WHITE)
+                )
+            }
+
+            val isSelected = if (isForHidden) app.pkg in config.hidden else app.pkg in config.lockedApps
+            itemBinding.switchAppSelected.isChecked = isSelected
+
+            itemBinding.root.setOnClickListener {
+                val currentlyChecked = itemBinding.switchAppSelected.isChecked
+                val nextChecked = !currentlyChecked
+                itemBinding.switchAppSelected.isChecked = nextChecked
+
+                lifecycleScope.launch {
+                    if (isForHidden) {
+                        val newSet = if (nextChecked) config.hidden + app.pkg else config.hidden - app.pkg
+                        store.update { it.copy(hidden = newSet) }
+                        config = config.copy(hidden = newSet)
+                    } else {
+                        val newSet = if (nextChecked) config.lockedApps + app.pkg else config.lockedApps - app.pkg
+                        store.update { it.copy(lockedApps = newSet) }
+                        config = config.copy(lockedApps = newSet)
+                    }
+                    updateSubtitles()
+                }
+            }
+
+            container.addView(itemBinding.root)
+        }
+
+        navigateToSubPage(binding.subpageToggleApps, title)
     }
 
     // =========================================================================

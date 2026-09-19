@@ -36,9 +36,11 @@ import com.gothwad.launcher.ui.dialogs.SettingsBottomSheetFragment
 import com.gothwad.launcher.ui.dialogs.SetupWizardDialogFragment
 import com.gothwad.launcher.ui.dialogs.VoiceSearchDialogFragment
 import com.gothwad.launcher.ui.tv.TvLauncherFragment
+import com.gothwad.launcher.ui.view.SystemLockOverlayView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -128,11 +130,62 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Phase 4: Device Lock on cold launcher process start
+        checkDeviceLockOnColdStart()
+
         setupA11yRecoveryBanner()
         setupNavigation()
         setupStatusBar()
         observeStatusBarData()
         refreshAppsList()
+    }
+
+    private var deviceLockOverlay: SystemLockOverlayView? = null
+
+    private fun checkDeviceLockOnColdStart() {
+        if (GothwadApplication.hasUnlockedDeviceThisProcess) {
+            return
+        }
+
+        lifecycleScope.launch {
+            val store = ConfigStore(this@MainActivity)
+            val config = store.flow.first()
+            if (config.deviceLock.enabled && config.deviceLock.value.isNotEmpty()) {
+                showDeviceLockOverlay(config)
+            } else {
+                GothwadApplication.hasUnlockedDeviceThisProcess = true
+            }
+        }
+    }
+
+    private fun showDeviceLockOverlay(config: LauncherConfig) {
+        if (deviceLockOverlay != null) return
+
+        // Hide home UI while locked
+        binding.root.alpha = 0f
+
+        deviceLockOverlay = SystemLockOverlayView(
+            context = this@MainActivity,
+            credential = config.deviceLock,
+            title = "Device Locked",
+            subtitle = "Enter credential to access device",
+            onSuccess = {
+                GothwadApplication.hasUnlockedDeviceThisProcess = true
+                deviceLockOverlay = null
+                binding.root.animate().alpha(1f).setDuration(200).start()
+            },
+            onDismissOrBack = {
+                // Cannot dismiss or bypass device lock; re-show or keep locked
+                deviceLockOverlay = null
+                if (!GothwadApplication.hasUnlockedDeviceThisProcess) {
+                    binding.root.postDelayed({
+                        showDeviceLockOverlay(config)
+                    }, 100)
+                }
+            }
+        ).also {
+            it.show()
+        }
     }
 
     private fun setupA11yRecoveryBanner() {
@@ -269,14 +322,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleAppLaunch(app: AppEntry, skipLock: Boolean = false) {
-        if (!skipLock && currentConfig.appLockEnabled && currentConfig.appLockPin.isNotEmpty() && app.pkg in currentConfig.lockedApps) {
+        // UX-only in-launcher check to avoid overlay flicker on first click.
+        // The authoritative, unbypassable security enforcement layer is in LauncherAccessibilityService.
+        if (!skipLock && currentConfig.appLock.enabled && currentConfig.appLock.value.isNotEmpty() && app.pkg in currentConfig.lockedApps) {
             PinEntryDialogFragment.newInstance(
                 title = "App Locked",
-                subtitle = "Enter PIN to launch ${app.label}",
-                correctPin = currentConfig.appLockPin,
-                pinLength = currentConfig.appLockPinLength,
+                subtitle = "Enter PIN/Password to launch ${app.label}",
+                credential = currentConfig.appLock,
                 isCancelable = true,
                 onSuccess = {
+                    // Mark package as unlocked in the session so Accessibility Service won't re-prompt immediately
+                    com.gothwad.launcher.service.LauncherAccessibilityService.unlockedPackagesSession.add(app.pkg)
                     handleAppLaunch(app, skipLock = true)
                 }
             ).show(supportFragmentManager, PinEntryDialogFragment.TAG)

@@ -26,6 +26,16 @@ data class CategoryCfg(
     val name: String,
 )
 
+enum class LockCredentialType { NUMERIC, ALPHANUMERIC }
+
+@Serializable
+data class LockCredential(
+    val enabled: Boolean = false,
+    val type: LockCredentialType = LockCredentialType.NUMERIC,
+    val value: String = "",       // the PIN digits or the alphanumeric password
+    val pinLength: Int = 4,       // only meaningful when type == NUMERIC (4 or 6)
+)
+
 @Serializable
 data class LauncherConfig(
     val categories: List<CategoryCfg> = listOf(
@@ -73,13 +83,10 @@ data class LauncherConfig(
     val autoCategoryOnInstall: Boolean = true,
     /** app lock: list of package names requiring a PIN to open */
     val lockedApps: Set<String> = emptySet(),
-    val appLockPin: String = "",
-    val appLockPinLength: Int = 4,
-    val appLockEnabled: Boolean = false,
-    val deviceLockEnabled: Boolean = false,
-    val deviceLockPin: String = "",
-    val hideAppsCode: String = "",
-    val hideAppsPin: String = "",
+    val deviceLock: LockCredential = LockCredential(),
+    val appLock: LockCredential = LockCredential(),
+    val hiddenAppsLock: LockCredential = LockCredential(),
+    val hiddenAppsRevealCode: String = "",
     /** launcher mode: 0 = TV, 1 = PC Desktop */
     val launcherMode: Int = MODE_TV,
     // ----- PC Desktop settings -----

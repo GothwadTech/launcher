@@ -1481,7 +1481,7 @@
                 </LinearLayout>
 
                 <!-- ========================================================= -->
-                <!-- SUB-PAGE: SECURITY & PIN                                  -->
+                <!-- SUB-PAGE: SECURITY & LOCKS (Phases 5 & 6)                 -->
                 <!-- ========================================================= -->
                 <LinearLayout
                     android:id="@+id/page_security"
@@ -1490,19 +1490,19 @@
                     android:orientation="vertical"
                     android:visibility="gone">
 
+                    <!-- SECTION 1: DEVICE LOCK -->
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:paddingStart="24dp"
                         android:paddingEnd="24dp"
                         android:layout_marginBottom="8dp"
-                        android:text="PIN Lock Settings"
+                        android:text="1. Device Lock"
                         android:textAllCaps="true"
                         android:textColor="#4DD0E1"
                         android:textSize="12sp"
                         android:textStyle="bold" />
 
-                    <!-- Switch: Device Lock -->
                     <LinearLayout
                         android:id="@+id/row_toggle_device_lock"
                         android:layout_width="match_parent"
@@ -1519,27 +1519,51 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Require PIN on Launcher Start"
+                            android:text="Require Credential on Launcher Start"
                             android:textColor="#FFFFFF"
                             android:textSize="14sp" />
 
                         <com.google.android.material.switchmaterial.SwitchMaterial
-                            app:thumbTint="@color/switch_thumb_tint"
-                            app:trackTint="@color/switch_track_tint"
-                            app:useMaterialThemeColors="false"
                             android:id="@+id/switch_device_lock"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:clickable="false"
-                            android:focusable="false" />
+                            android:focusable="false"
+                            app:thumbTint="@color/switch_thumb_tint"
+                            app:trackTint="@color/switch_track_tint"
+                            app:useMaterialThemeColors="false" />
                     </LinearLayout>
 
-                    <!-- Switch: App Lock -->
+                    <Button
+                        android:id="@+id/btn_setup_device_lock"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginBottom="16dp"
+                        android:background="@drawable/bg_settings_row"
+                        android:gravity="start|center_vertical"
+                        android:paddingHorizontal="24dp"
+                        android:text="🛡️ Set / Change Device Credential"
+                        android:textColor="#FFFFFF"
+                        android:textSize="13sp" />
+
+                    <!-- SECTION 2: APP LOCK -->
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingStart="24dp"
+                        android:paddingEnd="24dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="2. App Lock"
+                        android:textAllCaps="true"
+                        android:textColor="#4DD0E1"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
                     <LinearLayout
                         android:id="@+id/row_toggle_app_lock"
                         android:layout_width="match_parent"
                         android:layout_height="52dp"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="0dp"
                         android:background="@drawable/bg_settings_row"
                         android:clickable="true"
                         android:focusable="true"
@@ -1551,30 +1575,154 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Require PIN for Locked Apps"
+                            android:text="Require Credential for Locked Apps"
                             android:textColor="#FFFFFF"
                             android:textSize="14sp" />
 
                         <com.google.android.material.switchmaterial.SwitchMaterial
-                            app:thumbTint="@color/switch_thumb_tint"
-                            app:trackTint="@color/switch_track_tint"
-                            app:useMaterialThemeColors="false"
                             android:id="@+id/switch_app_lock"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:clickable="false"
-                            android:focusable="false" />
+                            android:focusable="false"
+                            app:thumbTint="@color/switch_thumb_tint"
+                            app:trackTint="@color/switch_track_tint"
+                            app:useMaterialThemeColors="false" />
                     </LinearLayout>
 
                     <Button
-                        android:id="@+id/btn_setup_pin"
+                        android:id="@+id/btn_setup_app_lock"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginBottom="0dp"
+                        android:background="@drawable/bg_settings_row"
+                        android:gravity="start|center_vertical"
+                        android:paddingHorizontal="24dp"
+                        android:text="🔐 Set / Change App Lock Credential"
+                        android:textColor="#FFFFFF"
+                        android:textSize="13sp" />
+
+                    <Button
+                        android:id="@+id/btn_manage_locked_apps"
                         android:layout_width="match_parent"
                         android:layout_height="48dp"
                         android:layout_marginBottom="16dp"
                         android:background="@drawable/bg_settings_row"
                         android:gravity="start|center_vertical"
                         android:paddingHorizontal="24dp"
-                        android:text="🔑 Set / Change Security PIN"
+                        android:text="📱 Choose Which Apps are Locked"
+                        android:textColor="#FFFFFF"
+                        android:textSize="13sp" />
+
+                    <!-- SECTION 3: HIDDEN APPS VAULT -->
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingStart="24dp"
+                        android:paddingEnd="24dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="3. Hidden Apps Vault"
+                        android:textAllCaps="true"
+                        android:textColor="#4DD0E1"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:id="@+id/row_toggle_hidden_lock"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:layout_marginBottom="0dp"
+                        android:background="@drawable/bg_settings_row"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="24dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Require 2nd Layer Lock for Hidden Apps"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp" />
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            android:id="@+id/switch_hidden_lock"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:clickable="false"
+                            android:focusable="false"
+                            app:thumbTint="@color/switch_thumb_tint"
+                            app:trackTint="@color/switch_track_tint"
+                            app:useMaterialThemeColors="false" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/row_hidden_reveal_code"
+                        android:layout_width="match_parent"
+                        android:layout_height="54dp"
+                        android:layout_marginBottom="0dp"
+                        android:background="@drawable/bg_settings_row"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="24dp">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Search Reveal Code"
+                                android:textColor="#FFFFFF"
+                                android:textSize="14sp" />
+
+                            <TextView
+                                android:id="@+id/txt_hidden_reveal_code_value"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="Type in search to show hidden apps"
+                                android:textColor="#94A3B8"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="EDIT"
+                            android:textColor="#4DD0E1"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/btn_setup_hidden_lock"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginBottom="0dp"
+                        android:background="@drawable/bg_settings_row"
+                        android:gravity="start|center_vertical"
+                        android:paddingHorizontal="24dp"
+                        android:text="🔑 Set / Change 2nd Layer Credential"
+                        android:textColor="#FFFFFF"
+                        android:textSize="13sp" />
+
+                    <Button
+                        android:id="@+id/btn_manage_hidden_apps"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginBottom="16dp"
+                        android:background="@drawable/bg_settings_row"
+                        android:gravity="start|center_vertical"
+                        android:paddingHorizontal="24dp"
+                        android:text="👁️ Choose Which Apps are Hidden"
                         android:textColor="#FFFFFF"
                         android:textSize="13sp" />
                 </LinearLayout>
@@ -2011,6 +2159,46 @@
 
                     <LinearLayout
                         android:id="@+id/layout_pick_app_list"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingHorizontal="16dp" />
+                </LinearLayout>
+
+                <!-- ========================================================= -->
+                <!-- SUB-PAGE: MULTI-SELECT APPS (Locked/Hidden Apps Selector) -->
+                <!-- ========================================================= -->
+                <LinearLayout
+                    android:id="@+id/subpage_toggle_apps"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/txt_toggle_apps_header"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingHorizontal="24dp"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginBottom="4dp"
+                        android:textColor="#4DD0E1"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        tools:text="Choose Locked Apps" />
+
+                    <TextView
+                        android:id="@+id/txt_toggle_apps_sub"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingHorizontal="24dp"
+                        android:layout_marginBottom="12dp"
+                        android:textColor="#94A3B8"
+                        android:textSize="11sp"
+                        tools:text="Toggle apps to require PIN before launching" />
+
+                    <LinearLayout
+                        android:id="@+id/layout_toggle_apps_list"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"

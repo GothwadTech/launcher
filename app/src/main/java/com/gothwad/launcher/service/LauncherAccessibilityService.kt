@@ -4,6 +4,8 @@ import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Context
 import android.content.Intent
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.util.Log
 import android.view.KeyEvent
@@ -13,6 +15,8 @@ import com.gothwad.launcher.MainActivity
 import com.gothwad.launcher.data.BackgroundMediaTracker
 import com.gothwad.launcher.data.ButtonMappingManager
 import com.gothwad.launcher.data.ConfigStore
+import com.gothwad.launcher.data.LauncherConfig
+import com.gothwad.launcher.ui.view.SystemLockOverlayView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -22,15 +26,29 @@ import kotlinx.coroutines.launch
 
 /**
  * Accessibility Service to handle Home key capture, OEM launcher overrides,
- * Remote button hotkey mapping, and Boot Ad / Stock Launcher suppression on Jio, Airtel, Google TV, and locked STBs.
+ * Remote button hotkey mapping, Boot Ad / Stock Launcher suppression on Jio, Airtel, Google TV, and locked STBs,
+ * and Authoritative, Unbypassable App Lock Enforcement (Phase 3).
  */
 class LauncherAccessibilityService : AccessibilityService() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     // Cached button mappings from ConfigStore to ensure ZERO blocking reads on keystrokes
     @Volatile
     private var cachedButtonMap: Map<Int, String> = emptyMap()
+
+    @Volatile
+    private var cachedConfig: LauncherConfig = LauncherConfig()
+
+    // Overlay state for system-wide app lock
+    private var currentLockOverlay: SystemLockOverlayView? = null
+    @Volatile
+    private var pendingLockedPkg: String? = null
+
+    // Track the package currently in foreground
+    @Volatile
+    private var lastForegroundPkg: String? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -43,11 +61,13 @@ class LauncherAccessibilityService : AccessibilityService() {
 
             store.flow.collectLatest { cfg ->
                 cachedButtonMap = cfg.buttonMap
+                cachedConfig = cfg
             }
         }
     }
 
     override fun onDestroy() {
+        dismissLockOverlay()
         serviceScope.cancel()
         super.onDestroy()
     }
@@ -68,11 +88,101 @@ class LauncherAccessibilityService : AccessibilityService() {
         if (event == null) return
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             val pkg = event.packageName?.toString() ?: return
+
+            // If user left the previously unlocked package, invalidate its session
+            val previousPkg = lastForegroundPkg
+            if (previousPkg != null && previousPkg != pkg && previousPkg != packageName) {
+                unlockedPackagesSession.remove(previousPkg)
+            }
+            lastForegroundPkg = pkg
+
             if (isStockTvLauncher(pkg) && pkg != packageName) {
                 // The OEM/Jio/Airtel launcher or boot ad was brought to foreground; return to Gothwad Launcher
                 BackgroundMediaTracker.silenceAudio(this)
                 launchHome(this)
+                return
             }
+
+            // Phase 3: Authoritative, Unbypassable App Lock Enforcement
+            checkAndEnforceAppLock(pkg)
+        }
+    }
+
+    /**
+     * Checks if the foreground package requires app lock, regardless of whether it was opened
+     * from our launcher, Android Settings, notifications, recents switcher, or external intents.
+     */
+    private fun checkAndEnforceAppLock(pkg: String) {
+        val config = cachedConfig
+        if (pkg == packageName) {
+            dismissLockOverlay()
+            return
+        }
+
+        val isAppLocked = config.appLock.enabled &&
+            config.appLock.value.isNotEmpty() &&
+            pkg in config.lockedApps
+
+        if (!isAppLocked) {
+            // Not a locked app
+            if (pendingLockedPkg == pkg) {
+                dismissLockOverlay()
+            }
+            return
+        }
+
+        // Check if package is already unlocked in current foreground session
+        if (unlockedPackagesSession.contains(pkg)) {
+            return
+        }
+
+        // App is locked and not unlocked in current session: Show unbypassable overlay
+        mainHandler.post {
+            showAppLockOverlay(pkg, config)
+        }
+    }
+
+    private fun showAppLockOverlay(pkg: String, config: LauncherConfig) {
+        if (currentLockOverlay != null && pendingLockedPkg == pkg) {
+            return // Overlay already showing for this package
+        }
+
+        dismissLockOverlay()
+
+        val appName = runCatching {
+            val appInfo = packageManager.getApplicationInfo(pkg, 0)
+            packageManager.getApplicationLabel(appInfo).toString()
+        }.getOrDefault(pkg)
+
+        pendingLockedPkg = pkg
+
+        currentLockOverlay = SystemLockOverlayView(
+            context = applicationContext,
+            credential = config.appLock,
+            title = "App Locked",
+            subtitle = "Enter credential to open $appName",
+            onSuccess = {
+                // Mark package as unlocked for current session
+                unlockedPackagesSession.add(pkg)
+                pendingLockedPkg = null
+                currentLockOverlay = null
+            },
+            onDismissOrBack = {
+                // On dismiss, back key, or cancel, escape to Home to prevent revealing the underlying app
+                pendingLockedPkg = null
+                currentLockOverlay = null
+                launchHome(this@LauncherAccessibilityService)
+            }
+        ).also {
+            it.show()
+        }
+    }
+
+    private fun dismissLockOverlay() {
+        mainHandler.post {
+            currentLockOverlay?.dismiss()
+            currentLockOverlay = null
+            pendingLockedPkg = null
         }
     }
 
@@ -199,5 +309,8 @@ class LauncherAccessibilityService : AccessibilityService() {
                         it.contains("LauncherAccessibilityService", ignoreCase = true))
             }
         }
+
+        /** In-memory set of unlocked packages for current foreground session */
+        val unlockedPackagesSession: MutableSet<String> = java.util.Collections.synchronizedSet(mutableSetOf<String>())
     }
 }

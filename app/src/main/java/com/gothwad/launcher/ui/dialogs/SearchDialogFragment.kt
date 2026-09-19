@@ -24,6 +24,10 @@ class SearchDialogFragment : DialogFragment() {
     private var adapter: SearchAppAdapter? = null
     var onLaunchApp: ((AppEntry) -> Unit)? = null
 
+    // Track if hidden apps vault has satisfied the second-layer lock in this search session
+    private var isVaultUnlockedThisSession: Boolean = false
+    private var isPromptingVaultLock: Boolean = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setStyle(STYLE_NO_TITLE, android.R.style.Theme_Black_NoTitleBar_Fullscreen)
@@ -80,21 +84,19 @@ class SearchDialogFragment : DialogFragment() {
     private fun updateAppList(query: String) {
         val trimmed = query.trim()
         val isSecretMatch = if (trimmed.isEmpty()) false else {
-            val codeMatches = config.hideAppsCode.isNotEmpty() && trimmed.equals(config.hideAppsCode, ignoreCase = true)
-            val pinMatches = config.hideAppsPin.isNotEmpty() && trimmed == config.hideAppsPin
-            codeMatches || pinMatches
+            config.hiddenAppsRevealCode.isNotEmpty() && trimmed.equals(config.hiddenAppsRevealCode, ignoreCase = true)
         }
 
         if (isSecretMatch) {
-            binding.bannerSecretVault.visibility = View.VISIBLE
-            binding.imgSearchStatusIcon.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_LOCK_OPEN, 0xFFFFB300.toInt()))
-            val hiddenApps = allApps.filter { it.pkg in config.hidden }
-            adapter?.submitList(hiddenApps)
-            binding.tvEmptyState.visibility = if (hiddenApps.isEmpty()) View.VISIBLE else View.GONE
-            if (hiddenApps.isEmpty()) {
-                binding.tvEmptyState.text = "No apps are currently hidden"
+            // Phase 5: Distinct second-layer confirmation before hidden apps actually render and launch
+            if (config.hiddenAppsLock.enabled && config.hiddenAppsLock.value.isNotEmpty() && !isVaultUnlockedThisSession) {
+                promptHiddenAppsConfirmation()
+                return
             }
+
+            renderHiddenAppsVault()
         } else {
+            isVaultUnlockedThisSession = false
             binding.bannerSecretVault.visibility = View.GONE
             binding.imgSearchStatusIcon.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_SEARCH, 0xB3FFFFFF.toInt()))
             val visibleApps = if (trimmed.isEmpty()) {
@@ -109,6 +111,52 @@ class SearchDialogFragment : DialogFragment() {
             if (visibleApps.isEmpty()) {
                 binding.tvEmptyState.text = "No apps found matching '$trimmed'"
             }
+        }
+    }
+
+    private fun promptHiddenAppsConfirmation() {
+        if (isPromptingVaultLock) return
+        isPromptingVaultLock = true
+
+        // Hide search results list until confirmed
+        adapter?.submitList(emptyList())
+        binding.bannerSecretVault.visibility = View.GONE
+        binding.tvEmptyState.visibility = View.GONE
+
+        PinEntryDialogFragment.newInstance(
+            title = "Hidden Apps Vault",
+            subtitle = "Enter second-layer credential to access hidden apps",
+            credential = config.hiddenAppsLock,
+            isCancelable = true,
+            onSuccess = {
+                isVaultUnlockedThisSession = true
+                isPromptingVaultLock = false
+                renderHiddenAppsVault()
+            }
+        ).apply {
+            // If user cancels or backs out, reset search query
+            isCancelable = true
+        }.show(parentFragmentManager, "HiddenAppsVaultConfirm")
+
+        // Reset prompt guard on dismissal
+        parentFragmentManager.executePendingTransactions()
+        val dialog = parentFragmentManager.findFragmentByTag("HiddenAppsVaultConfirm") as? DialogFragment
+        dialog?.dialog?.setOnDismissListener {
+            isPromptingVaultLock = false
+            if (!isVaultUnlockedThisSession && isResumed) {
+                binding.etSearch.setText("")
+            }
+        }
+    }
+
+    private fun renderHiddenAppsVault() {
+        binding.bannerSecretVault.visibility = View.VISIBLE
+        binding.imgSearchStatusIcon.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_LOCK_OPEN, 0xFFFFB300.toInt()))
+        val hiddenApps = allApps.filter { it.pkg in config.hidden }
+        adapter?.submitList(hiddenApps)
+        binding.tvEmptyState.visibility = if (hiddenApps.isEmpty()) View.VISIBLE else View.GONE
+        if (hiddenApps.isEmpty()) {
+            binding.tvEmptyState.text = "No apps are currently hidden"
         }
     }
 

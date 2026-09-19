@@ -136,5 +136,9 @@ class GothwadApplication : Application() {
         private const val TAG = "GothwadApplication"
         private const val CRASH_LOG_FILE = "gothwad_crash.log"
         private const val RELAUNCH_REQUEST_CODE = 4401
+
+        /** In-memory flag: true once device lock is satisfied for the current process lifetime */
+        @Volatile
+        var hasUnlockedDeviceThisProcess: Boolean = false
     }
 }
