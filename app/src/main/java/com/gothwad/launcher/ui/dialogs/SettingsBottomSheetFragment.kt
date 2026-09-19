@@ -305,7 +305,25 @@ class SettingsBottomSheetFragment : DialogFragment() {
         }
 
         binding.rowSecurity.setOnClickListener {
-            navigateToSubPage(binding.pageSecurity, "Security & PIN Lock")
+            val primaryLock = when {
+                config.deviceLock.enabled && config.deviceLock.value.isNotEmpty() -> config.deviceLock
+                config.appLock.enabled && config.appLock.value.isNotEmpty() -> config.appLock
+                config.hiddenAppsLock.enabled && config.hiddenAppsLock.value.isNotEmpty() -> config.hiddenAppsLock
+                else -> null
+            }
+            if (primaryLock != null) {
+                PinEntryDialogFragment.newInstance(
+                    title = "Security Settings",
+                    subtitle = "Enter credential to access security settings",
+                    credential = primaryLock,
+                    isCancelable = true,
+                    onSuccess = {
+                        navigateToSubPage(binding.pageSecurity, "Security & PIN Lock")
+                    }
+                ).show(parentFragmentManager, PinEntryDialogFragment.TAG)
+            } else {
+                navigateToSubPage(binding.pageSecurity, "Security & PIN Lock")
+            }
         }
 
         binding.rowMode.setOnClickListener {
@@ -647,30 +665,57 @@ class SettingsBottomSheetFragment : DialogFragment() {
                     }
                 }
             } else {
-                val updated = config.deviceLock.copy(enabled = false)
-                binding.switchDeviceLock.isChecked = false
-                lifecycleScope.launch {
-                    store.update { it.copy(deviceLock = updated) }
-                    config = config.copy(deviceLock = updated)
-                    updateSubtitles()
-                }
+                // Must verify current credential to disable Device Lock
+                PinEntryDialogFragment.newInstance(
+                    title = "Confirm Device Lock",
+                    subtitle = "Enter current PIN/password to disable Device Lock",
+                    credential = config.deviceLock,
+                    isCancelable = true,
+                    onSuccess = {
+                        val updated = config.deviceLock.copy(enabled = false)
+                        binding.switchDeviceLock.isChecked = false
+                        lifecycleScope.launch {
+                            store.update { it.copy(deviceLock = updated) }
+                            config = config.copy(deviceLock = updated)
+                            updateSubtitles()
+                            Actions.toast(requireContext(), "Device Lock Disabled")
+                        }
+                    },
+                    onCancelled = {
+                        binding.switchDeviceLock.isChecked = true
+                    }
+                ).show(parentFragmentManager, PinEntryDialogFragment.TAG)
             }
         }
 
         binding.btnSetupDeviceLock.setOnClickListener {
-            PinSetupDialogFragment.newInstance(
-                initialType = config.deviceLock.type,
-                initialPinLength = config.deviceLock.pinLength
-            ) { newCred ->
-                lifecycleScope.launch {
-                    val updatedCred = newCred.copy(enabled = true)
-                    store.update { it.copy(deviceLock = updatedCred) }
-                    config = config.copy(deviceLock = updatedCred)
-                    binding.switchDeviceLock.isChecked = true
-                    updateSubtitles()
-                    Actions.toast(requireContext(), "Device Lock credential updated")
-                }
-            }.show(parentFragmentManager, PinSetupDialogFragment.TAG)
+            val showSetup = {
+                PinSetupDialogFragment.newInstance(
+                    initialType = config.deviceLock.type,
+                    initialPinLength = config.deviceLock.pinLength
+                ) { newCred ->
+                    lifecycleScope.launch {
+                        val updatedCred = newCred.copy(enabled = true)
+                        store.update { it.copy(deviceLock = updatedCred) }
+                        config = config.copy(deviceLock = updatedCred)
+                        binding.switchDeviceLock.isChecked = true
+                        updateSubtitles()
+                        Actions.toast(requireContext(), "Device Lock credential updated")
+                    }
+                }.show(parentFragmentManager, PinSetupDialogFragment.TAG)
+            }
+
+            if (config.deviceLock.enabled && config.deviceLock.value.isNotEmpty()) {
+                PinEntryDialogFragment.newInstance(
+                    title = "Confirm Current Credential",
+                    subtitle = "Enter current PIN/password to change Device Lock",
+                    credential = config.deviceLock,
+                    isCancelable = true,
+                    onSuccess = { showSetup() }
+                ).show(parentFragmentManager, PinEntryDialogFragment.TAG)
+            } else {
+                showSetup()
+            }
         }
 
         // --- 2. APP LOCK ---
@@ -701,34 +746,73 @@ class SettingsBottomSheetFragment : DialogFragment() {
                     }
                 }
             } else {
-                val updated = config.appLock.copy(enabled = false)
-                binding.switchAppLock.isChecked = false
-                lifecycleScope.launch {
-                    store.update { it.copy(appLock = updated) }
-                    config = config.copy(appLock = updated)
-                    updateSubtitles()
-                }
+                // Must verify current credential to disable App Lock
+                PinEntryDialogFragment.newInstance(
+                    title = "Confirm App Lock",
+                    subtitle = "Enter current PIN/password to disable App Lock",
+                    credential = config.appLock,
+                    isCancelable = true,
+                    onSuccess = {
+                        val updated = config.appLock.copy(enabled = false)
+                        binding.switchAppLock.isChecked = false
+                        lifecycleScope.launch {
+                            store.update { it.copy(appLock = updated) }
+                            config = config.copy(appLock = updated)
+                            updateSubtitles()
+                            Actions.toast(requireContext(), "App Lock Disabled")
+                        }
+                    },
+                    onCancelled = {
+                        binding.switchAppLock.isChecked = true
+                    }
+                ).show(parentFragmentManager, PinEntryDialogFragment.TAG)
             }
         }
 
         binding.btnSetupAppLock.setOnClickListener {
-            PinSetupDialogFragment.newInstance(
-                initialType = config.appLock.type,
-                initialPinLength = config.appLock.pinLength
-            ) { newCred ->
-                lifecycleScope.launch {
-                    val updatedCred = newCred.copy(enabled = true)
-                    store.update { it.copy(appLock = updatedCred) }
-                    config = config.copy(appLock = updatedCred)
-                    binding.switchAppLock.isChecked = true
-                    updateSubtitles()
-                    Actions.toast(requireContext(), "App Lock credential updated")
-                }
-            }.show(parentFragmentManager, PinSetupDialogFragment.TAG)
+            val showSetup = {
+                PinSetupDialogFragment.newInstance(
+                    initialType = config.appLock.type,
+                    initialPinLength = config.appLock.pinLength
+                ) { newCred ->
+                    lifecycleScope.launch {
+                        val updatedCred = newCred.copy(enabled = true)
+                        store.update { it.copy(appLock = updatedCred) }
+                        config = config.copy(appLock = updatedCred)
+                        binding.switchAppLock.isChecked = true
+                        updateSubtitles()
+                        Actions.toast(requireContext(), "App Lock credential updated")
+                    }
+                }.show(parentFragmentManager, PinSetupDialogFragment.TAG)
+            }
+
+            if (config.appLock.enabled && config.appLock.value.isNotEmpty()) {
+                PinEntryDialogFragment.newInstance(
+                    title = "Confirm Current Credential",
+                    subtitle = "Enter current PIN/password to change App Lock",
+                    credential = config.appLock,
+                    isCancelable = true,
+                    onSuccess = { showSetup() }
+                ).show(parentFragmentManager, PinEntryDialogFragment.TAG)
+            } else {
+                showSetup()
+            }
         }
 
         binding.btnManageLockedApps.setOnClickListener {
-            openManageAppsScreen(isForHidden = false)
+            if (config.appLock.enabled && config.appLock.value.isNotEmpty()) {
+                PinEntryDialogFragment.newInstance(
+                    title = "Manage Locked Apps",
+                    subtitle = "Enter credential to manage locked apps",
+                    credential = config.appLock,
+                    isCancelable = true,
+                    onSuccess = {
+                        openManageAppsScreen(isForHidden = false)
+                    }
+                ).show(parentFragmentManager, PinEntryDialogFragment.TAG)
+            } else {
+                openManageAppsScreen(isForHidden = false)
+            }
         }
 
         // --- 3. HIDDEN APPS VAULT ---
@@ -759,39 +843,90 @@ class SettingsBottomSheetFragment : DialogFragment() {
                     }
                 }
             } else {
-                val updated = config.hiddenAppsLock.copy(enabled = false)
-                binding.switchHiddenLock.isChecked = false
-                lifecycleScope.launch {
-                    store.update { it.copy(hiddenAppsLock = updated) }
-                    config = config.copy(hiddenAppsLock = updated)
-                    updateSubtitles()
-                }
+                // Must verify current credential to disable Hidden Apps Lock
+                PinEntryDialogFragment.newInstance(
+                    title = "Confirm Hidden Apps Lock",
+                    subtitle = "Enter current PIN/password to disable Hidden Apps Lock",
+                    credential = config.hiddenAppsLock,
+                    isCancelable = true,
+                    onSuccess = {
+                        val updated = config.hiddenAppsLock.copy(enabled = false)
+                        binding.switchHiddenLock.isChecked = false
+                        lifecycleScope.launch {
+                            store.update { it.copy(hiddenAppsLock = updated) }
+                            config = config.copy(hiddenAppsLock = updated)
+                            updateSubtitles()
+                            Actions.toast(requireContext(), "Hidden Apps Lock Disabled")
+                        }
+                    },
+                    onCancelled = {
+                        binding.switchHiddenLock.isChecked = true
+                    }
+                ).show(parentFragmentManager, PinEntryDialogFragment.TAG)
             }
         }
 
         updateRevealCodeLabel()
         binding.rowHiddenRevealCode.setOnClickListener {
-            showEditRevealCodeDialog()
+            if (config.hiddenAppsLock.enabled && config.hiddenAppsLock.value.isNotEmpty()) {
+                PinEntryDialogFragment.newInstance(
+                    title = "Change Reveal Code",
+                    subtitle = "Enter credential to change reveal code",
+                    credential = config.hiddenAppsLock,
+                    isCancelable = true,
+                    onSuccess = {
+                        showEditRevealCodeDialog()
+                    }
+                ).show(parentFragmentManager, PinEntryDialogFragment.TAG)
+            } else {
+                showEditRevealCodeDialog()
+            }
         }
 
         binding.btnSetupHiddenLock.setOnClickListener {
-            PinSetupDialogFragment.newInstance(
-                initialType = config.hiddenAppsLock.type,
-                initialPinLength = config.hiddenAppsLock.pinLength
-            ) { newCred ->
-                lifecycleScope.launch {
-                    val updatedCred = newCred.copy(enabled = true)
-                    store.update { it.copy(hiddenAppsLock = updatedCred) }
-                    config = config.copy(hiddenAppsLock = updatedCred)
-                    binding.switchHiddenLock.isChecked = true
-                    updateSubtitles()
-                    Actions.toast(requireContext(), "Hidden Apps Vault Credential updated")
-                }
-            }.show(parentFragmentManager, PinSetupDialogFragment.TAG)
+            val showSetup = {
+                PinSetupDialogFragment.newInstance(
+                    initialType = config.hiddenAppsLock.type,
+                    initialPinLength = config.hiddenAppsLock.pinLength
+                ) { newCred ->
+                    lifecycleScope.launch {
+                        val updatedCred = newCred.copy(enabled = true)
+                        store.update { it.copy(hiddenAppsLock = updatedCred) }
+                        config = config.copy(hiddenAppsLock = updatedCred)
+                        binding.switchHiddenLock.isChecked = true
+                        updateSubtitles()
+                        Actions.toast(requireContext(), "Hidden Apps Vault Credential updated")
+                    }
+                }.show(parentFragmentManager, PinSetupDialogFragment.TAG)
+            }
+
+            if (config.hiddenAppsLock.enabled && config.hiddenAppsLock.value.isNotEmpty()) {
+                PinEntryDialogFragment.newInstance(
+                    title = "Confirm Current Credential",
+                    subtitle = "Enter current PIN/password to change Hidden Apps Lock",
+                    credential = config.hiddenAppsLock,
+                    isCancelable = true,
+                    onSuccess = { showSetup() }
+                ).show(parentFragmentManager, PinEntryDialogFragment.TAG)
+            } else {
+                showSetup()
+            }
         }
 
         binding.btnManageHiddenApps.setOnClickListener {
-            openManageAppsScreen(isForHidden = true)
+            if (config.hiddenAppsLock.enabled && config.hiddenAppsLock.value.isNotEmpty()) {
+                PinEntryDialogFragment.newInstance(
+                    title = "Manage Hidden Apps",
+                    subtitle = "Enter credential to manage hidden apps",
+                    credential = config.hiddenAppsLock,
+                    isCancelable = true,
+                    onSuccess = {
+                        openManageAppsScreen(isForHidden = true)
+                    }
+                ).show(parentFragmentManager, PinEntryDialogFragment.TAG)
+            } else {
+                openManageAppsScreen(isForHidden = true)
+            }
         }
     }
 

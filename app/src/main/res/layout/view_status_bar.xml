@@ -29,13 +29,6 @@
             android:padding="7dp" />
 
         <ImageButton
-            android:id="@+id/btn_refresh"
-            style="@style/Widget.LiteTV.StatusButton"
-            android:layout_marginStart="4dp"
-            android:contentDescription="@string/cd_system_refresh"
-            android:padding="7dp" />
-
-        <ImageButton
             android:id="@+id/btn_search"
             style="@style/Widget.LiteTV.StatusButton"
             android:layout_marginStart="4dp"

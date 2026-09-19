@@ -17,6 +17,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.gothwad.launcher.Actions
+import com.gothwad.launcher.GothwadApplication
 import com.gothwad.launcher.data.AppEntry
 import com.gothwad.launcher.data.AppRepository
 import com.gothwad.launcher.data.CORNER_RADII
@@ -118,6 +119,9 @@ class TvLauncherFragment : Fragment() {
     }
 
     private fun handleAppLaunch(app: AppEntry, skipLock: Boolean = false) {
+        if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
+            return
+        }
         // UX-only in-launcher check to avoid overlay flicker on first click.
         // The authoritative, unbypassable security enforcement layer is in LauncherAccessibilityService.
         if (!skipLock && currentConfig.appLock.enabled && currentConfig.appLock.value.isNotEmpty() && app.pkg in currentConfig.lockedApps) {

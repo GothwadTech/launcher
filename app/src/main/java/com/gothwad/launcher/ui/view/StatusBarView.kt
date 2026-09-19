@@ -27,7 +27,6 @@ class StatusBarView @JvmOverloads constructor(
         ViewStatusBarBinding.inflate(LayoutInflater.from(context), this, true)
 
     var onDashboardClick: (() -> Unit)? = null
-    var onRefreshClick: (() -> Unit)? = null
     var onSearchClick: (() -> Unit)? = null
     var onVoiceSearchClick: (() -> Unit)? = null
     var onBluetoothClick: (() -> Unit)? = null
@@ -45,7 +44,6 @@ class StatusBarView @JvmOverloads constructor(
 
     private fun setupStaticIcons() {
         binding.btnDashboard.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_DASHBOARD, Color.WHITE))
-        binding.btnRefresh.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_REFRESH, 0xFF4DD0E1.toInt()))
         binding.btnSearch.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_SEARCH, Color.WHITE))
         binding.btnVoiceSearch.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_MIC, Color.WHITE))
         binding.imgBluetooth.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BLUETOOTH, 0xFF64B5F6.toInt()))
@@ -56,7 +54,6 @@ class StatusBarView @JvmOverloads constructor(
 
     private fun setupListeners() {
         binding.btnDashboard.setOnClickListener { onDashboardClick?.invoke() }
-        binding.btnRefresh.setOnClickListener { onRefreshClick?.invoke() }
         binding.btnSearch.setOnClickListener { onSearchClick?.invoke() }
         binding.btnVoiceSearch.setOnClickListener { onVoiceSearchClick?.invoke() }
         binding.layoutBluetoothPill.setOnClickListener { onBluetoothClick?.invoke() }

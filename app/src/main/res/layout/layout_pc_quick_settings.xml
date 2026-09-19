@@ -254,55 +254,6 @@
         </LinearLayout>
     </LinearLayout>
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:orientation="horizontal">
-
-        <!-- System Refresh Tile -->
-        <LinearLayout
-            android:id="@+id/tile_qs_refresh"
-            android:layout_width="match_parent"
-            android:layout_height="52dp"
-            android:background="@drawable/bg_pc_menu_item"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingHorizontal="10dp">
-
-            <ImageView
-                android:id="@+id/img_tile_refresh"
-                android:layout_width="22dp"
-                android:layout_height="22dp"
-                android:contentDescription="@null" />
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="System Deep Refresh"
-                    android:textColor="#4DD0E1"
-                    android:textSize="11sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Kill background processes &amp; cold reboot state"
-                    android:textColor="#9AA0A6"
-                    android:textSize="10sp" />
-            </LinearLayout>
-        </LinearLayout>
-    </LinearLayout>
-
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"

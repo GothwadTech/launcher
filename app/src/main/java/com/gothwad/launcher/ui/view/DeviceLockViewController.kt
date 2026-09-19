@@ -3,89 +3,64 @@ package com.gothwad.launcher.ui.view
 import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
-import android.os.Build
 import android.text.InputType
-import android.view.Gravity
 import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
-import android.view.WindowManager
+import android.widget.FrameLayout
 import android.widget.LinearLayout
-import com.gothwad.launcher.R
 import com.gothwad.launcher.data.LockCredential
 import com.gothwad.launcher.data.LockCredentialType
 import com.gothwad.launcher.databinding.DialogPinEntryBinding
 import com.gothwad.launcher.ui.AppIcons
 
 /**
- * Full-screen System Alert Window Overlay hosting the security lock UI directly via WindowManager.
- * Used by LauncherAccessibilityService to block access to locked apps system-wide
- * (Settings app, notifications, recents switcher, etc.) and by MainActivity for Device Lock.
+ * Solid in-activity controller for Device Lock (Phase 4).
+ * Renders directly inside MainActivity's device_lock_container without requiring
+ * SYSTEM_ALERT_WINDOW or overlay permissions, completely eliminating blackout errors.
+ * Consumes all touches, mouse clicks, right-clicks, and remote/keyboard navigation until unlocked.
  */
-class SystemLockOverlayView(
-    private val context: Context,
+class DeviceLockViewController(
+    private val container: FrameLayout,
     private val credential: LockCredential,
-    private val title: String,
-    private val subtitle: String,
-    private val onSuccess: () -> Unit,
-    private val onDismissOrBack: () -> Unit
+    private val onUnlocked: () -> Unit
 ) {
-
-    private val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-    private val binding: DialogPinEntryBinding = DialogPinEntryBinding.inflate(LayoutInflater.from(context))
-    private val root: View = binding.root
+    private val context: Context = container.context
+    private val binding: DialogPinEntryBinding =
+        DialogPinEntryBinding.inflate(LayoutInflater.from(context), container, false)
 
     private val enteredDigits = StringBuilder()
     private val dotViews = mutableListOf<View>()
     private var isPasswordVisible: Boolean = false
     private var inputModeTv: Boolean = true
-    private var isAttached = false
+    private var isUnlocked: Boolean = false
 
-    init {
+    fun show() {
+        container.removeAllViews()
+        container.addView(binding.root)
+        container.visibility = View.VISIBLE
+        container.bringToFront()
+
+        // Block all clicks, right-clicks, long clicks, and touches from reaching views underneath
+        container.isClickable = true
+        container.isFocusable = true
+        container.isFocusableInTouchMode = true
+        container.setOnTouchListener { _, _ -> true }
+        container.setOnContextClickListener { true }
+        container.setOnLongClickListener { true }
+
         setupUi()
     }
 
     private fun setupUi() {
-        binding.imgPinIcon.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_LOCK, 0xFF4C8DFF.toInt()))
-        binding.tvPinTitle.text = title
-        binding.tvPinSubtitle.text = subtitle
+        binding.imgPinIcon.setImageDrawable(
+            AppIcons.createDrawable(AppIcons.PATH_LOCK, 0xFF4C8DFF.toInt())
+        )
+        binding.tvPinTitle.text = "Device Locked"
+        binding.tvPinSubtitle.text = "Enter credential to access device"
 
-        binding.btnCancel.text = "Exit / Back"
-        binding.btnCancel.visibility = View.VISIBLE
-        binding.btnCancel.setOnClickListener {
-            dismiss()
-            onDismissOrBack()
-        }
-
-        // Intercept hardware Back key and remote number keys on the root overlay view
-        root.isFocusable = true
-        root.isFocusableInTouchMode = true
-        root.setOnKeyListener { _, keyCode, event ->
-            if (event.action == KeyEvent.ACTION_DOWN) {
-                if (keyCode == KeyEvent.KEYCODE_BACK) {
-                    dismiss()
-                    onDismissOrBack()
-                    return@setOnKeyListener true
-                }
-                if (credential.type == LockCredentialType.NUMERIC) {
-                    when (keyCode) {
-                        KeyEvent.KEYCODE_0, KeyEvent.KEYCODE_NUMPAD_0 -> { appendDigit('0'); return@setOnKeyListener true }
-                        KeyEvent.KEYCODE_1, KeyEvent.KEYCODE_NUMPAD_1 -> { appendDigit('1'); return@setOnKeyListener true }
-                        KeyEvent.KEYCODE_2, KeyEvent.KEYCODE_NUMPAD_2 -> { appendDigit('2'); return@setOnKeyListener true }
-                        KeyEvent.KEYCODE_3, KeyEvent.KEYCODE_NUMPAD_3 -> { appendDigit('3'); return@setOnKeyListener true }
-                        KeyEvent.KEYCODE_4, KeyEvent.KEYCODE_NUMPAD_4 -> { appendDigit('4'); return@setOnKeyListener true }
-                        KeyEvent.KEYCODE_5, KeyEvent.KEYCODE_NUMPAD_5 -> { appendDigit('5'); return@setOnKeyListener true }
-                        KeyEvent.KEYCODE_6, KeyEvent.KEYCODE_NUMPAD_6 -> { appendDigit('6'); return@setOnKeyListener true }
-                        KeyEvent.KEYCODE_7, KeyEvent.KEYCODE_NUMPAD_7 -> { appendDigit('7'); return@setOnKeyListener true }
-                        KeyEvent.KEYCODE_8, KeyEvent.KEYCODE_NUMPAD_8 -> { appendDigit('8'); return@setOnKeyListener true }
-                        KeyEvent.KEYCODE_9, KeyEvent.KEYCODE_NUMPAD_9 -> { appendDigit('9'); return@setOnKeyListener true }
-                        KeyEvent.KEYCODE_DEL -> { removeDigit(); return@setOnKeyListener true }
-                        KeyEvent.KEYCODE_CLEAR -> { clearDigits(); return@setOnKeyListener true }
-                    }
-                }
-            }
-            false
-        }
+        // Device lock is mandatory on cold boot; cannot be cancelled or escaped
+        binding.btnCancel.visibility = View.GONE
 
         if (credential.type == LockCredentialType.NUMERIC) {
             setupNumericUi()
@@ -94,6 +69,10 @@ class SystemLockOverlayView(
         }
     }
 
+    // =========================================================================
+    // NUMERIC PIN FLOW
+    // =========================================================================
+
     private fun setupNumericUi() {
         binding.layoutPinSection.visibility = View.VISIBLE
         binding.layoutPasswordSection.visibility = View.GONE
@@ -101,7 +80,10 @@ class SystemLockOverlayView(
 
         setupDots()
         setupKeypad()
-        binding.btnKey1.requestFocus()
+
+        binding.btnKey1.post {
+            binding.btnKey1.requestFocus()
+        }
     }
 
     private fun setupDots() {
@@ -205,20 +187,24 @@ class SystemLockOverlayView(
     private fun checkNumericPin() {
         val candidate = enteredDigits.toString()
         if (candidate == credential.value) {
-            dismiss()
-            onSuccess()
+            unlockSuccess()
         } else {
             updateDotsUi(error = true)
             binding.tvPinSubtitle.text = "Incorrect PIN. Try again."
             binding.tvPinSubtitle.setTextColor(0xFFFF5252.toInt())
+            shakeCard()
 
-            root.postDelayed({
+            binding.root.postDelayed({
                 clearDigits()
-                binding.tvPinSubtitle.text = subtitle
+                binding.tvPinSubtitle.text = "Enter credential to access device"
                 binding.tvPinSubtitle.setTextColor(0x99FFFFFF.toInt())
             }, 800)
         }
     }
+
+    // =========================================================================
+    // PASSWORD FLOW
+    // =========================================================================
 
     private fun setupPasswordUi() {
         binding.layoutPinSection.visibility = View.GONE
@@ -308,59 +294,95 @@ class SystemLockOverlayView(
     private fun checkPassword() {
         val candidate = binding.etPassword.text.toString()
         if (candidate == credential.value) {
-            dismiss()
-            onSuccess()
+            unlockSuccess()
         } else {
             binding.tvPinSubtitle.text = "Incorrect password. Try again."
             binding.tvPinSubtitle.setTextColor(0xFFFF5252.toInt())
+            shakeCard()
 
-            root.postDelayed({
+            binding.root.postDelayed({
                 binding.etPassword.setText("")
-                binding.tvPinSubtitle.text = subtitle
+                binding.tvPinSubtitle.text = "Enter credential to access device"
                 binding.tvPinSubtitle.setTextColor(0x99FFFFFF.toInt())
             }, 800)
         }
     }
 
-    fun show() {
-        if (isAttached) return
+    // =========================================================================
+    // KEY EVENT & UNLOCK HANDLING
+    // =========================================================================
 
-        val overlayType = if (context is android.accessibilityservice.AccessibilityService) {
-            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-        } else {
-            @Suppress("DEPRECATION")
-            WindowManager.LayoutParams.TYPE_SYSTEM_ALERT
-        }
+    fun handleKeyEvent(keyCode: Int, event: KeyEvent): Boolean {
+        if (isUnlocked) return false
+        if (event.action == KeyEvent.ACTION_DOWN) {
+            if (keyCode == KeyEvent.KEYCODE_BACK) {
+                shakeCard()
+                binding.tvPinSubtitle.text = "Device is locked. Enter credential to unlock."
+                binding.tvPinSubtitle.setTextColor(0xFFFFB300.toInt())
+                return true
+            }
 
-        val params = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.MATCH_PARENT,
-            WindowManager.LayoutParams.MATCH_PARENT,
-            overlayType,
-            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
-                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
-            android.graphics.PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.CENTER
+            if (credential.type == LockCredentialType.NUMERIC) {
+                when (keyCode) {
+                    KeyEvent.KEYCODE_0, KeyEvent.KEYCODE_NUMPAD_0 -> { appendDigit('0'); return true }
+                    KeyEvent.KEYCODE_1, KeyEvent.KEYCODE_NUMPAD_1 -> { appendDigit('1'); return true }
+                    KeyEvent.KEYCODE_2, KeyEvent.KEYCODE_NUMPAD_2 -> { appendDigit('2'); return true }
+                    KeyEvent.KEYCODE_3, KeyEvent.KEYCODE_NUMPAD_3 -> { appendDigit('3'); return true }
+                    KeyEvent.KEYCODE_4, KeyEvent.KEYCODE_NUMPAD_4 -> { appendDigit('4'); return true }
+                    KeyEvent.KEYCODE_5, KeyEvent.KEYCODE_NUMPAD_5 -> { appendDigit('5'); return true }
+                    KeyEvent.KEYCODE_6, KeyEvent.KEYCODE_NUMPAD_6 -> { appendDigit('6'); return true }
+                    KeyEvent.KEYCODE_7, KeyEvent.KEYCODE_NUMPAD_7 -> { appendDigit('7'); return true }
+                    KeyEvent.KEYCODE_8, KeyEvent.KEYCODE_NUMPAD_8 -> { appendDigit('8'); return true }
+                    KeyEvent.KEYCODE_9, KeyEvent.KEYCODE_NUMPAD_9 -> { appendDigit('9'); return true }
+                    KeyEvent.KEYCODE_DEL -> { removeDigit(); return true }
+                    KeyEvent.KEYCODE_CLEAR -> { clearDigits(); return true }
+                }
+            } else {
+                if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
+                    checkPassword()
+                    return true
+                }
+            }
         }
-
-        runCatching {
-            windowManager.addView(root, params)
-            isAttached = true
-            root.requestFocus()
-        }.onFailure { e ->
-            android.util.Log.e("SystemLockOverlay", "Failed to addWindow of type $overlayType: ${e.message}", e)
-        }
+        return false
     }
 
-    fun dismiss() {
-        if (!isAttached) return
-        runCatching {
-            windowManager.removeViewImmediate(root)
-        }
-        isAttached = false
+    private fun shakeCard() {
+        val card = binding.cardDialogContainer
+        card.animate()
+            .translationX(16f)
+            .setDuration(40)
+            .withEndAction {
+                card.animate()
+                    .translationX(-16f)
+                    .setDuration(40)
+                    .withEndAction {
+                        card.animate()
+                            .translationX(10f)
+                            .setDuration(40)
+                            .withEndAction {
+                                card.animate()
+                                    .translationX(-6f)
+                                    .setDuration(40)
+                                    .withEndAction {
+                                        card.translationX = 0f
+                                    }.start()
+                            }.start()
+                    }.start()
+            }.start()
     }
 
-    fun isShowing(): Boolean = isAttached
+    private fun unlockSuccess() {
+        isUnlocked = true
+        container.animate()
+            .alpha(0f)
+            .setDuration(220)
+            .withEndAction {
+                container.visibility = View.GONE
+                container.removeAllViews()
+                container.alpha = 1f
+                onUnlocked()
+            }
+            .start()
+    }
 }

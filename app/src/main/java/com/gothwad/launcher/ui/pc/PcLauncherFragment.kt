@@ -32,6 +32,7 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.gothwad.launcher.Actions
+import com.gothwad.launcher.GothwadApplication
 import com.gothwad.launcher.data.AppEntry
 import com.gothwad.launcher.data.AppRepository
 import com.gothwad.launcher.data.ConfigStore
@@ -135,17 +136,9 @@ class PcLauncherFragment : Fragment() {
         // Base taskbar buttons
         binding.btnStart.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_WINDOWS, 0xFF4FA7FA.toInt()))
         binding.imgTaskbarSearchIcon.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_SEARCH, 0xCCFFFFFF.toInt()))
-        binding.btnTaskbarRefresh.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_REFRESH, 0xFF4DD0E1.toInt()))
         binding.btnNotifications.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BELL, Color.WHITE))
         binding.imgTrayVolume.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_VOLUME, 0xFFCCCCCC.toInt()))
         binding.imgTrayNetwork.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_WIFI, 0xFFCCCCCC.toInt()))
-
-        // Refresh Button
-        binding.btnTaskbarRefresh.setOnClickListener {
-            closeAllFlyouts()
-            val act = activity ?: requireContext()
-            com.gothwad.launcher.data.SystemRefreshEngine.performSystemRefresh(act)
-        }
 
         // Start Menu Toggle
         binding.btnStart.setOnClickListener {
@@ -255,15 +248,8 @@ class PcLauncherFragment : Fragment() {
 
         startBinding.imgStartSearchIcon.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_SEARCH, 0xFF8AB4F8.toInt()))
         startBinding.imgUserAvatar.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_PERSON, 0xFF4FA7FA.toInt()))
-        startBinding.btnStartRefresh.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_REFRESH, 0xFF4DD0E1.toInt()))
         startBinding.btnStartTvMode.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_TV, 0xFF60A5FA.toInt()))
         startBinding.btnStartSettings.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_GEAR, Color.WHITE))
-
-        startBinding.btnStartRefresh.setOnClickListener {
-            closeAllFlyouts()
-            val act = activity ?: requireContext()
-            com.gothwad.launcher.data.SystemRefreshEngine.performSystemRefresh(act)
-        }
 
         startBinding.startSearchContainer.setOnClickListener {
             closeAllFlyouts()
@@ -306,7 +292,6 @@ class PcLauncherFragment : Fragment() {
         qsBinding.imgTileHome.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_HOME, 0xFF4FA7FA.toInt()))
         qsBinding.imgTileTv.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_TV, 0xFF60A5FA.toInt()))
         qsBinding.imgTileNotifs.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BELL, Color.WHITE))
-        qsBinding.imgTileRefresh.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_REFRESH, 0xFF4DD0E1.toInt()))
         qsBinding.imgQsVolume.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_VOLUME, Color.WHITE))
         qsBinding.imgQsWifi.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_WIFI, 0xFF8AB4F8.toInt()))
 
@@ -355,12 +340,6 @@ class PcLauncherFragment : Fragment() {
                 .show(parentFragmentManager, NotificationBottomSheetFragment.TAG)
         }
 
-        qsBinding.tileQsRefresh.setOnClickListener {
-            closeAllFlyouts()
-            val act = activity ?: requireContext()
-            com.gothwad.launcher.data.SystemRefreshEngine.performSystemRefresh(act)
-        }
-
         qsBinding.btnQsSettings.setOnClickListener {
             closeAllFlyouts()
             openFullSettingsDialog()
@@ -368,6 +347,9 @@ class PcLauncherFragment : Fragment() {
     }
 
     private fun toggleStartMenu() {
+        if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
+            return
+        }
         if (binding.containerStartMenu.visibility == View.VISIBLE) {
             binding.containerStartMenu.visibility = View.GONE
         } else {
@@ -384,6 +366,9 @@ class PcLauncherFragment : Fragment() {
     }
 
     private fun toggleQuickSettings() {
+        if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
+            return
+        }
         if (binding.containerQuickSettings.visibility == View.VISIBLE) {
             binding.containerQuickSettings.visibility = View.GONE
         } else {
@@ -494,6 +479,9 @@ class PcLauncherFragment : Fragment() {
         binding.pcLauncherRoot.setOnTouchListener(desktopTouchListener)
 
         val desktopContextClickListener = View.OnContextClickListener {
+            if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
+                return@OnContextClickListener true
+            }
             closeAllFlyouts()
             showDesktopContextMenu(lastEmptyTouchX, lastEmptyTouchY)
             true
@@ -503,6 +491,9 @@ class PcLauncherFragment : Fragment() {
         binding.pcLauncherRoot.setOnContextClickListener(desktopContextClickListener)
 
         val desktopLongClickListener = View.OnLongClickListener {
+            if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
+                return@OnLongClickListener true
+            }
             closeAllFlyouts()
             showDesktopContextMenu(lastEmptyTouchX, lastEmptyTouchY)
             true
@@ -626,6 +617,9 @@ class PcLauncherFragment : Fragment() {
 
     // Windows / Linux style Desktop Context Menu
     private fun showDesktopContextMenu(touchX: Float, touchY: Float) {
+        if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
+            return
+        }
         val context = requireContext()
         val inflater = LayoutInflater.from(context)
         val menuBinding = LayoutPcContextMenuBinding.inflate(inflater)
@@ -730,8 +724,9 @@ class PcLauncherFragment : Fragment() {
         // 7. Refresh Desktop Option
         menuBinding.itemRefreshDesktop.setOnClickListener {
             popup.dismiss()
-            val act = activity ?: requireContext()
-            com.gothwad.launcher.data.SystemRefreshEngine.performSystemRefresh(act)
+            viewLifecycleOwner.lifecycleScope.launch {
+                loadApps()
+            }
         }
 
         // 8. Wallpaper / Personalize Option
@@ -751,6 +746,9 @@ class PcLauncherFragment : Fragment() {
 
     // Windows / Linux style App Icon Context Menu
     private fun showAppContextMenu(app: AppEntry, view: View, touchX: Float, touchY: Float) {
+        if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
+            return
+        }
         val context = requireContext()
         val menuBinding = LayoutPcAppContextMenuBinding.inflate(LayoutInflater.from(context))
 
@@ -1022,6 +1020,9 @@ class PcLauncherFragment : Fragment() {
     }
 
     private fun handleAppLaunch(app: AppEntry, skipLock: Boolean = false) {
+        if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
+            return
+        }
         // UX-only in-launcher check to avoid overlay flicker on first click.
         // The authoritative, unbypassable security enforcement layer is in LauncherAccessibilityService.
         if (!skipLock && currentConfig.appLock.enabled && currentConfig.appLock.value.isNotEmpty() && app.pkg in currentConfig.lockedApps) {
@@ -1062,6 +1063,9 @@ class PcLauncherFragment : Fragment() {
     }
 
     private fun openSearchDialog() {
+        if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
+            return
+        }
         SearchDialogFragment.newInstance(
             apps = allApps,
             config = currentConfig,
@@ -1070,6 +1074,9 @@ class PcLauncherFragment : Fragment() {
     }
 
     private fun openFullSettingsDialog() {
+        if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
+            return
+        }
         SettingsBottomSheetFragment.newInstance(
             config = currentConfig,
             apps = allApps,
@@ -1181,12 +1188,6 @@ class PcLauncherFragment : Fragment() {
                     delay(1000)
                 }
             }
-        }
-    }
-
-    fun onRescanRequested() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            loadApps()
         }
     }
 

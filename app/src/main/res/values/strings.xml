@@ -223,7 +223,6 @@
     <string name="item_notifications_sub">Notification listener and alerts drawer</string>
 
     <!-- Header Left Card & Permission Features -->
-    <string name="cd_system_refresh">System Refresh</string>
     <string name="cd_voice_search">Voice Search</string>
     <string name="cd_weather">Weather</string>
     <string name="cd_bluetooth">Bluetooth &amp; Remote</string>

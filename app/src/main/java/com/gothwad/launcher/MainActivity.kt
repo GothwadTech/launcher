@@ -36,7 +36,8 @@ import com.gothwad.launcher.ui.dialogs.SettingsBottomSheetFragment
 import com.gothwad.launcher.ui.dialogs.SetupWizardDialogFragment
 import com.gothwad.launcher.ui.dialogs.VoiceSearchDialogFragment
 import com.gothwad.launcher.ui.tv.TvLauncherFragment
-import com.gothwad.launcher.ui.view.SystemLockOverlayView
+import com.gothwad.launcher.ui.view.DeviceLockViewController
+import android.view.KeyEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
@@ -83,13 +84,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun notifyFragmentRescan() {
+    private fun notifyFragmentRescan() {
         val navHostFragment = supportFragmentManager
             .findFragmentById(R.id.nav_host_fragment) as? NavHostFragment
         val currentFragment = navHostFragment?.childFragmentManager?.fragments?.firstOrNull()
         if (currentFragment is TvLauncherFragment) {
-            currentFragment.onRescanRequested()
-        } else if (currentFragment is com.gothwad.launcher.ui.pc.PcLauncherFragment) {
             currentFragment.onRescanRequested()
         }
     }
@@ -142,51 +141,36 @@ class MainActivity : AppCompatActivity() {
         refreshAppsList()
     }
 
-    private var deviceLockOverlay: SystemLockOverlayView? = null
+    private var deviceLockController: DeviceLockViewController? = null
 
     private fun checkDeviceLockOnColdStart() {
         if (GothwadApplication.hasUnlockedDeviceThisProcess) {
+            binding.deviceLockContainer.visibility = View.GONE
             return
         }
+
+        // Show solid lock container immediately so not even a single frame of home UI is leaked
+        binding.deviceLockContainer.visibility = View.VISIBLE
+        binding.deviceLockContainer.bringToFront()
 
         lifecycleScope.launch {
             val store = ConfigStore(this@MainActivity)
             val config = store.flow.first()
+            currentConfig = config
             if (config.deviceLock.enabled && config.deviceLock.value.isNotEmpty()) {
-                showDeviceLockOverlay(config)
+                deviceLockController = DeviceLockViewController(
+                    container = binding.deviceLockContainer,
+                    credential = config.deviceLock,
+                    onUnlocked = {
+                        GothwadApplication.hasUnlockedDeviceThisProcess = true
+                        deviceLockController = null
+                    }
+                )
+                deviceLockController?.show()
             } else {
                 GothwadApplication.hasUnlockedDeviceThisProcess = true
+                binding.deviceLockContainer.visibility = View.GONE
             }
-        }
-    }
-
-    private fun showDeviceLockOverlay(config: LauncherConfig) {
-        if (deviceLockOverlay != null) return
-
-        // Hide home UI while locked
-        binding.root.alpha = 0f
-
-        deviceLockOverlay = SystemLockOverlayView(
-            context = this@MainActivity,
-            credential = config.deviceLock,
-            title = "Device Locked",
-            subtitle = "Enter credential to access device",
-            onSuccess = {
-                GothwadApplication.hasUnlockedDeviceThisProcess = true
-                deviceLockOverlay = null
-                binding.root.animate().alpha(1f).setDuration(200).start()
-            },
-            onDismissOrBack = {
-                // Cannot dismiss or bypass device lock; re-show or keep locked
-                deviceLockOverlay = null
-                if (!GothwadApplication.hasUnlockedDeviceThisProcess) {
-                    binding.root.postDelayed({
-                        showDeviceLockOverlay(config)
-                    }, 100)
-                }
-            }
-        ).also {
-            it.show()
         }
     }
 
@@ -254,10 +238,6 @@ class MainActivity : AppCompatActivity() {
                 ).show(supportFragmentManager, QuickDashboardDialogFragment.TAG)
             }
 
-            onRefreshClick = {
-                com.gothwad.launcher.data.SystemRefreshEngine.performSystemRefresh(this@MainActivity)
-            }
-
             onSearchClick = {
                 SearchDialogFragment.newInstance(
                     apps = allApps,
@@ -303,6 +283,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openSettingsDialog() {
+        if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
+            return
+        }
         SettingsBottomSheetFragment.newInstance(
             config = currentConfig,
             apps = allApps,
@@ -328,6 +311,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleAppLaunch(app: AppEntry, skipLock: Boolean = false) {
+        if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
+            return
+        }
         // UX-only in-launcher check to avoid overlay flicker on first click.
         // The authoritative, unbypassable security enforcement layer is in LauncherAccessibilityService.
         if (!skipLock && currentConfig.appLock.enabled && currentConfig.appLock.value.isNotEmpty() && app.pkg in currentConfig.lockedApps) {
@@ -410,20 +396,16 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun triggerInstantVisualBlink() {
-        // Windows-style fast blink (fade down to 0.3 and bounce back in 220ms)
-        binding.root.animate()
-            .alpha(0.25f)
-            .setDuration(90)
-            .withEndAction {
-                notifyFragmentRescan()
-                refreshAppsList()
-                binding.root.animate()
-                    .alpha(1f)
-                    .setDuration(130)
-                    .start()
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
+            if (deviceLockController?.handleKeyEvent(event.keyCode, event) == true) {
+                return true
             }
-            .start()
+            if (event.keyCode == KeyEvent.KEYCODE_BACK) {
+                return true
+            }
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     override fun onDestroy() {

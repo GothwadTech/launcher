@@ -107,18 +107,9 @@
             android:textStyle="bold" />
 
         <ImageButton
-            android:id="@+id/btn_start_refresh"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:background="@drawable/bg_pc_taskbar_btn"
-            android:contentDescription="System Refresh"
-            android:padding="6dp" />
-
-        <ImageButton
             android:id="@+id/btn_start_tv_mode"
             android:layout_width="32dp"
             android:layout_height="32dp"
-            android:layout_marginStart="4dp"
             android:background="@drawable/bg_pc_taskbar_btn"
             android:contentDescription="Switch to TV Mode"
             android:padding="6dp" />
