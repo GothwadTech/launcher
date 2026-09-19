@@ -638,6 +638,9 @@ class SettingsBottomSheetFragment : DialogFragment() {
     // =========================================================================
     private fun bindSecuritySettings() {
         // --- 1. DEVICE LOCK ---
+        requireContext().getSharedPreferences("launcher_lock_cache", Context.MODE_PRIVATE)
+            .edit().putBoolean("device_lock_enabled", config.deviceLock.enabled).apply()
+
         binding.switchDeviceLock.isChecked = config.deviceLock.enabled
         binding.rowToggleDeviceLock.setOnClickListener {
             if (!config.deviceLock.enabled) {
@@ -650,6 +653,8 @@ class SettingsBottomSheetFragment : DialogFragment() {
                             val updatedCred = newCred.copy(enabled = true)
                             store.update { it.copy(deviceLock = updatedCred) }
                             config = config.copy(deviceLock = updatedCred)
+                            requireContext().getSharedPreferences("launcher_lock_cache", Context.MODE_PRIVATE)
+                                .edit().putBoolean("device_lock_enabled", true).apply()
                             binding.switchDeviceLock.isChecked = true
                             updateSubtitles()
                             Actions.toast(requireContext(), "Device Lock Enabled")
@@ -658,6 +663,8 @@ class SettingsBottomSheetFragment : DialogFragment() {
                 } else {
                     val updated = config.deviceLock.copy(enabled = true)
                     binding.switchDeviceLock.isChecked = true
+                    requireContext().getSharedPreferences("launcher_lock_cache", Context.MODE_PRIVATE)
+                        .edit().putBoolean("device_lock_enabled", true).apply()
                     lifecycleScope.launch {
                         store.update { it.copy(deviceLock = updated) }
                         config = config.copy(deviceLock = updated)
@@ -674,6 +681,8 @@ class SettingsBottomSheetFragment : DialogFragment() {
                     onSuccess = {
                         val updated = config.deviceLock.copy(enabled = false)
                         binding.switchDeviceLock.isChecked = false
+                        requireContext().getSharedPreferences("launcher_lock_cache", Context.MODE_PRIVATE)
+                            .edit().putBoolean("device_lock_enabled", false).apply()
                         lifecycleScope.launch {
                             store.update { it.copy(deviceLock = updated) }
                             config = config.copy(deviceLock = updated)
@@ -698,6 +707,8 @@ class SettingsBottomSheetFragment : DialogFragment() {
                         val updatedCred = newCred.copy(enabled = true)
                         store.update { it.copy(deviceLock = updatedCred) }
                         config = config.copy(deviceLock = updatedCred)
+                        requireContext().getSharedPreferences("launcher_lock_cache", Context.MODE_PRIVATE)
+                            .edit().putBoolean("device_lock_enabled", true).apply()
                         binding.switchDeviceLock.isChecked = true
                         updateSubtitles()
                         Actions.toast(requireContext(), "Device Lock credential updated")

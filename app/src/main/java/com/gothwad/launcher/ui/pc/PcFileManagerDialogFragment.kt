@@ -24,6 +24,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
 
 /**
  * PC Level File Manager - Windows Explorer Style
@@ -322,7 +324,7 @@ class PcFileManagerDialogFragment : DialogFragment() {
             showDeleteConfirm(item)
         }
         bindingMenu.imgActionMoveUp.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_DELETE, 0xFFFF6B6B.toInt()))
-        bindingMenu.itemAppMoveUp.findViewById<android.widget.TextView>(com.gothwad.launcher.R.id.tv_action_move_up)?.let {
+        (bindingMenu.itemAppMoveUp.getChildAt(1) as? android.widget.TextView)?.let {
             it.text = "Delete"
             it.setTextColor(0xFFFF6B6B.toInt())
         }

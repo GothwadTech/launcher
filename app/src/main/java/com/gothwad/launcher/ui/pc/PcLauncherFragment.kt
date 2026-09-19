@@ -576,8 +576,15 @@ class PcLauncherFragment : Fragment() {
         }
     }
 
+    private fun isDeviceLocked(): Boolean {
+        if (GothwadApplication.hasUnlockedDeviceThisProcess) return false
+        if (currentConfig.deviceLock.enabled && currentConfig.deviceLock.value.isNotEmpty()) return true
+        val prefs = context?.getSharedPreferences("launcher_lock_cache", Context.MODE_PRIVATE)
+        return prefs?.getBoolean("device_lock_enabled", false) ?: false
+    }
+
     private fun toggleStartMenu() {
-        if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
+        if (isDeviceLocked()) {
             return
         }
         if (binding.containerStartMenu.visibility == View.VISIBLE) {
@@ -596,7 +603,7 @@ class PcLauncherFragment : Fragment() {
     }
 
     private fun toggleQuickSettings() {
-        if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
+        if (isDeviceLocked()) {
             return
         }
         if (binding.containerQuickSettings.visibility == View.VISIBLE) {
@@ -621,7 +628,7 @@ class PcLauncherFragment : Fragment() {
         binding.containerQuickSettings.visibility = View.GONE
     }
 
-    @SuppressLint(\"ClickableViewAccessibility\")
+    @SuppressLint("ClickableViewAccessibility")
     private fun setupRecyclerView() {
         desktopAdapter = PcDesktopIconAdapter(
             onLaunchApp = { app ->
@@ -709,7 +716,7 @@ class PcLauncherFragment : Fragment() {
         binding.pcLauncherRoot.setOnTouchListener(desktopTouchListener)
 
         val desktopContextClickListener = View.OnContextClickListener {
-            if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
+            if (isDeviceLocked()) {
                 return@OnContextClickListener true
             }
             closeAllFlyouts()
@@ -721,7 +728,7 @@ class PcLauncherFragment : Fragment() {
         binding.pcLauncherRoot.setOnContextClickListener(desktopContextClickListener)
 
         val desktopLongClickListener = View.OnLongClickListener {
-            if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
+            if (isDeviceLocked()) {
                 return@OnLongClickListener true
             }
             closeAllFlyouts()
@@ -857,7 +864,7 @@ class PcLauncherFragment : Fragment() {
 
     // Windows 11 / Linux Professional Desktop Context Menu
     private fun showDesktopContextMenu(touchX: Float, touchY: Float) {
-        if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
+        if (isDeviceLocked()) {
             return
         }
         val context = requireContext()
@@ -1152,7 +1159,7 @@ class PcLauncherFragment : Fragment() {
 
     // Windows 11 Professional App Context Menu - Full Windows/Linux level
     private fun showAppContextMenu(app: AppEntry, view: View, touchX: Float, touchY: Float) {
-        if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
+        if (isDeviceLocked()) {
             return
         }
         val context = requireContext()
@@ -1310,11 +1317,11 @@ class PcLauncherFragment : Fragment() {
     // Dialog: PC UI Scale Picker (Refined DPI options)
     private fun showScalePickerDialog() {
         val options = listOf(
-            PcDialogHelper.OptionItem(\"65% Ultra Compact\", \"Smallest DPI, for high-density PC setups\", 0.65f),
-            PcDialogHelper.OptionItem(\"75% Compact (Recommended)\", \"Sleek PC look, removes bulky elements\", 0.75f),
-            PcDialogHelper.OptionItem(\"85% Standard PC\", \"Balanced PC desktop scaling\", 0.85f),
-            PcDialogHelper.OptionItem(\"100% Large\", \"Medium-large desktop scale\", 1.00f),
-            PcDialogHelper.OptionItem(\"115% Extra Large\", \"For very distant viewing\", 1.15f)
+            PcDialogHelper.OptionItem("65% Ultra Compact", "Smallest DPI, for high-density PC setups", 0.65f),
+            PcDialogHelper.OptionItem("75% Compact (Recommended)", "Sleek PC look, removes bulky elements", 0.75f),
+            PcDialogHelper.OptionItem("85% Standard PC", "Balanced PC desktop scaling", 0.85f),
+            PcDialogHelper.OptionItem("100% Large", "Medium-large desktop scale", 1.00f),
+            PcDialogHelper.OptionItem("115% Extra Large", "For very distant viewing", 1.15f)
         )
         val selectedIdx = when {
             currentConfig.pcUiScale <= 0.70f -> 0
@@ -1325,8 +1332,8 @@ class PcLauncherFragment : Fragment() {
         }
         PcDialogHelper.showOptionsPickerDialog(
             context = requireContext(),
-            title = \"PC UI Scale (DPI)\",
-            subtitle = \"Adjust overall desktop and toolbar scaling\",
+            title = "PC UI Scale (DPI)",
+            subtitle = "Adjust overall desktop and toolbar scaling",
             options = options,
             selectedIndex = selectedIdx,
             onSelect = { opt ->
@@ -1341,9 +1348,9 @@ class PcLauncherFragment : Fragment() {
     // Dialog: Desktop Icon Size Picker
     private fun showIconSizePickerDialog() {
         val options = listOf(
-            PcDialogHelper.OptionItem(\"Small (32dp)\", \"Compact sleek desktop icons\", 32),
-            PcDialogHelper.OptionItem(\"Medium (40dp)\", \"Standard desktop view\", 40),
-            PcDialogHelper.OptionItem(\"Large (48dp)\", \"Spacious easy-to-tap view\", 48)
+            PcDialogHelper.OptionItem("Small (32dp)", "Compact sleek desktop icons", 32),
+            PcDialogHelper.OptionItem("Medium (40dp)", "Standard desktop view", 40),
+            PcDialogHelper.OptionItem("Large (48dp)", "Spacious easy-to-tap view", 48)
         )
         val selectedIdx = when (currentConfig.pcIconSize) {
             in 0..35 -> 0
@@ -1352,8 +1359,8 @@ class PcLauncherFragment : Fragment() {
         }
         PcDialogHelper.showOptionsPickerDialog(
             context = requireContext(),
-            title = \"Desktop Icon Size\",
-            subtitle = \"Choose app icon size on desktop\",
+            title = "Desktop Icon Size",
+            subtitle = "Choose app icon size on desktop",
             options = options,
             selectedIndex = selectedIdx,
             onSelect = { opt ->
@@ -1368,9 +1375,9 @@ class PcLauncherFragment : Fragment() {
     // Dialog: Desktop Spacing Picker
     private fun showSpacingPickerDialog() {
         val options = listOf(
-            PcDialogHelper.OptionItem(\"Tight Spacing (6dp)\", \"Compact icon placement\", 6),
-            PcDialogHelper.OptionItem(\"Normal Spacing (10dp)\", \"Balanced desktop grid\", 10),
-            PcDialogHelper.OptionItem(\"Spacious Spacing (16dp)\", \"Wide margins between icons\", 16)
+            PcDialogHelper.OptionItem("Tight Spacing (6dp)", "Compact icon placement", 6),
+            PcDialogHelper.OptionItem("Normal Spacing (10dp)", "Balanced desktop grid", 10),
+            PcDialogHelper.OptionItem("Spacious Spacing (16dp)", "Wide margins between icons", 16)
         )
         val selectedIdx = when (currentConfig.pcGridSpacing) {
             in 0..7 -> 0
@@ -1379,8 +1386,8 @@ class PcLauncherFragment : Fragment() {
         }
         PcDialogHelper.showOptionsPickerDialog(
             context = requireContext(),
-            title = \"Grid Spacing\",
-            subtitle = \"Choose spacing between desktop icons\",
+            title = "Grid Spacing",
+            subtitle = "Choose spacing between desktop icons",
             options = options,
             selectedIndex = selectedIdx,
             onSelect = { opt ->
@@ -1395,13 +1402,13 @@ class PcLauncherFragment : Fragment() {
     // Dialog: Sort Picker
     private fun showSortPickerDialog() {
         val options = listOf(
-            PcDialogHelper.OptionItem(\"Custom (Drag & Drop)\", \"Arranged manually by user\", 0),
-            PcDialogHelper.OptionItem(\"Name (A to Z)\", \"Alphabetical sort\", 1)
+            PcDialogHelper.OptionItem("Custom (Drag & Drop)", "Arranged manually by user", 0),
+            PcDialogHelper.OptionItem("Name (A to Z)", "Alphabetical sort", 1)
         )
         PcDialogHelper.showOptionsPickerDialog(
             context = requireContext(),
-            title = \"Sort Desktop Icons\",
-            subtitle = \"Choose how apps are arranged\",
+            title = "Sort Desktop Icons",
+            subtitle = "Choose how apps are arranged",
             options = options,
             selectedIndex = currentConfig.pcSortOrder,
             onSelect = { opt ->
@@ -1416,11 +1423,11 @@ class PcLauncherFragment : Fragment() {
     // Dialog: Taskbar Settings
     private fun showTaskbarSettingsDialog() {
         val options = listOf(
-            PcDialogHelper.OptionItem(\"Slim Toolbar (34dp)\", \"Minimal height, maximizes screen\", 34 to currentConfig.pcTaskbarCenter),
-            PcDialogHelper.OptionItem(\"Compact Toolbar (38dp)\", \"Sleek modern PC taskbar\", 38 to currentConfig.pcTaskbarCenter),
-            PcDialogHelper.OptionItem(\"Standard Toolbar (44dp)\", \"Standard taskbar height\", 44 to currentConfig.pcTaskbarCenter),
-            PcDialogHelper.OptionItem(\"Center Aligned (Windows 11)\", \"Centered taskbar apps\", currentConfig.pcTaskbarHeight to true),
-            PcDialogHelper.OptionItem(\"Left Aligned (Classic)\", \"Left-aligned taskbar apps\", currentConfig.pcTaskbarHeight to false)
+            PcDialogHelper.OptionItem("Slim Toolbar (34dp)", "Minimal height, maximizes screen", 34 to currentConfig.pcTaskbarCenter),
+            PcDialogHelper.OptionItem("Compact Toolbar (38dp)", "Sleek modern PC taskbar", 38 to currentConfig.pcTaskbarCenter),
+            PcDialogHelper.OptionItem("Standard Toolbar (44dp)", "Standard taskbar height", 44 to currentConfig.pcTaskbarCenter),
+            PcDialogHelper.OptionItem("Center Aligned (Windows 11)", "Centered taskbar apps", currentConfig.pcTaskbarHeight to true),
+            PcDialogHelper.OptionItem("Left Aligned (Classic)", "Left-aligned taskbar apps", currentConfig.pcTaskbarHeight to false)
         )
         val selectedIdx = when {
             currentConfig.pcTaskbarHeight <= 35 -> 0
@@ -1429,8 +1436,8 @@ class PcLauncherFragment : Fragment() {
         }
         PcDialogHelper.showOptionsPickerDialog(
             context = requireContext(),
-            title = \"Taskbar Settings\",
-            subtitle = \"Customize bottom toolbar height & alignment\",
+            title = "Taskbar Settings",
+            subtitle = "Customize bottom toolbar height & alignment",
             options = options,
             selectedIndex = selectedIdx,
             onSelect = { opt ->
@@ -1456,7 +1463,7 @@ class PcLauncherFragment : Fragment() {
      *   On Samsung DeX, Android 12L+, ChromeOS etc, gives real floating window
      */
     private fun handleAppLaunch(app: AppEntry, skipLock: Boolean = false) {
-        if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
+        if (isDeviceLocked()) {
             return
         }
         if (!skipLock && currentConfig.appLock.enabled && currentConfig.appLock.value.isNotEmpty() && app.pkg in currentConfig.lockedApps) {
@@ -1509,7 +1516,7 @@ class PcLauncherFragment : Fragment() {
     private fun openAppDetails(pkg: String) {
         try {
             val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                data = Uri.fromParts(\"package\", pkg, null)
+                data = Uri.fromParts("package", pkg, null)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             startActivity(intent)
@@ -1519,7 +1526,7 @@ class PcLauncherFragment : Fragment() {
     private fun uninstallApp(pkg: String) {
         try {
             val intent = Intent(Intent.ACTION_UNINSTALL_PACKAGE).apply {
-                data = Uri.fromParts(\"package\", pkg, null)
+                data = Uri.fromParts("package", pkg, null)
                 putExtra(Intent.EXTRA_RETURN_RESULT, true)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
@@ -1528,7 +1535,7 @@ class PcLauncherFragment : Fragment() {
     }
 
     private fun openSearchDialog() {
-        if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
+        if (isDeviceLocked()) {
             return
         }
         SearchDialogFragment.newInstance(
@@ -1539,7 +1546,7 @@ class PcLauncherFragment : Fragment() {
     }
 
     private fun openFileManager() {
-        if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
+        if (isDeviceLocked()) {
             return
         }
         // Check storage permission
@@ -1552,9 +1559,31 @@ class PcLauncherFragment : Fragment() {
     }
 
     private fun openFullSettingsDialog() {
-        if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
+        if (isDeviceLocked()) {
             return
         }
+        val primaryLock = when {
+            currentConfig.deviceLock.enabled && currentConfig.deviceLock.value.isNotEmpty() -> currentConfig.deviceLock
+            currentConfig.appLock.enabled && currentConfig.appLock.value.isNotEmpty() -> currentConfig.appLock
+            currentConfig.hiddenAppsLock.enabled && currentConfig.hiddenAppsLock.value.isNotEmpty() -> currentConfig.hiddenAppsLock
+            else -> null
+        }
+        if (primaryLock != null) {
+            PinEntryDialogFragment.newInstance(
+                title = "Launcher Settings",
+                subtitle = "Enter credential to access settings",
+                credential = primaryLock,
+                isCancelable = true,
+                onSuccess = {
+                    showActualSettingsDialog()
+                }
+            ).show(parentFragmentManager, PinEntryDialogFragment.TAG)
+        } else {
+            showActualSettingsDialog()
+        }
+    }
+
+    private fun showActualSettingsDialog() {
         SettingsBottomSheetFragment.newInstance(
             config = currentConfig,
             apps = allApps,
@@ -1638,7 +1667,7 @@ class PcLauncherFragment : Fragment() {
                         val iconRes = if (net.wifi) AppIcons.PATH_WIFI else if (net.ethernet) AppIcons.PATH_ETHERNET else AppIcons.PATH_WIFI_OFF
                         binding.imgTrayNetwork.setImageDrawable(AppIcons.createDrawable(iconRes, Color.WHITE))
                         binding.viewQuickSettings.imgQsWifi.setImageDrawable(AppIcons.createDrawable(iconRes, 0xFF4FA7FA.toInt()))
-                        binding.viewQuickSettings.tvQsNetwork.text = if (net.connected) (if (net.ssid.isNotEmpty()) net.ssid else \"Connected\") else \"Disconnected\"
+                        binding.viewQuickSettings.tvQsNetwork.text = if (net.connected) (if (net.ssid.isNotEmpty()) net.ssid else "Connected") else "Disconnected"
                     }
                 }
 
@@ -1648,10 +1677,10 @@ class PcLauncherFragment : Fragment() {
                         if (notifs.isNotEmpty()) {
                             binding.tvNotifBadge.text = notifs.size.toString()
                             binding.tvNotifBadge.visibility = View.VISIBLE
-                            binding.viewQuickSettings.tvTileNotifCount.text = \"${notifs.size} New\"
+                            binding.viewQuickSettings.tvTileNotifCount.text = "${notifs.size} New"
                         } else {
                             binding.tvNotifBadge.visibility = View.GONE
-                            binding.viewQuickSettings.tvTileNotifCount.text = \"None\"
+                            binding.viewQuickSettings.tvTileNotifCount.text = "None"
                         }
                     }
                 }
@@ -1662,7 +1691,7 @@ class PcLauncherFragment : Fragment() {
     private fun applyWallpaper() {
         lifecycleScope.launch {
             if (currentConfig.useCustomWallpaper) {
-                val file = File(requireContext().filesDir, \"wallpaper.jpg\")
+                val file = File(requireContext().filesDir, "wallpaper.jpg")
                 if (file.exists()) {
                     val bmp = withContext(Dispatchers.IO) {
                         BitmapFactory.decodeFile(file.absolutePath)
@@ -1688,9 +1717,9 @@ class PcLauncherFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 while (isActive) {
                     val now = Date()
-                    val timePattern = if (currentConfig.h24) \"HH:mm\" else \"hh:mm a\"
+                    val timePattern = if (currentConfig.h24) "HH:mm" else "hh:mm a"
                     val timeStr = SimpleDateFormat(timePattern, Locale.ENGLISH).format(now)
-                    val dateStr = SimpleDateFormat(\"d MMM • EEE\", Locale.ENGLISH).format(now)
+                    val dateStr = SimpleDateFormat("d MMM • EEE", Locale.ENGLISH).format(now)
 
                     binding.tvTaskbarTime.text = timeStr
                     binding.tvTaskbarDate.text = dateStr

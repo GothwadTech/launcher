@@ -23,6 +23,7 @@ import com.gothwad.launcher.ui.AppIcons
 class DeviceLockViewController(
     private val container: FrameLayout,
     private val credential: LockCredential,
+    private val isPcMode: Boolean = false,
     private val onUnlocked: () -> Unit
 ) {
     private val context: Context = container.context
@@ -32,12 +33,16 @@ class DeviceLockViewController(
     private val enteredDigits = StringBuilder()
     private val dotViews = mutableListOf<View>()
     private var isPasswordVisible: Boolean = false
-    private var inputModeTv: Boolean = true
+    private var inputModeTv: Boolean = !isPcMode
     private var isUnlocked: Boolean = false
 
     fun show() {
         container.removeAllViews()
-        container.addView(binding.root)
+        val lp = FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT
+        )
+        container.addView(binding.root, lp)
         container.visibility = View.VISIBLE
         container.bringToFront()
 
@@ -48,6 +53,17 @@ class DeviceLockViewController(
         container.setOnTouchListener { _, _ -> true }
         container.setOnContextClickListener { true }
         container.setOnLongClickListener { true }
+
+        binding.root.isClickable = true
+        binding.root.isFocusable = true
+        binding.root.isFocusableInTouchMode = true
+        binding.root.setOnTouchListener { _, _ -> true }
+        binding.root.setOnContextClickListener { true }
+        binding.root.setOnLongClickListener { true }
+
+        binding.scrollDialogContainer.isClickable = true
+        binding.scrollDialogContainer.setOnTouchListener { _, _ -> true }
+        binding.scrollDialogContainer.setOnContextClickListener { true }
 
         setupUi()
     }
@@ -336,12 +352,31 @@ class DeviceLockViewController(
                     KeyEvent.KEYCODE_9, KeyEvent.KEYCODE_NUMPAD_9 -> { appendDigit('9'); return true }
                     KeyEvent.KEYCODE_DEL -> { removeDigit(); return true }
                     KeyEvent.KEYCODE_CLEAR -> { clearDigits(); return true }
+                    KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN,
+                    KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT,
+                    KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER,
+                    KeyEvent.KEYCODE_NUMPAD_ENTER, KeyEvent.KEYCODE_TAB -> {
+                        return container.dispatchKeyEvent(event)
+                    }
                 }
             } else {
                 if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
                     checkPassword()
                     return true
                 }
+                if (keyCode in listOf(KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_TAB)) {
+                    return container.dispatchKeyEvent(event)
+                }
+                if (binding.etPassword.isFocused) {
+                    return binding.etPassword.dispatchKeyEvent(event)
+                }
+            }
+        } else if (event.action == KeyEvent.ACTION_UP) {
+            if (credential.type == LockCredentialType.ALPHANUMERIC && binding.etPassword.isFocused) {
+                return binding.etPassword.dispatchKeyEvent(event)
+            }
+            if (keyCode in listOf(KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_TAB)) {
+                return container.dispatchKeyEvent(event)
             }
         }
         return false
