@@ -78,6 +78,9 @@ data class LauncherConfig(
     val showAppLabels: Boolean = true,
     /** 0 = full, 1 = top only, 2 = bottom only, 3 = both, 4 = none */
     val scrimMode: Int = 0,
+    // ----- display density (DPI) -----
+    val useCustomDpi: Boolean = false,
+    val customDpi: Int = 0,
     // ----- behavior -----
     val launchOnBoot: Boolean = false,
     val autoCategoryOnInstall: Boolean = true,

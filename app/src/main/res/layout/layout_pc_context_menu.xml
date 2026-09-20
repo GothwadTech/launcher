@@ -311,6 +311,62 @@
             android:textSize="11sp" />
     </LinearLayout>
 
+    <!-- Open File Manager Window -->
+    <LinearLayout
+        android:id="@+id/item_open_file_manager"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:background="@drawable/bg_pc_menu_item"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp">
+
+        <ImageView
+            android:id="@+id/img_icon_file_mgr"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="File Manager"
+            android:textColor="#EEEEEE"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <!-- Open Web App / Browser Window -->
+    <LinearLayout
+        android:id="@+id/item_open_web_app"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:background="@drawable/bg_pc_menu_item"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp">
+
+        <ImageView
+            android:id="@+id/img_icon_web_app"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="Web Browser (PWA)"
+            android:textColor="#EEEEEE"
+            android:textSize="13sp" />
+    </LinearLayout>
+
     <!-- 8. Wallpaper & Personalize -->
     <LinearLayout
         android:id="@+id/item_personalize"

@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_dialog_rounded"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Add Desktop Web App (PWA)"
+        android:textColor="#FFFFFF"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="16dp"
+        android:text="Create a standalone desktop app shortcut for any website with custom window support."
+        android:textColor="#94A3B8"
+        android:textSize="13sp" />
+
+    <!-- Website URL Input -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Website URL"
+        android:textAllCaps="true"
+        android:textColor="#4DD0E1"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="6dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:orientation="horizontal"
+        android:layout_marginBottom="14dp">
+
+        <EditText
+            android:id="@+id/et_web_app_url"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/bg_dialog_card"
+            android:hint="https://youtube.com or reddit.com"
+            android:importantForAutofill="no"
+            android:inputType="textUri"
+            android:paddingHorizontal="12dp"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#64748B"
+            android:textSize="14sp" />
+
+        <Button
+            android:id="@+id/btn_fetch_web_app_info"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_dialog_button"
+            android:paddingHorizontal="14dp"
+            android:text="Fetch"
+            android:textColor="#38BDF8"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- App Name Input -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="App Name"
+        android:textAllCaps="true"
+        android:textColor="#4DD0E1"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="6dp" />
+
+    <EditText
+        android:id="@+id/et_web_app_name"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@drawable/bg_dialog_card"
+        android:hint="e.g. YouTube, ChatGPT, GitHub"
+        android:importantForAutofill="no"
+        android:inputType="textCapWords"
+        android:paddingHorizontal="12dp"
+        android:textColor="#FFFFFF"
+        android:textColorHint="#64748B"
+        android:textSize="14sp"
+        android:layout_marginBottom="14dp" />
+
+    <!-- Icon Preview & Status -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:layout_marginBottom="20dp">
+
+        <ImageView
+            android:id="@+id/img_web_app_icon_preview"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_dialog_card"
+            android:contentDescription="Icon Preview"
+            android:padding="8dp" />
+
+        <TextView
+            android:id="@+id/txt_fetch_status"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:text="Enter URL and tap 'Fetch' to auto-detect icon &amp; title."
+            android:textColor="#94A3B8"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- Dialog Actions -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="end"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btn_cancel_add_web_app"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp"
+            android:background="@drawable/bg_dialog_button"
+            android:paddingHorizontal="16dp"
+            android:text="Cancel"
+            android:textColor="#94A3B8"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/btn_confirm_add_web_app"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp"
+            android:layout_marginStart="10dp"
+            android:background="@drawable/bg_dialog_button"
+            android:paddingHorizontal="20dp"
+            android:text="Add to Desktop"
+            android:textColor="#4DD0E1"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</LinearLayout>

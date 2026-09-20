@@ -35,6 +35,15 @@
         android:paddingEnd="16dp"
         android:paddingBottom="16dp" />
 
+    <!-- Desktop Floating Windows Container (Above desktop icons, below taskbar) -->
+    <FrameLayout
+        android:id="@+id/container_floating_windows"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginBottom="44dp"
+        android:clipChildren="false"
+        android:clipToPadding="false" />
+
     <!-- Start Menu Container (Flyout above taskbar) -->
     <FrameLayout
         android:id="@+id/container_start_menu"
@@ -138,6 +147,17 @@
                 android:clipToPadding="false"
                 android:orientation="horizontal"
                 android:overScrollMode="never" />
+
+            <!-- Active Window Chips (Running/Minimized Floating Windows) -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recycler_taskbar_window_chips"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_marginStart="6dp"
+                android:clipToPadding="false"
+                android:orientation="horizontal"
+                android:overScrollMode="never"
+                android:visibility="gone" />
         </LinearLayout>
 
         <!-- Right Side: Tray (Volume, WiFi, Battery, Notifications, Clock, Peek) -->

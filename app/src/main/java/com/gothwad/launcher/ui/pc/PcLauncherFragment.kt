@@ -50,6 +50,9 @@ import com.gothwad.launcher.ui.dialogs.PinEntryDialogFragment
 import com.gothwad.launcher.ui.dialogs.SearchDialogFragment
 import com.gothwad.launcher.ui.dialogs.SettingsBottomSheetFragment
 import com.gothwad.launcher.ui.dialogs.SetupWizardDialogFragment
+import com.gothwad.launcher.apps.files.FileManagerView
+import com.gothwad.launcher.apps.floating.FloatingWindowManager
+import com.gothwad.launcher.apps.webapp.WebAppView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
@@ -75,6 +78,7 @@ class PcLauncherFragment : Fragment() {
 
     private var itemTouchHelper: ItemTouchHelper? = null
     private var activePopupWindow: PopupWindow? = null
+    private var floatingWindowManager: FloatingWindowManager? = null
 
     private val batteryReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -171,8 +175,29 @@ class PcLauncherFragment : Fragment() {
         // Show Desktop Peek Button
         binding.btnShowDesktop.setOnClickListener {
             closeAllFlyouts()
+            // Minimize all open floating windows if any, or restore
+            floatingWindowManager?.let { fwm ->
+                val openWins = fwm.getActiveWindows()
+                if (openWins.any { !it.isMinimized }) {
+                    openWins.forEach { if (!it.isMinimized) fwm.minimizeWindow(it.id) }
+                } else if (openWins.isNotEmpty()) {
+                    openWins.forEach { if (it.isMinimized) fwm.restoreWindow(it.id) }
+                }
+            }
             binding.recyclerDesktopGrid.smoothScrollToPosition(0)
         }
+
+        // Initialize Floating Window Manager & Taskbar window chips
+        floatingWindowManager = FloatingWindowManager(
+            context = requireContext(),
+            windowContainer = binding.containerFloatingWindows,
+            taskbarChipsRecycler = binding.recyclerTaskbarWindowChips
+        )
+        binding.recyclerTaskbarWindowChips.layoutManager = LinearLayoutManager(
+            requireContext(),
+            LinearLayoutManager.HORIZONTAL,
+            false
+        )
 
         // Pinned Apps on Taskbar
         pinnedAdapter = PcTaskbarPinnedAdapter(
@@ -632,6 +657,8 @@ class PcLauncherFragment : Fragment() {
         menuBinding.imgIconSort.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_DOWN, Color.WHITE))
         menuBinding.imgIconTaskbar.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_STORAGE, Color.WHITE))
         menuBinding.imgIconRefresh.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_REFRESH, Color.WHITE))
+        menuBinding.imgIconFileMgr.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_FOLDER, 0xFF4FA7FA.toInt()))
+        menuBinding.imgIconWebApp.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_GLOBE, 0xFF60A5FA.toInt()))
         menuBinding.imgIconPersonalize.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_PALETTE, Color.WHITE))
         menuBinding.imgIconSettings.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_GEAR, Color.WHITE))
 
@@ -727,6 +754,18 @@ class PcLauncherFragment : Fragment() {
             viewLifecycleOwner.lifecycleScope.launch {
                 loadApps()
             }
+        }
+
+        // Open File Manager Window
+        menuBinding.itemOpenFileManager.setOnClickListener {
+            popup.dismiss()
+            openFileManagerWindow()
+        }
+
+        // Open Web App Browser Window
+        menuBinding.itemOpenWebApp.setOnClickListener {
+            popup.dismiss()
+            openWebAppWindow()
         }
 
         // 8. Wallpaper / Personalize Option
@@ -1023,6 +1062,18 @@ class PcLauncherFragment : Fragment() {
         if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
             return
         }
+
+        // Intercept dedicated built-in apps for floating window display
+        if (app.pkg == "com.gothwad.launcher.files") {
+            openFileManagerWindow()
+            return
+        }
+        if (app.pkg == "com.gothwad.launcher.webapp" || app.pkg.startsWith("pwa://")) {
+            val url = if (app.pkg.startsWith("pwa://")) app.pkg.removePrefix("pwa://") else "https://www.google.com"
+            openWebAppWindow(initialUrl = url, title = app.label)
+            return
+        }
+
         // UX-only in-launcher check to avoid overlay flicker on first click.
         // The authoritative, unbypassable security enforcement layer is in LauncherAccessibilityService.
         if (!skipLock && currentConfig.appLock.enabled && currentConfig.appLock.value.isNotEmpty() && app.pkg in currentConfig.lockedApps) {
@@ -1039,6 +1090,63 @@ class PcLauncherFragment : Fragment() {
         } else {
             Actions.launchApp(requireContext(), app.pkg)
         }
+    }
+
+    fun openFileManagerWindow() {
+        val fwm = floatingWindowManager ?: return
+        val fileView = FileManagerView(requireContext())
+        fwm.openWindow(
+            id = "app_files",
+            title = "File Manager",
+            iconDrawable = AppIcons.createDrawable(AppIcons.PATH_FOLDER, 0xFF4FA7FA.toInt()),
+            contentView = fileView.getView(),
+            defaultWidthDp = 700,
+            defaultHeightDp = 460
+        )
+    }
+
+    fun openWebAppWindow(initialUrl: String = "https://www.google.com", title: String = "Web Browser") {
+        val fwm = floatingWindowManager ?: return
+        var webAppView: WebAppView? = null
+        webAppView = WebAppView(
+            context = requireContext(),
+            initialUrl = initialUrl,
+            onPinShortcut = { siteTitle, siteUrl, iconBmp ->
+                // Pin shortcut to desktop by adding to desktop custom list
+                viewLifecycleOwner.lifecycleScope.launch {
+                    val shortcutPkg = "pwa://$siteUrl"
+                    ConfigStore(requireContext()).update { cfg ->
+                        val updatedDesktopOrder = cfg.pcDesktopOrder.toMutableList().apply {
+                            if (!contains(shortcutPkg)) add(shortcutPkg)
+                        }
+                        val updatedLabels = cfg.pcCustomLabels.toMutableMap().apply {
+                            put(shortcutPkg, siteTitle)
+                        }
+                        val updatedPinned = cfg.pcPinnedApps.toMutableList().apply {
+                            if (!contains(shortcutPkg)) add(shortcutPkg)
+                        }
+                        cfg.copy(
+                            pcDesktopOrder = updatedDesktopOrder,
+                            pcCustomLabels = updatedLabels,
+                            pcPinnedApps = updatedPinned
+                        )
+                    }
+                    loadApps()
+                }
+            }
+        )
+
+        fwm.openWindow(
+            id = "app_web_${System.currentTimeMillis() % 10000}",
+            title = title,
+            iconDrawable = AppIcons.createDrawable(AppIcons.PATH_GLOBE, 0xFF60A5FA.toInt()),
+            contentView = webAppView.getView(),
+            defaultWidthDp = 740,
+            defaultHeightDp = 500,
+            onClose = {
+                webAppView?.destroy()
+            }
+        )
     }
 
     private fun openAppDetails(pkg: String) {
@@ -1192,7 +1300,59 @@ class PcLauncherFragment : Fragment() {
     }
 
     private suspend fun loadApps() {
-        allApps = AppRepository.scan(requireContext())
+        val scanned = AppRepository.scan(requireContext()).toMutableList()
+
+        // Inject File Manager and Web App if not present
+        if (scanned.none { it.pkg == "com.gothwad.launcher.files" }) {
+            scanned.add(
+                0,
+                AppEntry(
+                    pkg = "com.gothwad.launcher.files",
+                    label = "File Manager",
+                    banner = null,
+                    icon = null,
+                    autoCategory = "productivity",
+                    tile = 0xFF4FA7FA.toInt(),
+                    stamp = System.currentTimeMillis(),
+                    firstInstall = System.currentTimeMillis()
+                )
+            )
+        }
+        if (scanned.none { it.pkg == "com.gothwad.launcher.webapp" }) {
+            scanned.add(
+                1,
+                AppEntry(
+                    pkg = "com.gothwad.launcher.webapp",
+                    label = "Web Browser",
+                    banner = null,
+                    icon = null,
+                    autoCategory = "apps",
+                    tile = 0xFF60A5FA.toInt(),
+                    stamp = System.currentTimeMillis(),
+                    firstInstall = System.currentTimeMillis()
+                )
+            )
+        }
+
+        // Add any pinned PWA shortcuts from config
+        for ((pkg, label) in currentConfig.pcCustomLabels) {
+            if (pkg.startsWith("pwa://") && scanned.none { it.pkg == pkg }) {
+                scanned.add(
+                    AppEntry(
+                        pkg = pkg,
+                        label = label,
+                        banner = null,
+                        icon = null,
+                        autoCategory = "apps",
+                        tile = 0xFF0284C7.toInt(),
+                        stamp = System.currentTimeMillis(),
+                        firstInstall = System.currentTimeMillis()
+                    )
+                )
+            }
+        }
+
+        allApps = scanned
         updateVisibleApps()
         updatePinnedApps()
         startMenuAdapter?.submitList(allApps.filter { it.pkg !in currentConfig.hidden })
@@ -1226,6 +1386,8 @@ class PcLauncherFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        floatingWindowManager?.closeAll()
+        floatingWindowManager = null
         requireContext().unregisterReceiver(batteryReceiver)
         activePopupWindow?.dismiss()
         activePopupWindow = null

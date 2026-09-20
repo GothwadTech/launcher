@@ -20,12 +20,14 @@ import com.gothwad.launcher.R
 import com.gothwad.launcher.data.AppEntry
 import com.gothwad.launcher.data.ButtonMappingManager
 import com.gothwad.launcher.data.ConfigStore
+import com.gothwad.launcher.data.DpiHelper
 import com.gothwad.launcher.data.LAYOUT_CAROUSEL
 import com.gothwad.launcher.data.LAYOUT_DOCK
 import com.gothwad.launcher.data.LAYOUT_GRID
 import com.gothwad.launcher.data.LauncherConfig
 import com.gothwad.launcher.data.MODE_PC
 import com.gothwad.launcher.data.MODE_TV
+import com.gothwad.launcher.databinding.DialogCustomDpiBinding
 import com.gothwad.launcher.databinding.DialogEditTextBinding
 import com.gothwad.launcher.databinding.ItemButtonMappingBinding
 import com.gothwad.launcher.databinding.ItemPickAppBinding
@@ -232,7 +234,13 @@ class SettingsBottomSheetFragment : DialogFragment() {
             4 -> "Huge (270dp)"
             else -> "Normal"
         }
-        binding.txtDisplaySubtitle.text = "$layoutName layout • $scaleName"
+        val isCustomDpi = DpiHelper.isCustomDpiEnabled(requireContext()) || config.useCustomDpi
+        val dpiSuffix = if (isCustomDpi) {
+            " • Custom ${DpiHelper.getEffectiveDpi(requireContext())} DPI"
+        } else {
+            " • Device DPI"
+        }
+        binding.txtDisplaySubtitle.text = "$layoutName layout • $scaleName$dpiSuffix"
 
         // Status bar subtitle
         val sbVisible = if (config.showStatusBar) "Visible" else "Hidden"
@@ -537,6 +545,155 @@ class SettingsBottomSheetFragment : DialogFragment() {
                 config = config.copy(showCategoryNames = newVal)
             }
         }
+
+        bindDpiSettings()
+    }
+
+    private fun bindDpiSettings() {
+        val context = requireContext()
+        val deviceDefaultDpi = DpiHelper.getDeviceDefaultDpi()
+        binding.txtDeviceDpiBadge.text = "$deviceDefaultDpi DPI"
+        binding.txtDeviceDpiDesc.text = "System default: $deviceDefaultDpi dpi"
+
+        val isCustomDpi = DpiHelper.isCustomDpiEnabled(context) || config.useCustomDpi
+        val currentDpi = DpiHelper.getEffectiveDpi(context)
+
+        binding.switchCustomDpi.isChecked = isCustomDpi
+        binding.layoutCustomDpiControls.visibility = if (isCustomDpi) View.VISIBLE else View.GONE
+        binding.txtActiveDpiBadge.text = "$currentDpi DPI"
+        binding.txtCustomDpiSub.text = if (isCustomDpi) {
+            "Active: $currentDpi dpi • Tap to change"
+        } else {
+            "Tap to set custom number"
+        }
+        binding.txtCustomDpiToggleSub.text = if (isCustomDpi) {
+            "Custom DPI active ($currentDpi dpi)"
+        } else {
+            "Using system device DPI ($deviceDefaultDpi dpi)"
+        }
+
+        // Toggle Custom DPI
+        binding.rowToggleCustomDpi.setOnClickListener {
+            val newEnabled = !binding.switchCustomDpi.isChecked
+            binding.switchCustomDpi.isChecked = newEnabled
+            val targetDpi = if (config.customDpi in DpiHelper.MIN_DPI..DpiHelper.MAX_DPI) {
+                config.customDpi
+            } else {
+                DpiHelper.getCustomDpiValue(context)
+            }
+
+            if (newEnabled) {
+                applyAndSaveDpi(true, targetDpi, "Custom DPI enabled ($targetDpi dpi)")
+            } else {
+                applyAndSaveDpi(false, deviceDefaultDpi, "Reverted to Device DPI ($deviceDefaultDpi dpi)")
+            }
+        }
+
+        // Tap custom DPI value or custom button to open dialog
+        binding.rowCustomDpiValue.setOnClickListener {
+            showCustomDpiDialog()
+        }
+        binding.btnDpiCustomNumber.setOnClickListener {
+            showCustomDpiDialog()
+        }
+
+        // Preset buttons
+        val presetButtons = listOf(
+            binding.btnDpi240 to 240,
+            binding.btnDpi280 to 280,
+            binding.btnDpi320 to 320,
+            binding.btnDpi400 to 400,
+            binding.btnDpi480 to 480,
+        )
+        for ((btn, presetDpi) in presetButtons) {
+            btn.setOnClickListener {
+                applyAndSaveDpi(true, presetDpi, "Custom DPI set to $presetDpi dpi")
+            }
+        }
+    }
+
+    private fun applyAndSaveDpi(enabled: Boolean, dpi: Int, message: String) {
+        val context = requireContext()
+        DpiHelper.setCustomDpi(context, enabled, dpi)
+
+        lifecycleScope.launch {
+            store.update { it.copy(useCustomDpi = enabled, customDpi = dpi) }
+            config = config.copy(useCustomDpi = enabled, customDpi = dpi)
+        }
+
+        val targetDpi = if (enabled) dpi else DpiHelper.getDeviceDefaultDpi()
+        activity?.let { act ->
+            DpiHelper.applyToResources(act.resources, targetDpi)
+            DpiHelper.applyToResources(act.applicationContext.resources, targetDpi)
+        }
+
+        Actions.toast(context, message)
+        dismiss()
+        activity?.recreate()
+    }
+
+    private fun showCustomDpiDialog() {
+        val context = requireContext()
+        val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_custom_dpi, null)
+        val dialogBinding = DialogCustomDpiBinding.bind(dialogView)
+
+        val deviceDpi = DpiHelper.getDeviceDefaultDpi()
+        dialogBinding.txtDialogDeviceDpi.text = "$deviceDpi DPI"
+
+        val currentDpi = DpiHelper.getEffectiveDpi(context)
+        dialogBinding.etCustomDpiNumber.setText(currentDpi.toString())
+        dialogBinding.etCustomDpiNumber.setSelection(dialogBinding.etCustomDpiNumber.text.length)
+
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(context, R.style.Theme_LiteTV_Dialog)
+            .setView(dialogView)
+            .create()
+
+        fun updateNumber(delta: Int) {
+            val currentVal = dialogBinding.etCustomDpiNumber.text.toString().toIntOrNull() ?: currentDpi
+            val newVal = (currentVal + delta).coerceIn(DpiHelper.MIN_DPI, DpiHelper.MAX_DPI)
+            dialogBinding.etCustomDpiNumber.setText(newVal.toString())
+            dialogBinding.etCustomDpiNumber.setSelection(dialogBinding.etCustomDpiNumber.text.length)
+        }
+
+        dialogBinding.btnDpiStepMinus20.setOnClickListener { updateNumber(-20) }
+        dialogBinding.btnDpiStepMinus5.setOnClickListener { updateNumber(-5) }
+        dialogBinding.btnDpiStepPlus5.setOnClickListener { updateNumber(5) }
+        dialogBinding.btnDpiStepPlus20.setOnClickListener { updateNumber(20) }
+
+        val presetButtons = listOf(
+            dialogBinding.btnPreset240 to 240,
+            dialogBinding.btnPreset280 to 280,
+            dialogBinding.btnPreset320 to 320,
+            dialogBinding.btnPreset400 to 400,
+            dialogBinding.btnPreset480 to 480,
+        )
+        for ((btn, presetVal) in presetButtons) {
+            btn.setOnClickListener {
+                dialogBinding.etCustomDpiNumber.setText(presetVal.toString())
+                dialogBinding.etCustomDpiNumber.setSelection(dialogBinding.etCustomDpiNumber.text.length)
+            }
+        }
+
+        dialogBinding.btnDialogResetDpi.setOnClickListener {
+            dialogBinding.etCustomDpiNumber.setText(deviceDpi.toString())
+            dialogBinding.etCustomDpiNumber.setSelection(dialogBinding.etCustomDpiNumber.text.length)
+        }
+
+        dialogBinding.btnDialogCancelDpi.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialogBinding.btnDialogApplyDpi.setOnClickListener {
+            val inputVal = dialogBinding.etCustomDpiNumber.text.toString().toIntOrNull()
+            if (inputVal == null || inputVal !in DpiHelper.MIN_DPI..DpiHelper.MAX_DPI) {
+                Actions.toast(context, "Please enter a valid DPI between ${DpiHelper.MIN_DPI} and ${DpiHelper.MAX_DPI}")
+                return@setOnClickListener
+            }
+            dialog.dismiss()
+            applyAndSaveDpi(true, inputVal, "Custom DPI set to $inputVal dpi")
+        }
+
+        dialog.show()
     }
 
     private fun updateLayout(newLayout: Int) {

@@ -25,8 +25,18 @@ import java.util.Locale
  */
 class GothwadApplication : Application() {
 
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(com.gothwad.launcher.data.DpiHelper.wrapContext(base))
+    }
+
     override fun onCreate() {
         super.onCreate()
+        if (com.gothwad.launcher.data.DpiHelper.isCustomDpiEnabled(this)) {
+            com.gothwad.launcher.data.DpiHelper.applyToResources(
+                resources,
+                com.gothwad.launcher.data.DpiHelper.getCustomDpiValue(this)
+            )
+        }
         val currentProc = com.gothwad.launcher.data.ProcessHelper.currentProcessName()
         Log.i(TAG, "GothwadApplication initialized in process: $currentProc")
 

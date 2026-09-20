@@ -105,11 +105,27 @@ class MainActivity : AppCompatActivity() {
     override fun attachBaseContext(newBase: Context) {
         val lang = newBase.getSharedPreferences(LOCALE_PREFS, MODE_PRIVATE)
             .getString(LOCALE_KEY, "").orEmpty()
-        super.attachBaseContext(if (lang.isEmpty()) newBase else applyLocale(newBase, lang))
+        val contextWithLocale = if (lang.isEmpty()) newBase else applyLocale(newBase, lang)
+        val contextWithDpi = com.gothwad.launcher.data.DpiHelper.wrapContext(contextWithLocale)
+        super.attachBaseContext(contextWithDpi)
+    }
+
+    override fun applyOverrideConfiguration(overrideConfiguration: Configuration?) {
+        if (overrideConfiguration != null && com.gothwad.launcher.data.DpiHelper.isCustomDpiEnabled(this)) {
+            overrideConfiguration.densityDpi = com.gothwad.launcher.data.DpiHelper.getCustomDpiValue(this)
+        }
+        super.applyOverrideConfiguration(overrideConfiguration)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        if (com.gothwad.launcher.data.DpiHelper.isCustomDpiEnabled(this)) {
+            com.gothwad.launcher.data.DpiHelper.applyToResources(
+                resources,
+                com.gothwad.launcher.data.DpiHelper.getCustomDpiValue(this)
+            )
+        }
 
         // A home screen never exits on Back
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
