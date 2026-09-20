@@ -55,6 +55,7 @@ import com.gothwad.launcher.apps.files.FileManagerView
 import com.gothwad.launcher.apps.floating.FloatingWindowManager
 import com.gothwad.launcher.apps.webapp.WebAppView
 import com.gothwad.launcher.service.FloatingTaskbarService
+import com.gothwad.launcher.ui.view.SmoothOutlineProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
@@ -145,6 +146,9 @@ class PcLauncherFragment : Fragment() {
             requireContext().packageManager.getApplicationIcon(requireContext().packageName)
         }.getOrNull() ?: androidx.core.content.ContextCompat.getDrawable(requireContext(), R.mipmap.ic_launcher)
 
+        val density = resources.displayMetrics.density
+        binding.btnStart.outlineProvider = SmoothOutlineProvider(cornerRadiusPx = 7.5f * density, smoothing = 0.6f)
+        binding.btnStart.clipToOutline = true
         binding.btnStart.setImageDrawable(appIconDrawable)
         binding.imgTaskbarSearchIcon.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_SEARCH, 0xCCFFFFFF.toInt()))
         binding.btnNotifications.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BELL, Color.WHITE))
@@ -639,8 +643,8 @@ class PcLauncherFragment : Fragment() {
         binding.layoutTaskbarApps.layoutParams = appsLp
 
         // Adjust Taskbar button sizes proportionally to prevent oversized elements
-        val btnSizePx = (taskbarHeightPx - (8 * density)).toInt().coerceIn((26 * density).toInt(), (40 * density).toInt())
-        val btnPadPx = (btnSizePx * 0.20f).toInt().coerceAtLeast((3 * density).toInt())
+        val btnSizePx = (taskbarHeightPx - (8 * density)).toInt().coerceIn((28 * density).toInt(), (42 * density).toInt())
+        val btnPadPx = (btnSizePx * 0.16f).toInt().coerceAtLeast((2 * density).toInt())
 
         val startLp = binding.btnStart.layoutParams
         startLp.width = btnSizePx
@@ -650,8 +654,8 @@ class PcLauncherFragment : Fragment() {
 
         // Adjust Taskbar search bar size
         val searchLp = binding.btnSearch.layoutParams
-        searchLp.height = (btnSizePx * 0.88f).toInt()
-        val searchWidthDp = (140 * scale).coerceIn(100f, 170f)
+        searchLp.height = (btnSizePx * 0.90f).toInt()
+        val searchWidthDp = (145 * scale).coerceIn(110f, 180f)
         searchLp.width = (searchWidthDp * density).toInt()
         binding.btnSearch.layoutParams = searchLp
 
@@ -675,9 +679,9 @@ class PcLauncherFragment : Fragment() {
         qsLp.bottomMargin = flyoutMarginBottomPx
         binding.containerQuickSettings.layoutParams = qsLp
 
-        // Update pinned adapter sizes to fit taskbar perfectly
+        // Update pinned adapter sizes to fit taskbar perfectly with square curve icons
         val pinnedItemSizePx = btnSizePx
-        val pinnedIconSizePx = (btnSizePx * 0.62f).toInt()
+        val pinnedIconSizePx = (btnSizePx * 0.72f).toInt()
         pinnedAdapter?.updateSizes(pinnedItemSizePx, pinnedIconSizePx)
     }
 

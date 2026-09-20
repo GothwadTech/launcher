@@ -36,6 +36,7 @@ import com.gothwad.launcher.databinding.LayoutFloatingTaskbarTriggerBinding
 import com.gothwad.launcher.ui.AppIcons
 import com.gothwad.launcher.ui.pc.PcTaskbarPinnedAdapter
 import com.gothwad.launcher.ui.view.SmoothCornerDrawable
+import com.gothwad.launcher.ui.view.SmoothOutlineProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -280,6 +281,9 @@ class FloatingTaskbarService : Service() {
         binding.imgIconSettings.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_GEAR, Color.WHITE))
 
         // Taskbar Controls
+        val density = resources.displayMetrics.density
+        binding.btnOverlayStart.outlineProvider = SmoothOutlineProvider(7.5f * density, 0.6f)
+        binding.btnOverlayStart.clipToOutline = true
         binding.btnOverlayStart.setImageDrawable(appIconDrawable)
         binding.imgOverlaySearchIcon.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_SEARCH, 0xCCFFFFFF.toInt()))
         binding.btnOverlayNotifications.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BELL, Color.WHITE))

@@ -5,8 +5,17 @@ import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Path
+import android.graphics.RectF
+import android.graphics.drawable.AdaptiveIconDrawable
+import android.graphics.drawable.Drawable
 import android.os.Build
 import androidx.core.graphics.drawable.toBitmap
+import androidx.graphics.shapes.CornerRounding
+import androidx.graphics.shapes.RoundedPolygon
+import androidx.graphics.shapes.rectangle
+import androidx.graphics.shapes.toPath
 import com.gothwad.launcher.ui.tileColor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -135,12 +144,12 @@ object AppRepository {
                     }.getOrNull()
                 }
 
-                // App icon (only decoded/saved if there's no banner, or as square fallback)
-                val iconName = "${pkg}_i_$stamp.webp"
+                // App icon rendered with continuous squircle (square curve) corners, preventing circle clipping
+                val iconName = "${pkg}_sq_$stamp.webp"
                 val icon = cachedBitmap(cacheDir, iconName, Bitmap.Config.ARGB_8888) {
                     runCatching {
-                        val d = ai.loadIcon(pm) ?: ai.applicationInfo.loadIcon(pm)
-                        d.toBitmap(width = 128, height = 128, config = Bitmap.Config.ARGB_8888)
+                        val d = ai.loadIcon(pm) ?: ai.applicationInfo.loadIcon(pm) ?: return@runCatching null
+                        renderSquareCurveBitmap(d, 128)
                     }.getOrNull()
                 }
                 if (icon != null) validCacheNames.add(iconName)
@@ -197,6 +206,55 @@ object AppRepository {
                 }
             }
         }
+        return bmp
+    }
+
+    /**
+     * Renders a drawable into a smooth square-curve (squircle) bitmap.
+     * Prevents Android's AdaptiveIconDrawable from applying its default round/circle mask.
+     */
+    private fun renderSquareCurveBitmap(d: Drawable, sizePx: Int = 128): Bitmap {
+        val bmp = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bmp)
+        val w = sizePx.toFloat()
+        val h = sizePx.toFloat()
+
+        // 22% continuous corner squircle path (square curve)
+        val cornerRadius = w * 0.22f
+        val squirclePath = runCatching {
+            RoundedPolygon.rectangle(
+                width = w,
+                height = h,
+                rounding = CornerRounding(cornerRadius, 0.6f),
+                centerX = w / 2f,
+                centerY = h / 2f
+            ).toPath()
+        }.getOrElse {
+            Path().apply {
+                addRoundRect(RectF(0f, 0f, w, h), cornerRadius, cornerRadius, Path.Direction.CW)
+            }
+        }
+
+        canvas.save()
+        canvas.clipPath(squirclePath)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && d is AdaptiveIconDrawable) {
+            // By drawing background and foreground directly rather than d.draw(canvas),
+            // we bypass the system's circle mask and cleanly render within our square curve!
+            d.background?.let { bg ->
+                bg.setBounds(0, 0, sizePx, sizePx)
+                bg.draw(canvas)
+            }
+            d.foreground?.let { fg ->
+                fg.setBounds(0, 0, sizePx, sizePx)
+                fg.draw(canvas)
+            }
+        } else {
+            d.setBounds(0, 0, sizePx, sizePx)
+            d.draw(canvas)
+        }
+
+        canvas.restore()
         return bmp
     }
 

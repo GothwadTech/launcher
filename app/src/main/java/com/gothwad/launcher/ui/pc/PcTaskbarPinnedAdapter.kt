@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.gothwad.launcher.data.AppEntry
 import com.gothwad.launcher.databinding.ItemPcTaskbarPinnedBinding
 import com.gothwad.launcher.ui.view.AppCardDiffCallback
+import com.gothwad.launcher.ui.view.SmoothOutlineProvider
 
 class PcTaskbarPinnedAdapter(
     private var itemSizePx: Int = 0,
@@ -42,6 +43,8 @@ class PcTaskbarPinnedAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(app: AppEntry) {
+            val density = binding.root.resources.displayMetrics.density
+
             // Apply dynamic sizing if configured
             if (itemSizePx > 0) {
                 val rootLp = binding.rootTaskbarPinned.layoutParams
@@ -50,15 +53,22 @@ class PcTaskbarPinnedAdapter(
                 binding.rootTaskbarPinned.layoutParams = rootLp
             }
             if (iconSizePx > 0) {
-                val iconLp = binding.imgTaskbarPinnedIcon.layoutParams
-                iconLp.width = iconSizePx
-                iconLp.height = iconSizePx
-                binding.imgTaskbarPinnedIcon.layoutParams = iconLp
+                val containerLp = binding.containerTaskbarIcon.layoutParams
+                containerLp.width = iconSizePx
+                containerLp.height = iconSizePx
+                binding.containerTaskbarIcon.layoutParams = containerLp
 
-                val fallbackLp = binding.tvTaskbarPinnedFallback.layoutParams
-                fallbackLp.width = iconSizePx
-                fallbackLp.height = iconSizePx
-                binding.tvTaskbarPinnedFallback.layoutParams = fallbackLp
+                val radius = iconSizePx * 0.22f
+                binding.containerTaskbarIcon.outlineProvider = SmoothOutlineProvider(radius, 0.6f)
+                binding.containerTaskbarIcon.clipToOutline = true
+                binding.imgTaskbarPinnedIcon.outlineProvider = SmoothOutlineProvider(radius, 0.6f)
+                binding.imgTaskbarPinnedIcon.clipToOutline = true
+            } else {
+                val radius = 6.5f * density
+                binding.containerTaskbarIcon.outlineProvider = SmoothOutlineProvider(radius, 0.6f)
+                binding.containerTaskbarIcon.clipToOutline = true
+                binding.imgTaskbarPinnedIcon.outlineProvider = SmoothOutlineProvider(radius, 0.6f)
+                binding.imgTaskbarPinnedIcon.clipToOutline = true
             }
 
             val bitmap = app.icon
