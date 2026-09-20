@@ -101,6 +101,7 @@ data class LauncherConfig(
     val pcPinnedApps: List<String> = emptyList(),
     val pcTaskbarHeight: Int = 44,
     val pcTaskbarCenter: Boolean = false,
+    val pcOverlayTaskbarEnabled: Boolean = true,
     val pcGridSpacing: Int = 12,
     val pcSortOrder: Int = 0,
     // ----- Remote Button Mapping (Phase 5) -----

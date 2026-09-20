@@ -31,6 +31,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.gothwad.launcher.R
 import com.gothwad.launcher.Actions
 import com.gothwad.launcher.GothwadApplication
 import com.gothwad.launcher.data.AppEntry
@@ -53,6 +54,7 @@ import com.gothwad.launcher.ui.dialogs.SetupWizardDialogFragment
 import com.gothwad.launcher.apps.files.FileManagerView
 import com.gothwad.launcher.apps.floating.FloatingWindowManager
 import com.gothwad.launcher.apps.webapp.WebAppView
+import com.gothwad.launcher.service.FloatingTaskbarService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
@@ -79,6 +81,7 @@ class PcLauncherFragment : Fragment() {
     private var itemTouchHelper: ItemTouchHelper? = null
     private var activePopupWindow: PopupWindow? = null
     private var floatingWindowManager: FloatingWindowManager? = null
+    private var isTaskbarUserHidden: Boolean = false
 
     private val batteryReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -137,8 +140,12 @@ class PcLauncherFragment : Fragment() {
     }
 
     private fun setupTaskbar() {
-        // Base taskbar buttons
-        binding.btnStart.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_WINDOWS, 0xFF4FA7FA.toInt()))
+        // Base taskbar buttons - Use app launcher icon for the Start / Home button
+        val appIconDrawable = runCatching {
+            requireContext().packageManager.getApplicationIcon(requireContext().packageName)
+        }.getOrNull() ?: androidx.core.content.ContextCompat.getDrawable(requireContext(), R.mipmap.ic_launcher)
+
+        binding.btnStart.setImageDrawable(appIconDrawable)
         binding.imgTaskbarSearchIcon.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_SEARCH, 0xCCFFFFFF.toInt()))
         binding.btnNotifications.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BELL, Color.WHITE))
         binding.imgTrayVolume.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_VOLUME, 0xFFCCCCCC.toInt()))
@@ -185,6 +192,16 @@ class PcLauncherFragment : Fragment() {
                 }
             }
             binding.recyclerDesktopGrid.smoothScrollToPosition(0)
+        }
+
+        // Corner Line Trigger: tap to hide taskbar and reveal floating tab
+        binding.btnTaskbarCornerLine.setOnClickListener {
+            toggleTaskbarVisibility()
+        }
+
+        // Floating Corner Tab (when taskbar is hidden): tap to reveal full taskbar
+        binding.btnFloatingCornerTab.setOnClickListener {
+            toggleTaskbarVisibility()
         }
 
         // Initialize Floating Window Manager & Taskbar window chips
@@ -414,6 +431,38 @@ class PcLauncherFragment : Fragment() {
         activePopupWindow = null
         binding.containerStartMenu.visibility = View.GONE
         binding.containerQuickSettings.visibility = View.GONE
+    }
+
+    private fun toggleTaskbarVisibility() {
+        isTaskbarUserHidden = !isTaskbarUserHidden
+        closeAllFlyouts()
+        if (isTaskbarUserHidden) {
+            // Animate taskbar sliding down and out of sight
+            binding.layoutTaskbar.animate()
+                .translationY(binding.layoutTaskbar.height.toFloat().coerceAtLeast(100f))
+                .alpha(0f)
+                .setDuration(180)
+                .withEndAction {
+                    if (_binding != null) {
+                        binding.layoutTaskbar.visibility = View.GONE
+                        binding.btnFloatingCornerTab.alpha = 0f
+                        binding.btnFloatingCornerTab.visibility = View.VISIBLE
+                        binding.btnFloatingCornerTab.animate().alpha(1f).setDuration(160).start()
+                    }
+                }
+                .start()
+        } else {
+            // Hide floating corner tab and restore taskbar
+            binding.btnFloatingCornerTab.visibility = View.GONE
+            binding.layoutTaskbar.visibility = View.VISIBLE
+            binding.layoutTaskbar.translationY = binding.layoutTaskbar.height.toFloat().coerceAtLeast(100f)
+            binding.layoutTaskbar.alpha = 0f
+            binding.layoutTaskbar.animate()
+                .translationY(0f)
+                .alpha(1f)
+                .setDuration(180)
+                .start()
+        }
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -1032,7 +1081,8 @@ class PcLauncherFragment : Fragment() {
             PcDialogHelper.OptionItem("Compact Toolbar (38dp)", "Sleek modern PC taskbar", 38 to currentConfig.pcTaskbarCenter),
             PcDialogHelper.OptionItem("Standard Toolbar (44dp)", "Standard taskbar height", 44 to currentConfig.pcTaskbarCenter),
             PcDialogHelper.OptionItem("Center Aligned (Windows 11)", "Centered taskbar apps", currentConfig.pcTaskbarHeight to true),
-            PcDialogHelper.OptionItem("Left Aligned (Classic)", "Left-aligned taskbar apps", currentConfig.pcTaskbarHeight to false)
+            PcDialogHelper.OptionItem("Left Aligned (Classic)", "Left-aligned taskbar apps", currentConfig.pcTaskbarHeight to false),
+            PcDialogHelper.OptionItem("Floating Quick Assist Icon", "Show over other apps (System Overlay)", "OVERLAY")
         )
         val selectedIdx = when {
             currentConfig.pcTaskbarHeight <= 35 -> 0
@@ -1046,6 +1096,18 @@ class PcLauncherFragment : Fragment() {
             options = options,
             selectedIndex = selectedIdx,
             onSelect = { opt ->
+                if (opt.tag == "OVERLAY") {
+                    if (!FloatingTaskbarService.canDrawOverlays(requireContext())) {
+                        FloatingTaskbarService.requestOverlayPermission(requireContext())
+                    } else {
+                        viewLifecycleOwner.lifecycleScope.launch {
+                            ConfigStore(requireContext()).update {
+                                it.copy(pcOverlayTaskbarEnabled = !it.pcOverlayTaskbarEnabled)
+                            }
+                        }
+                    }
+                    return@showOptionsPickerDialog
+                }
                 val pair = opt.tag as? Pair<*, *>
                 val height = (pair?.first as? Int) ?: currentConfig.pcTaskbarHeight
                 val center = (pair?.second as? Boolean) ?: currentConfig.pcTaskbarCenter
@@ -1383,6 +1445,13 @@ class PcLauncherFragment : Fragment() {
             allApps.take(4)
         }
         pinnedAdapter?.submitList(pinned)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (currentConfig.pcOverlayTaskbarEnabled && FloatingTaskbarService.canDrawOverlays(requireContext())) {
+            FloatingTaskbarService.startIfEnabled(requireContext())
+        }
     }
 
     override fun onDestroyView() {

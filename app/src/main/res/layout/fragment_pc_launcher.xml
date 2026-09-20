@@ -101,11 +101,12 @@
 
             <ImageButton
                 android:id="@+id/btn_start"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
                 android:background="@drawable/bg_pc_taskbar_btn"
                 android:contentDescription="Start Menu"
-                android:padding="6dp" />
+                android:padding="5dp"
+                android:scaleType="fitCenter" />
 
             <!-- Windows / Linux style Taskbar Search Bar -->
             <LinearLayout
@@ -284,8 +285,48 @@
                 android:layout_height="match_parent"
                 android:layout_marginStart="4dp"
                 android:background="#26FFFFFF" />
+
+            <!-- Corner Toggle Line / Button -->
+            <FrameLayout
+                android:id="@+id/btn_taskbar_corner_line"
+                android:layout_width="16dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="2dp"
+                android:background="@drawable/bg_pc_taskbar_btn"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="Toggle Taskbar">
+
+                <View
+                    android:id="@+id/view_corner_indicator"
+                    android:layout_width="3dp"
+                    android:layout_height="22dp"
+                    android:layout_gravity="center"
+                    android:background="#804FA7FA" />
+            </FrameLayout>
         </LinearLayout>
 
     </RelativeLayout>
+
+    <!-- Corner Floating Trigger Strip (Visible when Taskbar is Hidden) -->
+    <FrameLayout
+        android:id="@+id/btn_floating_corner_tab"
+        android:layout_width="24dp"
+        android:layout_height="44dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="4dp"
+        android:layout_marginBottom="6dp"
+        android:background="@drawable/bg_pc_taskbar_btn"
+        android:clickable="true"
+        android:focusable="true"
+        android:contentDescription="Reveal Taskbar"
+        android:visibility="gone">
+
+        <View
+            android:layout_width="4dp"
+            android:layout_height="26dp"
+            android:layout_gravity="center"
+            android:background="#CC4FA7FA" />
+    </FrameLayout>
 
 </FrameLayout>

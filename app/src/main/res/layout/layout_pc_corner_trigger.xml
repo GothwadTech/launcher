@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/btn_corner_trigger"
+    android:layout_width="14dp"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_pc_taskbar_btn"
+    android:clickable="true"
+    android:focusable="true">
+
+    <!-- Thin vertical highlight strip -->
+    <View
+        android:id="@+id/indicator_corner_line"
+        android:layout_width="3dp"
+        android:layout_height="22dp"
+        android:layout_gravity="center"
+        android:background="#804FA7FA" />
+</FrameLayout>

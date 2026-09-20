@@ -210,6 +210,44 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         checkAccessibilityState()
+        if (currentConfig.launcherMode == MODE_PC && currentConfig.pcOverlayTaskbarEnabled &&
+            com.gothwad.launcher.service.FloatingTaskbarService.canDrawOverlays(this)) {
+            com.gothwad.launcher.service.FloatingTaskbarService.startIfEnabled(this)
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        when (intent.action) {
+            "ACTION_SEARCH" -> {
+                SearchDialogFragment.newInstance(
+                    apps = allApps,
+                    config = currentConfig,
+                    onLaunch = { app -> handleAppLaunch(app) }
+                ).show(supportFragmentManager, SearchDialogFragment.TAG)
+            }
+            "ACTION_NOTIFICATIONS" -> {
+                com.gothwad.launcher.ui.dialogs.NotificationBottomSheetFragment.newInstance()
+                    .show(supportFragmentManager, com.gothwad.launcher.ui.dialogs.NotificationBottomSheetFragment.TAG)
+            }
+            "ACTION_SETTINGS" -> {
+                openSettingsDialog()
+            }
+            "ACTION_QUICK_SETTINGS" -> {
+                QuickDashboardDialogFragment.newInstance(
+                    net = currentNetStatus,
+                    bt = currentBtStatus,
+                    onOpenSettings = { openSettingsDialog() }
+                ).show(supportFragmentManager, QuickDashboardDialogFragment.TAG)
+            }
+            "OPEN_APP" -> {
+                val pkg = intent.getStringExtra("EXTRA_PKG")
+                if (!pkg.isNullOrEmpty()) {
+                    Actions.launchApp(this, pkg)
+                }
+            }
+        }
     }
 
     private fun checkAccessibilityState() {
