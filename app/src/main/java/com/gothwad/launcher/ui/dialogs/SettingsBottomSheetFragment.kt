@@ -130,7 +130,6 @@ class SettingsBottomSheetFragment : DialogFragment() {
         bindStatusBarSettings()
         bindAppsSettings()
         bindSecuritySettings()
-        bindDevicePrefsSettings()
         bindButtonMappingSettings()
         bindAboutSettings()
         setupBackKeyHandling()
@@ -154,7 +153,7 @@ class SettingsBottomSheetFragment : DialogFragment() {
         binding.btnBack.setOnClickListener {
             if (currentSubPage == binding.subpagePickApp) {
                 if (pickAppMode == PickAppMode.VPN_SHORTCUT) {
-                    navigateToSubPage(binding.pageDevicePrefs, "Device Preferences")
+                    navigateToSubPage(binding.pageStatusbar, "Status Bar & Clock")
                 } else {
                     navigateToSubPage(binding.subpageButtonMapping, "Remote Button Mapping")
                 }
@@ -202,14 +201,6 @@ class SettingsBottomSheetFragment : DialogFragment() {
 
         binding.iconAbout.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_INFO, iconColor))
         binding.chevronAbout.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_CHEVRON_RIGHT, chevronColor))
-
-        // Device Prefs Icons
-        binding.iconSysTime.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_TIME, iconColor))
-        binding.iconSysSound.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_VOLUME, iconColor))
-        binding.iconSysStorage.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_STORAGE, iconColor))
-        binding.iconSysAccessibility.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_ACCESSIBILITY, iconColor))
-        binding.iconSysNotifications.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BELL, iconColor))
-        binding.iconSysFullSettings.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_GEAR, iconColor))
     }
 
     private fun updateSubtitles() {
@@ -341,7 +332,7 @@ class SettingsBottomSheetFragment : DialogFragment() {
         }
 
         binding.rowDevicePrefs.setOnClickListener {
-            navigateToSubPage(binding.pageDevicePrefs, "Device Preferences")
+            safeStartActivity(Settings.ACTION_SETTINGS)
         }
 
         binding.rowPermissions.setOnClickListener {
@@ -383,7 +374,6 @@ class SettingsBottomSheetFragment : DialogFragment() {
         binding.pageStatusbar.visibility = View.GONE
         binding.pageApps.visibility = View.GONE
         binding.pageSecurity.visibility = View.GONE
-        binding.pageDevicePrefs.visibility = View.GONE
         binding.pageAbout.visibility = View.GONE
         binding.subpageButtonMapping.visibility = View.GONE
         binding.subpagePickApp.visibility = View.GONE
@@ -608,6 +598,32 @@ class SettingsBottomSheetFragment : DialogFragment() {
                 config = config.copy(statusBarGlass = newVal)
             }
         }
+
+        binding.switchVpnButton.isChecked = config.showVpnButton
+        binding.rowToggleVpnButton.setOnClickListener {
+            val newVal = !binding.switchVpnButton.isChecked
+            binding.switchVpnButton.isChecked = newVal
+            lifecycleScope.launch {
+                store.update { it.copy(showVpnButton = newVal) }
+                config = config.copy(showVpnButton = newVal)
+                updateVpnSubtitle()
+            }
+        }
+
+        updateVpnSubtitle()
+        binding.rowPickVpnApp.setOnClickListener {
+            openAppPickerForVpn()
+        }
+    }
+
+    private fun updateVpnSubtitle() {
+        val pkg = config.vpnApp
+        val label = if (pkg.isEmpty()) {
+            "System VPN settings"
+        } else {
+            apps.firstOrNull { it.pkg == pkg }?.label ?: pkg
+        }
+        binding.txtVpnAppValue.text = label
     }
 
     // =========================================================================
@@ -1105,61 +1121,6 @@ class SettingsBottomSheetFragment : DialogFragment() {
     }
 
     // =========================================================================
-    // SUB-PAGE 6: DEVICE PREFERENCES
-    // =========================================================================
-    private fun bindDevicePrefsSettings() {
-        binding.rowSysDateTime.setOnClickListener {
-            safeStartActivity(Settings.ACTION_DATE_SETTINGS, Settings.ACTION_SETTINGS)
-        }
-
-        binding.rowSysSound.setOnClickListener {
-            safeStartActivity(Settings.ACTION_SOUND_SETTINGS, Settings.ACTION_SETTINGS)
-        }
-
-        binding.rowSysStorage.setOnClickListener {
-            safeStartActivity(Settings.ACTION_INTERNAL_STORAGE_SETTINGS, Settings.ACTION_SETTINGS)
-        }
-
-        binding.rowSysAccessibility.setOnClickListener {
-            safeStartActivity(Settings.ACTION_ACCESSIBILITY_SETTINGS, Settings.ACTION_SETTINGS)
-        }
-
-        binding.rowSysNotifications.setOnClickListener {
-            safeStartActivity(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS, Settings.ACTION_SETTINGS)
-        }
-
-        binding.rowSysFullSettings.setOnClickListener {
-            safeStartActivity(Settings.ACTION_SETTINGS)
-        }
-
-        binding.switchVpnButton.isChecked = config.showVpnButton
-        binding.rowToggleVpnButton.setOnClickListener {
-            val newVal = !binding.switchVpnButton.isChecked
-            binding.switchVpnButton.isChecked = newVal
-            lifecycleScope.launch {
-                store.update { it.copy(showVpnButton = newVal) }
-                config = config.copy(showVpnButton = newVal)
-                updateVpnSubtitle()
-            }
-        }
-
-        updateVpnSubtitle()
-        binding.rowPickVpnApp.setOnClickListener {
-            openAppPickerForVpn()
-        }
-    }
-
-    private fun updateVpnSubtitle() {
-        val pkg = config.vpnApp
-        val label = if (pkg.isEmpty()) {
-            "System VPN settings"
-        } else {
-            apps.firstOrNull { it.pkg == pkg }?.label ?: pkg
-        }
-        binding.txtVpnAppValue.text = label
-    }
-
-    // =========================================================================
     // SUB-PAGE 7: ABOUT
     // =========================================================================
     private fun bindAboutSettings() {
@@ -1269,7 +1230,7 @@ class SettingsBottomSheetFragment : DialogFragment() {
                     store.update { it.copy(vpnApp = "") }
                     config = config.copy(vpnApp = "")
                     updateVpnSubtitle()
-                    navigateToSubPage(binding.pageDevicePrefs, "Device Preferences")
+                    navigateToSubPage(binding.pageStatusbar, "Status Bar & Clock")
                 }
             }
             container.addView(systemDefault.root)
@@ -1294,7 +1255,7 @@ class SettingsBottomSheetFragment : DialogFragment() {
                         config = config.copy(vpnApp = app.pkg)
                         updateVpnSubtitle()
                         Actions.toast(requireContext(), "VPN shortcut set to ${app.label}")
-                        navigateToSubPage(binding.pageDevicePrefs, "Device Preferences")
+                        navigateToSubPage(binding.pageStatusbar, "Status Bar & Clock")
                     }
                 } else {
                     assignMapping(targetKeyCode, app.pkg, app.label)

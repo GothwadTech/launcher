@@ -22,7 +22,9 @@ android {
     val ciKeystore = System.getenv("KEYSTORE_FILE")
     signingConfigs {
         create("debugConfig") {
-            storeFile = file("${rootDir}/debug.keystore")
+            val rootKey = file("${rootDir}/debug.keystore")
+            val defaultKey = file("${System.getProperty("user.home")}/.android/debug.keystore")
+            storeFile = if (rootKey.exists()) rootKey else defaultKey
             storePassword = "android"
             keyAlias = "androiddebugkey"
             keyPassword = "android"

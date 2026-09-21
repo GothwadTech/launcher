@@ -5,12 +5,12 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- Dim backdrop on the left - clicking closes settings -->
+    <!-- Transparent backdrop on the left - clicking closes settings -->
     <View
         android:id="@+id/scrim_backdrop"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#73000000"
+        android:background="@android:color/transparent"
         android:clickable="true"
         android:focusable="false" />
 
@@ -509,7 +509,7 @@
                             android:contentDescription="Next" />
                     </LinearLayout>
 
-                    <!-- Item: Device Preferences -->
+                    <!-- Item: Android Settings (Full) -->
                     <LinearLayout
                         android:id="@+id/row_device_prefs"
                         android:layout_width="match_parent"
@@ -529,7 +529,7 @@
                             android:layout_width="26dp"
                             android:layout_height="26dp"
                             android:layout_marginEnd="14dp"
-                            android:contentDescription="Device Preferences" />
+                            android:contentDescription="Android Settings" />
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -540,7 +540,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Device Preferences"
+                                android:text="Android Settings"
                                 android:textColor="#FFFFFF"
                                 android:textSize="15sp"
                                 android:textStyle="bold" />
@@ -549,7 +549,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="Sound, Storage, Date &amp; Time"
+                                android:text="Open full Android device settings"
                                 android:textColor="#94A3B8"
                                 android:textSize="12sp" />
                         </LinearLayout>
@@ -558,7 +558,7 @@
                             android:id="@+id/chevron_device_prefs"
                             android:layout_width="20dp"
                             android:layout_height="20dp"
-                            android:contentDescription="Next" />
+                            android:contentDescription="Open" />
                     </LinearLayout>
 
                     <!-- Item: App Permissions -->
@@ -1430,6 +1430,82 @@
                             android:clickable="false"
                             android:focusable="false" />
                     </LinearLayout>
+
+                    <!-- Switch: VPN Shortcut in Status Bar -->
+                    <LinearLayout
+                        android:id="@+id/row_toggle_vpn_button"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:layout_marginBottom="0dp"
+                        android:background="@drawable/bg_settings_row"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="24dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Show VPN Shortcut in Status Bar"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp" />
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            app:thumbTint="@color/switch_thumb_tint"
+                            app:trackTint="@color/switch_track_tint"
+                            app:useMaterialThemeColors="false"
+                            android:id="@+id/switch_vpn_button"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:clickable="false"
+                            android:focusable="false" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/row_pick_vpn_app"
+                        android:layout_width="match_parent"
+                        android:layout_height="54dp"
+                        android:layout_marginBottom="16dp"
+                        android:background="@drawable/bg_settings_row"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="24dp">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="VPN Shortcut App"
+                                android:textColor="#FFFFFF"
+                                android:textSize="14sp" />
+
+                            <TextView
+                                android:id="@+id/txt_vpn_app_value"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="System VPN settings"
+                                android:textColor="#94A3B8"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="CHOOSE"
+                            android:textColor="#4DD0E1"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
                 </LinearLayout>
 
                 <!-- ========================================================= -->
@@ -1897,278 +1973,6 @@
                         android:text="👁️ Choose Which Apps are Hidden"
                         android:textColor="#FFFFFF"
                         android:textSize="13sp" />
-                </LinearLayout>
-
-                <!-- ========================================================= -->
-                <!-- SUB-PAGE: DEVICE PREFERENCES (matching screenshot 2 & 3)   -->
-                <!-- ========================================================= -->
-                <LinearLayout
-                    android:id="@+id/page_device_prefs"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:visibility="gone">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:paddingStart="24dp"
-                        android:paddingEnd="24dp"
-                        android:layout_marginBottom="8dp"
-                        android:text="System Preferences"
-                        android:textAllCaps="true"
-                        android:textColor="#4DD0E1"
-                        android:textSize="12sp"
-                        android:textStyle="bold" />
-
-                    <LinearLayout
-                        android:id="@+id/row_toggle_vpn_button"
-                        android:layout_width="match_parent"
-                        android:layout_height="52dp"
-                        android:layout_marginBottom="0dp"
-                        android:background="@drawable/bg_settings_row"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingHorizontal="24dp">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Show VPN Shortcut in Status Bar"
-                            android:textColor="#FFFFFF"
-                            android:textSize="14sp" />
-
-                        <com.google.android.material.switchmaterial.SwitchMaterial
-                            app:thumbTint="@color/switch_thumb_tint"
-                            app:trackTint="@color/switch_track_tint"
-                            app:useMaterialThemeColors="false"
-                            android:id="@+id/switch_vpn_button"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:clickable="false"
-                            android:focusable="false" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:id="@+id/row_pick_vpn_app"
-                        android:layout_width="match_parent"
-                        android:layout_height="54dp"
-                        android:layout_marginBottom="8dp"
-                        android:background="@drawable/bg_settings_row"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingHorizontal="24dp">
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="VPN Shortcut App"
-                                android:textColor="#FFFFFF"
-                                android:textSize="14sp" />
-
-                            <TextView
-                                android:id="@+id/txt_vpn_app_value"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="System VPN settings"
-                                android:textColor="#94A3B8"
-                                android:textSize="12sp" />
-                        </LinearLayout>
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="CHOOSE"
-                            android:textColor="#4DD0E1"
-                            android:textSize="12sp"
-                            android:textStyle="bold" />
-                    </LinearLayout>
-
-                    <!-- Date and time -->
-                    <LinearLayout
-                        android:id="@+id/row_sys_date_time"
-                        android:layout_width="match_parent"
-                        android:layout_height="54dp"
-                        android:layout_marginBottom="0dp"
-                        android:background="@drawable/bg_settings_row"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingHorizontal="24dp">
-
-                        <ImageView
-                            android:id="@+id/icon_sys_time"
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:layout_marginEnd="14dp"
-                            android:contentDescription="Date and Time" />
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Date and time"
-                            android:textColor="#FFFFFF"
-                            android:textSize="14sp" />
-                    </LinearLayout>
-
-                    <!-- Sound and Volume -->
-                    <LinearLayout
-                        android:id="@+id/row_sys_sound"
-                        android:layout_width="match_parent"
-                        android:layout_height="54dp"
-                        android:layout_marginBottom="0dp"
-                        android:background="@drawable/bg_settings_row"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingHorizontal="24dp">
-
-                        <ImageView
-                            android:id="@+id/icon_sys_sound"
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:layout_marginEnd="14dp"
-                            android:contentDescription="Sound" />
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Sound &amp; volume"
-                            android:textColor="#FFFFFF"
-                            android:textSize="14sp" />
-                    </LinearLayout>
-
-                    <!-- Storage -->
-                    <LinearLayout
-                        android:id="@+id/row_sys_storage"
-                        android:layout_width="match_parent"
-                        android:layout_height="54dp"
-                        android:layout_marginBottom="0dp"
-                        android:background="@drawable/bg_settings_row"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingHorizontal="24dp">
-
-                        <ImageView
-                            android:id="@+id/icon_sys_storage"
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:layout_marginEnd="14dp"
-                            android:contentDescription="Storage" />
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Storage"
-                            android:textColor="#FFFFFF"
-                            android:textSize="14sp" />
-                    </LinearLayout>
-
-                    <!-- Accessibility Services -->
-                    <LinearLayout
-                        android:id="@+id/row_sys_accessibility"
-                        android:layout_width="match_parent"
-                        android:layout_height="54dp"
-                        android:layout_marginBottom="0dp"
-                        android:background="@drawable/bg_settings_row"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingHorizontal="24dp">
-
-                        <ImageView
-                            android:id="@+id/icon_sys_accessibility"
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:layout_marginEnd="14dp"
-                            android:contentDescription="Accessibility" />
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Accessibility services"
-                            android:textColor="#FFFFFF"
-                            android:textSize="14sp" />
-                    </LinearLayout>
-
-                    <!-- Notification Listener Access -->
-                    <LinearLayout
-                        android:id="@+id/row_sys_notifications"
-                        android:layout_width="match_parent"
-                        android:layout_height="54dp"
-                        android:layout_marginBottom="0dp"
-                        android:background="@drawable/bg_settings_row"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingHorizontal="24dp">
-
-                        <ImageView
-                            android:id="@+id/icon_sys_notifications"
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:layout_marginEnd="14dp"
-                            android:contentDescription="Notification Access" />
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Notification listener access"
-                            android:textColor="#FFFFFF"
-                            android:textSize="14sp" />
-                    </LinearLayout>
-
-                    <!-- System Settings -->
-                    <LinearLayout
-                        android:id="@+id/row_sys_full_settings"
-                        android:layout_width="match_parent"
-                        android:layout_height="54dp"
-                        android:layout_marginBottom="16dp"
-                        android:background="@drawable/bg_settings_row"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingHorizontal="24dp">
-
-                        <ImageView
-                            android:id="@+id/icon_sys_full_settings"
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:layout_marginEnd="14dp"
-                            android:contentDescription="All Settings" />
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Open full Android settings"
-                            android:textColor="#FFFFFF"
-                            android:textSize="14sp" />
-                    </LinearLayout>
                 </LinearLayout>
 
                 <!-- ========================================================= -->

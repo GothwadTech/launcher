@@ -5,12 +5,12 @@
     android:layout_height="match_parent"
     android:background="@android:color/transparent">
 
-    <!-- Scrim / Dim Backdrop behind panel -->
+    <!-- Transparent Backdrop behind panel - clicking closes notifications -->
     <View
         android:id="@+id/view_backdrop"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#99000000"
+        android:background="@android:color/transparent"
         android:clickable="true"
         android:focusable="false" />
 
