@@ -14,6 +14,7 @@ android {
         targetSdk = 34
         versionCode = (project.findProperty("versionCode") as? String)?.toIntOrNull() ?: 7
         versionName = (project.findProperty("versionName") as? String) ?: "1.0.6"
+        resourceConfigurations += listOf("en", "xxxhdpi")
     }
 
     // Release signing key, supplied by CI via environment variables (from GitHub
@@ -61,6 +62,21 @@ android {
     dependenciesInfo {
         includeInApk = false
         includeInBundle = false
+    }
+
+    packaging {
+        resources {
+            excludes += listOf(
+                "META-INF/*.kotlin_module",
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/license.txt",
+                "META-INF/NOTICE",
+                "META-INF/NOTICE.txt",
+                "META-INF/notice.txt"
+            )
+        }
     }
 
     compileOptions {
