@@ -42,6 +42,7 @@ class SystemLockOverlayView(
     private var isAttached = false
 
     init {
+        com.gothwad.launcher.ui.DensityAdapter.apply(context)
         setupUi()
     }
 

@@ -25,8 +25,13 @@ import java.util.Locale
  */
 class GothwadApplication : Application() {
 
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(com.gothwad.launcher.ui.DensityAdapter.wrapContext(base))
+    }
+
     override fun onCreate() {
         super.onCreate()
+        com.gothwad.launcher.ui.DensityAdapter.init(this)
         val currentProc = com.gothwad.launcher.data.ProcessHelper.currentProcessName()
         Log.i(TAG, "GothwadApplication initialized in process: $currentProc")
 

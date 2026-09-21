@@ -1,15 +1,15 @@
 # Gothwad Launcher
 
 <p align="center">
-  <b>A high-performance, lightweight universal launcher tailored for Android TV and Desktop PC environments.</b>
+  <b>A high-performance, lightweight launcher tailored for Android TV.</b>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Platform-Android%20TV%20%7C%20PC-blue?style=flat-square" alt="Platform" />
+  <img src="https://img.shields.io/badge/Platform-Android%20TV-blue?style=flat-square" alt="Platform" />
   <img src="https://img.shields.io/badge/Min%20SDK-21%20(Lollipop)-green?style=flat-square" alt="Min SDK" />
   <img src="https://img.shields.io/badge/Target%20SDK-34%20(Android%2014)-orange?style=flat-square" alt="Target SDK" />
   <img src="https://img.shields.io/badge/Language-Kotlin-purple?style=flat-square" alt="Kotlin" />
-  <img src="https://img.shields.io/badge/UI-Jetpack%20Compose%20%2F%20Material%203-blueviolet?style=flat-square" alt="Compose" />
+  <img src="https://img.shields.io/badge/UI-Native%20Android%20Views%20%2F%20ViewBinding-blueviolet?style=flat-square" alt="Views" />
   <img src="https://img.shields.io/badge/License-Apache%202.0-lightgrey?style=flat-square" alt="License" />
 </p>
 
@@ -17,15 +17,14 @@
 
 ## 🌟 Overview
 
-**Gothwad Launcher** is an ultra-fast, modern Android launcher designed from the ground up for both large TV screens (10-foot experience) and desktop/large tablet layouts. Built with **Jetpack Compose** and Android TV Material guidelines, it delivers zero-lag navigation, rich visual aesthetics, and extensive customization without bloat.
+**Gothwad Launcher** is an ultra-fast, modern Android launcher designed from the ground up for TV screens (10-foot experience). Built with **Native Android Views, ViewBinding, and RecyclerView**, it delivers zero-lag navigation, rich visual aesthetics, and extensive customization without bloat.
 
 ---
 
 ## ✨ Features
 
-### 📺 Dual Mode Interface
-- **Android TV Mode**: Optimized for D-pad navigation, high-contrast focus indicators, leanback cards, and seamless remote control support.
-- **PC / Desktop Mode**: Features a desktop launcher with taskbar, system tray, quick toggles, and flexible icon arrangements suited for Android boxes, tablets, and mouse/keyboard navigation.
+### 📺 Android TV Interface
+- Optimized for D-pad navigation, high-contrast focus indicators, leanback cards, and seamless remote control support.
 
 ### 🎬 Dynamic Aerial & Video Wallpapers
 - High-definition live video wallpapers and 4K aerial screensavers powered by **Media3 (ExoPlayer)**.

@@ -18,7 +18,7 @@ import com.gothwad.launcher.ui.AppIcons
  * Solid in-activity controller for Device Lock (Phase 4).
  * Renders directly inside MainActivity's device_lock_container without requiring
  * SYSTEM_ALERT_WINDOW or overlay permissions, completely eliminating blackout errors.
- * Consumes all touches, mouse clicks, right-clicks, and remote/keyboard navigation until unlocked.
+ * Consumes all touches and remote/keyboard navigation until unlocked.
  */
 class DeviceLockViewController(
     private val container: FrameLayout,

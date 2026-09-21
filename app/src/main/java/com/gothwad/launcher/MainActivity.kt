@@ -104,10 +104,12 @@ class MainActivity : AppCompatActivity() {
     override fun attachBaseContext(newBase: Context) {
         val lang = newBase.getSharedPreferences(LOCALE_PREFS, MODE_PRIVATE)
             .getString(LOCALE_KEY, "").orEmpty()
-        super.attachBaseContext(if (lang.isEmpty()) newBase else applyLocale(newBase, lang))
+        val localized = if (lang.isEmpty()) newBase else applyLocale(newBase, lang)
+        super.attachBaseContext(com.gothwad.launcher.ui.DensityAdapter.wrapContext(localized))
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        com.gothwad.launcher.ui.DensityAdapter.apply(this)
         super.onCreate(savedInstanceState)
 
         // A home screen never exits on Back
@@ -384,6 +386,11 @@ class MainActivity : AppCompatActivity() {
             }
         }
         return super.dispatchKeyEvent(event)
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        com.gothwad.launcher.ui.DensityAdapter.apply(this)
     }
 
     override fun onDestroy() {
