@@ -107,4 +107,8 @@ dependencies {
     // the big cold-start "screen shows but not smooth yet" win.
     implementation("androidx.profileinstaller:profileinstaller:1.4.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.1")
+
+    // Unit tests (JVM): pure logic only - category assignment, config JSON round-trip and
+    // the credential hashing core. See app/src/test/java/... (#38)
+    testImplementation("junit:junit:4.13.2")
 }

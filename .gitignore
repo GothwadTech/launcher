@@ -18,9 +18,11 @@ app/build/
 .DS_Store
 
 # Keystores / secrets
+# debug.keystore is deliberately NOT un-ignored: CI generates its own copy under
+# ~/.android/ and local builds fall back to the standard debug key, so nothing here
+# should ever be committed (issue #44).
 *.jks
 *.keystore
-!debug.keystore
 
 # Misc
 /tmp/

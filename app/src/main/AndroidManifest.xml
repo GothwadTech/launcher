@@ -34,26 +34,28 @@
     <uses-permission
         android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions" />
-    <!-- 2. Microphone for Voice Search -->
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- NOTE: no RECORD_AUDIO permission is required. Voice search is delegated to the
+         system recognizer via RecognizerIntent (ACTION_RECOGNIZE_SPEECH), which records
+         the audio in its own process and returns text to us. -->
     <!-- 4. Bluetooth for Remote & Gamepad Battery info -->
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
-    <!-- 5. System Alert Window for Global Quick TV Side Panel / Dashboard -->
+    <!-- 5. Kept on purpose: fail-safe layer for the global App Lock overlay. The primary
+         path is TYPE_ACCESSIBILITY_OVERLAY (no permission needed); this permission only
+         matters on firmware where that window type is refused, so a locked app can still
+         be covered instead of being revealed. -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-    <!-- 6. Storage for Wallpapers from pendrive / local media -->
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission
-        android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32" />
+    <!-- NOTE: no storage permissions are required. Wallpapers are picked through the
+         Storage Access Framework (ActivityResultContracts.OpenDocument), which grants
+         per-file access without READ_MEDIA_IMAGES / READ_EXTERNAL_STORAGE. -->
     <!-- 7. Boot completed to launch on TV start and guard against OEM boot ads -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:name=".GothwadApplication"
-        android:allowBackup="true"
-        android:usesCleartextTraffic="true"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
         android:banner="@drawable/tv_banner"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -113,15 +115,30 @@
         </service>
 
         <!-- Ultra-lightweight crash & ANR self-healing watchdog running in isolated process -->
+        <!-- directBootAware: the watchdog is started from BOOT_COMPLETED, which on
+             encrypted devices can be delivered as LOCKED_BOOT_COMPLETED before the
+             credential-encrypted storage is mounted. Without this flag any component
+             started from that receiver throws (issue #26). All of our file-backed state
+             (heartbeat, relaunch budget) is wrapped in runCatching, so pre-unlock it is
+             simply unavailable instead of fatal. -->
         <service
             android:name=".service.LauncherWatchdogService"
             android:process=":watchdog"
+            android:directBootAware="true"
+            android:exported="false" />
+
+        <!-- Boot-ad / stock-launcher shield. Runs here (not inside the receiver) because
+             the guard window is 45-90 seconds, far beyond the broadcast execution limit. -->
+        <service
+            android:name=".service.BootShieldService"
+            android:directBootAware="true"
             android:exported="false" />
 
         <!-- Boot Receiver for TV Boot Auto-Start & OEM Boot Ad Shield -->
         <receiver
             android:name=".receiver.BootReceiver"
             android:enabled="true"
+            android:directBootAware="true"
             android:exported="true">
             <intent-filter android:priority="1000">
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

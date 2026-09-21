@@ -41,6 +41,22 @@ object DensityAdapter {
     @Volatile
     private var isInitialized = false
 
+    /**
+     * When true (default) the system font size / accessibility setting is respected for
+     * `sp` text instead of being forced to 1.0x (issue #45). Density is still normalised -
+     * only the font scale is passed through.
+     */
+    @Volatile
+    var respectSystemFontScale: Boolean = true
+
+    /** System font scale, clamped so a broken ROM value cannot render the UI unusable. */
+    private fun effectiveFontScale(): Float =
+        if (respectSystemFontScale) {
+            Resources.getSystem().configuration.fontScale.coerceIn(0.85f, 1.30f)
+        } else {
+            1.0f
+        }
+
     data class AdaptedMetrics(
         val screenWidthPx: Int,
         val screenHeightPx: Int,
@@ -105,15 +121,17 @@ object DensityAdapter {
      */
     fun applyToResources(res: Resources, metrics: AdaptedMetrics) {
         val dm = res.displayMetrics
+        val fontScale = effectiveFontScale()
         dm.density = metrics.targetDensity
         dm.densityDpi = metrics.targetDensityDpi
-        dm.scaledDensity = metrics.targetDensity
+        // scaledDensity drives sp -> px, so text follows the user's font-size setting.
+        dm.scaledDensity = metrics.targetDensity * fontScale
         dm.xdpi = metrics.targetDensityDpi.toFloat()
         dm.ydpi = metrics.targetDensityDpi.toFloat()
 
         val config = res.configuration
         config.densityDpi = metrics.targetDensityDpi
-        config.fontScale = 1.0f
+        config.fontScale = fontScale
         config.screenWidthDp = metrics.screenWidthDp
         config.screenHeightDp = metrics.screenHeightDp
         config.smallestScreenWidthDp = minOf(metrics.screenWidthDp, metrics.screenHeightDp)
@@ -130,7 +148,7 @@ object DensityAdapter {
         val metrics = calculateMetrics(baseContext)
         val config = Configuration(baseContext.resources.configuration).apply {
             densityDpi = metrics.targetDensityDpi
-            fontScale = 1.0f
+            fontScale = effectiveFontScale()
             screenWidthDp = metrics.screenWidthDp
             screenHeightDp = metrics.screenHeightDp
             smallestScreenWidthDp = minOf(metrics.screenWidthDp, metrics.screenHeightDp)

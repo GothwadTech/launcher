@@ -11,11 +11,14 @@ import android.util.Log
 import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
 import com.gothwad.launcher.Actions
+import com.gothwad.launcher.GothwadApplication
 import com.gothwad.launcher.MainActivity
 import com.gothwad.launcher.data.BackgroundMediaTracker
 import com.gothwad.launcher.data.ButtonMappingManager
 import com.gothwad.launcher.data.ConfigStore
 import com.gothwad.launcher.data.LauncherConfig
+import com.gothwad.launcher.data.LockCredential
+import com.gothwad.launcher.data.LockSecurity
 import com.gothwad.launcher.ui.view.SystemLockOverlayView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -95,8 +98,9 @@ class LauncherAccessibilityService : AccessibilityService() {
                 unlockedPackagesSession.remove(previousPkg)
             }
             lastForegroundPkg = pkg
+            lastKnownForegroundPackage = pkg
 
-            if (isStockTvLauncher(pkg) && pkg != packageName) {
+            if (isStockTvLauncher(this, pkg) && pkg != packageName) {
                 // The OEM/Jio/Airtel launcher or boot ad was brought to foreground; return to Gothwad Launcher
                 BackgroundMediaTracker.silenceAudio(this)
                 launchHome(this)
@@ -119,8 +123,33 @@ class LauncherAccessibilityService : AccessibilityService() {
             return
         }
 
+        // Hidden apps are a vault: they must not be reachable from another launcher,
+        // Android Settings, notifications or the recents switcher either. We only allow
+        // them once this process has explicitly unlocked them (vault launch).
+        val isHidden = pkg in config.hidden
+        val hiddenAllowed = !isHidden || unlockedPackagesSession.contains(pkg)
+
+        if (!hiddenAllowed) {
+            // The vault has its own credential (2nd layer) and its own throttling scope.
+            // With one configured we show the unbypassable overlay; otherwise we simply
+            // send the user back Home instead of revealing the app.
+            if (config.hiddenAppsLock.ready && !unlockedPackagesSession.contains(pkg)) {
+                mainHandler.post {
+                    showAppLockOverlay(
+                        pkg = pkg,
+                        credential = config.hiddenAppsLock,
+                        scope = LockSecurity.SCOPE_VAULT,
+                        title = "Hidden App",
+                    )
+                }
+            } else {
+                mainHandler.post { launchHome(this) }
+            }
+            return
+        }
+
         val isAppLocked = config.appLock.enabled &&
-            config.appLock.value.isNotEmpty() &&
+            config.appLock.ready &&
             pkg in config.lockedApps
 
         if (!isAppLocked) {
@@ -138,11 +167,21 @@ class LauncherAccessibilityService : AccessibilityService() {
 
         // App is locked and not unlocked in current session: Show unbypassable overlay
         mainHandler.post {
-            showAppLockOverlay(pkg, config)
+            showAppLockOverlay(
+                pkg = pkg,
+                credential = config.appLock,
+                scope = LockSecurity.SCOPE_APP,
+                title = "App Locked",
+            )
         }
     }
 
-    private fun showAppLockOverlay(pkg: String, config: LauncherConfig) {
+    private fun showAppLockOverlay(
+        pkg: String,
+        credential: LockCredential,
+        scope: String,
+        title: String,
+    ) {
         if (currentLockOverlay != null && pendingLockedPkg == pkg) {
             return // Overlay already showing for this package
         }
@@ -158,9 +197,10 @@ class LauncherAccessibilityService : AccessibilityService() {
 
         currentLockOverlay = SystemLockOverlayView(
             context = this@LauncherAccessibilityService,
-            credential = config.appLock,
-            title = "App Locked",
+            credential = credential,
+            title = title,
             subtitle = "Enter credential to open $appName",
+            lockScope = scope,
             onSuccess = {
                 // Mark package as unlocked for current session
                 unlockedPackagesSession.add(pkg)
@@ -173,8 +213,17 @@ class LauncherAccessibilityService : AccessibilityService() {
                 currentLockOverlay = null
                 launchHome(this@LauncherAccessibilityService)
             }
-        ).also {
-            it.show()
+        ).also { overlay ->
+            // Fail SECURE: if the overlay window could not be attached (some firmware
+            // refuses TYPE_ACCESSIBILITY_OVERLAY and SYSTEM_ALERT_WINDOW is not granted),
+            // send the user Home instead of leaving the locked app on screen.
+            val attached = overlay.show()
+            if (!attached) {
+                Log.e("LauncherA11y", "Lock overlay could not attach - failing secure (going Home)")
+                pendingLockedPkg = null
+                currentLockOverlay = null
+                launchHome(this@LauncherAccessibilityService)
+            }
         }
     }
 
@@ -188,6 +237,24 @@ class LauncherAccessibilityService : AccessibilityService() {
 
     override fun onKeyEvent(event: KeyEvent): Boolean {
         val keyCode = event.keyCode
+
+        // 0. Authoritative DEVICE LOCK guard.
+        //    While the device lock is active and has not been satisfied in this process,
+        //    nothing may be launched. Without this guard a mapped remote hotkey
+        //    (red/green/yellow/blue buttons, GUIDE, TV ... which are auto-seeded with
+        //    YouTube/Netflix/Prime/Hotstar on first run) or the capture/listen mode would
+        //    start an app straight past the lock screen.
+        val cfg = cachedConfig
+        if (cfg.deviceLock.enabled && cfg.deviceLock.ready &&
+            !GothwadApplication.hasUnlockedDeviceThisProcess
+        ) {
+            if (keyCode == KeyEvent.KEYCODE_HOME && event.action == KeyEvent.ACTION_UP) {
+                launchHome(this)
+            }
+            // Let BACK through so the lock screen itself stays dismissible/handled by the
+            // in-activity lock UI; swallow everything else.
+            return keyCode != KeyEvent.KEYCODE_BACK
+        }
 
         // 1. If ButtonMappingManager is currently in "listen-mode" for learning a new button,
         // capture the raw key event (on ACTION_UP to prevent double captures) and notify UI
@@ -225,47 +292,90 @@ class LauncherAccessibilityService : AccessibilityService() {
     override fun onInterrupt() {}
 
     companion object {
+        /**
+         * Last package seen by TYPE_WINDOW_STATE_CHANGED, published for other components
+         * that cannot read UsageStats (e.g. the boot-ad shield). Null means "unknown",
+         * never "the stock launcher is in front".
+         */
+        @Volatile
+        var lastKnownForegroundPackage: String? = null
+
+        /**
+         * Curated list of *home-screen* packages (stock / operator launchers and boot-ad
+         * shims) that this launcher replaces.
+         *
+         * These are matched EXACTLY (see [isStockTvLauncher]) - never by prefix. The list
+         * used to contain streaming apps such as `com.jio.jiotv`, `com.jio.media.ondemand`,
+         * `com.airtel.tv` and `com.tatasky.binge`, and the prefix match meant that opening
+         * JioTV / Airtel Xstream / Tata Play Binge from this launcher was instantly
+         * "corrected" back to Home: those apps could never be opened.
+         */
         val STOCK_LAUNCHERS = setOf(
             // Google TV / Android TV
             "com.google.android.apps.tv.launcherx",
             "com.google.android.tvlauncher",
             "com.google.android.tungsten.setupwraith",
-            // JioFiber / Jio STB packages
+            // JioFiber / Jio STB launchers
             "com.jio.media.stblauncher",
             "com.jio.media.jiohome",
-            "com.jio.media.ondemand",
-            "com.jio.jiotv",
             "com.ril.jio.stb",
-            // Airtel Xstream STB packages
-            "com.airtel.tv",
-            "com.airtel.xstream",
-            "com.airtel.android.tv",
+            // Airtel Xstream STB launchers
             "com.airtel.smartbox",
             "tv.airtel.smartbox.launcher",
             "com.airtel.tv.launcher",
-            // Tata Play Binge / Dish SMRT / D2H / Asianet / Hathway
-            "com.tatasky.binge",
+            // Tata Play / Dish / D2H / regional operator launchers
             "com.tatasky.stb",
             "com.dishtv.smrt",
             "com.d2h.stream",
             "com.nes.tvlauncher",
-            "com.nes.operator",
             "com.sdmc.launcher",
+            // Chipset / OEM TV launchers
             "com.geniatech.launcher",
             "com.amlogic.tvlauncher",
             "com.realtek.tvlauncher",
-            // Fire TV & OEM TV Launchers
             "com.amazon.tv.launcher",
             "com.amazon.firehomestarter",
             "com.xiaomi.mitv.tvhome",
             "com.mitv.tvhome",
-            "com.tcl.tvplayer",
             "com.hisense.tv.launcher",
             "com.droidlogic.tv.launcher"
         )
 
+        /** Cache of packages that currently hold the system HOME role (checked per event is too costly). */
+        @Volatile
+        private var homeHandlerCache: Pair<Long, Set<String>> = 0L to emptySet()
+
+        /** Packages that resolve the CATEGORY_HOME intent right now (60s cache). */
+        private fun homeHandlerPackages(context: Context): Set<String> {
+            val (stamp, cached) = homeHandlerCache
+            val now = android.os.SystemClock.elapsedRealtime()
+            if (now - stamp < 60_000L && cached.isNotEmpty()) return cached
+
+            val packages = runCatching {
+                val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+                context.packageManager.queryIntentActivities(intent, 0)
+                    .mapNotNull { it.activityInfo?.packageName }
+                    .toSet()
+            }.getOrDefault(emptySet())
+
+            homeHandlerCache = now to packages
+            return packages
+        }
+
+        /** Exact-match check against the curated list (kept for callers without a Context). */
         fun isStockTvLauncher(pkg: String): Boolean =
-            STOCK_LAUNCHERS.any { pkg.startsWith(it, ignoreCase = true) }
+            STOCK_LAUNCHERS.any { it.equals(pkg, ignoreCase = true) }
+
+        /**
+         * As above, but also treats any other installed package that currently handles the
+         * HOME intent as a stock launcher. This catches OEM launchers that are not in the
+         * curated list without ever mis-classifying a normal app as a launcher.
+         */
+        fun isStockTvLauncher(context: Context, pkg: String): Boolean {
+            if (pkg.equals(context.packageName, ignoreCase = true)) return false
+            if (isStockTvLauncher(pkg)) return true
+            return homeHandlerPackages(context).any { it.equals(pkg, ignoreCase = true) }
+        }
 
         fun launchHome(context: Context) {
             val intent = Intent(context, MainActivity::class.java).apply {

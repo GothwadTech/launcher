@@ -128,6 +128,16 @@
             android:padding="7dp"
             android:visibility="gone" />
 
+        <!-- VPN shortcut: only visible while a VPN is actually active (Settings > Device
+             Preferences > VPN shortcut). -->
+        <ImageButton
+            android:id="@+id/btn_vpn"
+            style="@style/Widget.LiteTV.StatusButton"
+            android:layout_marginStart="4dp"
+            android:contentDescription="@string/cd_vpn"
+            android:padding="7dp"
+            android:visibility="gone" />
+
         <ImageButton
             android:id="@+id/btn_network"
             style="@style/Widget.LiteTV.StatusButton"

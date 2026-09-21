@@ -32,9 +32,28 @@ enum class LockCredentialType { NUMERIC, ALPHANUMERIC }
 data class LockCredential(
     val enabled: Boolean = false,
     val type: LockCredentialType = LockCredentialType.NUMERIC,
-    val value: String = "",       // the PIN digits or the alphanumeric password
+    /**
+     * LEGACY - only kept so older configs can be migrated. Never set this on new
+     * credentials: the secret is stored as [credentialHash] + [credentialSalt]
+     * (see [LockSecurity]). Cleared by `LockSecurity.migrateLegacyCredentials()`.
+     */
+    val value: String = "",
+    /** Base64 PBKDF2 hash of the PIN/password. */
+    val credentialHash: String = "",
+    /** Base64 random salt used for [credentialHash]. */
+    val credentialSalt: String = "",
     val pinLength: Int = 4,       // only meaningful when type == NUMERIC (4 or 6)
-)
+) {
+    /** True when a (hashed) secret has been configured for this lock. */
+    val configured: Boolean get() = credentialHash.isNotEmpty() && credentialSalt.isNotEmpty()
+
+    /**
+     * True when this lock has *any* secret - hashed (normal) or the legacy plain-text
+     * value that has not been migrated yet. Guard code uses this so a lock is never
+     * treated as "not configured" during the migration window.
+     */
+    val ready: Boolean get() = configured || value.isNotEmpty()
+}
 
 @Serializable
 data class LauncherConfig(
@@ -56,7 +75,7 @@ data class LauncherConfig(
     val accent: Int = 0,
     val h24: Boolean = true,
     val showHidden: Boolean = false,
-    val setupDone: Boolean = true,
+    val setupDone: Boolean = false,
     // ----- status bar -----
     val showStatusBar: Boolean = true,
     /** package of the app the VPN icon opens; empty = system VPN settings */
@@ -79,7 +98,16 @@ data class LauncherConfig(
     /** 0 = full, 1 = top only, 2 = bottom only, 3 = both, 4 = none */
     val scrimMode: Int = 0,
     // ----- behavior -----
-    val launchOnBoot: Boolean = false,
+    /** Boot-ad shield / force-launch home at boot. Discoverable in Settings > Apps. */
+    val launchOnBoot: Boolean = true,
+    /**
+     * Opt-in: kill *other* apps when the system reports memory pressure. Off by default -
+     * killing the user's background music/streaming to save a few MB is not a launcher's
+     * call to make (see issue #34).
+     */
+    val aggressiveMemoryTrim: Boolean = false,
+    /** Honour the system font-size (accessibility) setting instead of forcing 1.0x. */
+    val respectSystemFontScale: Boolean = true,
     val autoCategoryOnInstall: Boolean = true,
     /** app lock: list of package names requiring a PIN to open */
     val lockedApps: Set<String> = emptySet(),

@@ -18,12 +18,16 @@ import androidx.lifecycle.lifecycleScope
 import com.gothwad.launcher.Actions
 import com.gothwad.launcher.R
 import com.gothwad.launcher.data.AppEntry
+import com.gothwad.launcher.ui.DensityAdapter
+import com.gothwad.launcher.data.AppLaunchTracker
 import com.gothwad.launcher.data.ButtonMappingManager
 import com.gothwad.launcher.data.ConfigStore
 import com.gothwad.launcher.data.LAYOUT_CAROUSEL
 import com.gothwad.launcher.data.LAYOUT_DOCK
 import com.gothwad.launcher.data.LAYOUT_GRID
 import com.gothwad.launcher.data.LauncherConfig
+import com.gothwad.launcher.data.LockSecurity
+import com.gothwad.launcher.data.UI_SCALES
 import com.gothwad.launcher.databinding.DialogEditTextBinding
 import com.gothwad.launcher.databinding.ItemButtonMappingBinding
 import com.gothwad.launcher.databinding.ItemPickAppBinding
@@ -57,9 +61,11 @@ class SettingsBottomSheetFragment : DialogFragment() {
     private val photoPicker = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri ->
-        if (uri != null) {
+        // The picker result can arrive after the sheet was dismissed - never touch the
+        // view (or requireContext()) without checking first, and follow the view lifecycle.
+        if (uri != null && _binding != null && isAdded) {
             val context = requireContext()
-            lifecycleScope.launch {
+            viewLifecycleOwner.lifecycleScope.launch {
                 withContext(Dispatchers.IO) {
                     context.contentResolver.openInputStream(uri)?.use { input ->
                         File(context.filesDir, "wallpaper.jpg").outputStream().use { out ->
@@ -104,6 +110,15 @@ class SettingsBottomSheetFragment : DialogFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // Recreated after process death: the host callbacks are gone, so every toggle
+        // would still write config but nothing would refresh (and the app/hidden lists
+        // are empty). Close instead of presenting a half-dead panel.
+        if (onWallpaperChanged == null && onRerunWizard == null) {
+            dismiss()
+            return
+        }
+
         store = ConfigStore(requireContext())
 
         setupBackdropAndHeader()
@@ -138,7 +153,11 @@ class SettingsBottomSheetFragment : DialogFragment() {
         )
         binding.btnBack.setOnClickListener {
             if (currentSubPage == binding.subpagePickApp) {
-                navigateToSubPage(binding.subpageButtonMapping, "Remote Button Mapping")
+                if (pickAppMode == PickAppMode.VPN_SHORTCUT) {
+                    navigateToSubPage(binding.pageDevicePrefs, "Device Preferences")
+                } else {
+                    navigateToSubPage(binding.subpageButtonMapping, "Remote Button Mapping")
+                }
             } else if (currentSubPage == binding.subpageToggleApps) {
                 navigateToSubPage(binding.pageSecurity, "Security & Locks")
             } else {
@@ -227,7 +246,8 @@ class SettingsBottomSheetFragment : DialogFragment() {
             4 -> "Huge (270dp)"
             else -> "Normal"
         }
-        binding.txtDisplaySubtitle.text = "$layoutName layout • $scaleName"
+        val uiScaleName = UI_SCALES.getOrElse(config.uiScale.coerceIn(0, UI_SCALES.size - 1)) { 1.0f }
+        binding.txtDisplaySubtitle.text = "$layoutName layout • $scaleName • UI ${uiScaleName}x"
 
         // Status bar subtitle
         val sbVisible = if (config.showStatusBar) "Visible" else "Hidden"
@@ -292,9 +312,9 @@ class SettingsBottomSheetFragment : DialogFragment() {
 
         binding.rowSecurity.setOnClickListener {
             val primaryLock = when {
-                config.deviceLock.enabled && config.deviceLock.value.isNotEmpty() -> config.deviceLock
-                config.appLock.enabled && config.appLock.value.isNotEmpty() -> config.appLock
-                config.hiddenAppsLock.enabled && config.hiddenAppsLock.value.isNotEmpty() -> config.hiddenAppsLock
+                config.deviceLock.enabled && config.deviceLock.ready -> config.deviceLock
+                config.appLock.enabled && config.appLock.ready -> config.appLock
+                config.hiddenAppsLock.enabled && config.hiddenAppsLock.ready -> config.hiddenAppsLock
                 else -> null
             }
             if (primaryLock != null) {
@@ -454,7 +474,10 @@ class SettingsBottomSheetFragment : DialogFragment() {
     private fun bindDisplaySettings() {
         binding.btnLayoutGrid.setOnClickListener { updateLayout(LAYOUT_GRID) }
         binding.btnLayoutCarousel.setOnClickListener { updateLayout(LAYOUT_CAROUSEL) }
-        binding.btnLayoutDock.setOnClickListener { updateLayout(LAYOUT_DOCK) }
+        // Dock is hidden in the layout until it is actually implemented (it used to
+        // behave identically to Carousel). Legacy configs with layout == DOCK are
+        // rendered as a carousel row.
+        binding.btnLayoutDock.visibility = View.GONE
 
         val scaleButtons = listOf(
             binding.btnScale0 to 0,
@@ -470,6 +493,37 @@ class SettingsBottomSheetFragment : DialogFragment() {
                     config = config.copy(iconScale = scaleIdx)
                     updateSubtitles()
                 }
+            }
+        }
+
+        val uiScaleButtons = listOf(
+            binding.btnUiscale0 to 0,
+            binding.btnUiscale1 to 1,
+            binding.btnUiscale2 to 2,
+            binding.btnUiscale3 to 3,
+            binding.btnUiscale4 to 4
+        )
+        for ((btn, scaleIdx) in uiScaleButtons) {
+            btn.setOnClickListener {
+                lifecycleScope.launch {
+                    store.update { it.copy(uiScale = scaleIdx) }
+                    config = config.copy(uiScale = scaleIdx)
+                    updateSubtitles()
+                }
+            }
+        }
+
+        binding.switchSystemFont.isChecked = config.respectSystemFontScale
+        binding.rowToggleSystemFont.setOnClickListener {
+            val newVal = !binding.switchSystemFont.isChecked
+            binding.switchSystemFont.isChecked = newVal
+            lifecycleScope.launch {
+                store.update { it.copy(respectSystemFontScale = newVal) }
+                config = config.copy(respectSystemFontScale = newVal)
+                DensityAdapter.respectSystemFontScale = newVal
+                // Re-apply so the change is visible without restarting the launcher.
+                runCatching { DensityAdapter.apply(requireContext()) }
+                updateSubtitles()
             }
         }
 
@@ -603,6 +657,40 @@ class SettingsBottomSheetFragment : DialogFragment() {
                 config = config.copy(autoCategoryOnInstall = newVal)
             }
         }
+
+        binding.switchShowHidden.isChecked = config.showHidden
+        binding.rowToggleShowHidden.setOnClickListener {
+            val newVal = !binding.switchShowHidden.isChecked
+            binding.switchShowHidden.isChecked = newVal
+            lifecycleScope.launch {
+                store.update { it.copy(showHidden = newVal) }
+                config = config.copy(showHidden = newVal)
+                updateSubtitles()
+            }
+        }
+
+        binding.switchAggressiveTrim.isChecked = config.aggressiveMemoryTrim
+        binding.rowToggleAggressiveTrim.setOnClickListener {
+            val newVal = !binding.switchAggressiveTrim.isChecked
+            binding.switchAggressiveTrim.isChecked = newVal
+            lifecycleScope.launch {
+                store.update { it.copy(aggressiveMemoryTrim = newVal) }
+                config = config.copy(aggressiveMemoryTrim = newVal)
+                AppLaunchTracker.aggressiveTrimEnabled = newVal
+                updateSubtitles()
+            }
+        }
+
+        binding.switchLaunchOnBoot.isChecked = config.launchOnBoot
+        binding.rowToggleLaunchOnBoot.setOnClickListener {
+            val newVal = !binding.switchLaunchOnBoot.isChecked
+            binding.switchLaunchOnBoot.isChecked = newVal
+            lifecycleScope.launch {
+                store.update { it.copy(launchOnBoot = newVal) }
+                config = config.copy(launchOnBoot = newVal)
+                updateSubtitles()
+            }
+        }
     }
 
     // =========================================================================
@@ -613,7 +701,7 @@ class SettingsBottomSheetFragment : DialogFragment() {
         binding.switchDeviceLock.isChecked = config.deviceLock.enabled
         binding.rowToggleDeviceLock.setOnClickListener {
             if (!config.deviceLock.enabled) {
-                if (config.deviceLock.value.isEmpty()) {
+                if (!config.deviceLock.ready) {
                     PinSetupDialogFragment.newInstance(
                         initialType = config.deviceLock.type,
                         initialPinLength = config.deviceLock.pinLength
@@ -643,6 +731,7 @@ class SettingsBottomSheetFragment : DialogFragment() {
                     subtitle = "Enter current PIN/password to disable Device Lock",
                     credential = config.deviceLock,
                     isCancelable = true,
+                    lockScope = LockSecurity.SCOPE_DEVICE,
                     onSuccess = {
                         val updated = config.deviceLock.copy(enabled = false)
                         binding.switchDeviceLock.isChecked = false
@@ -677,12 +766,13 @@ class SettingsBottomSheetFragment : DialogFragment() {
                 }.show(parentFragmentManager, PinSetupDialogFragment.TAG)
             }
 
-            if (config.deviceLock.enabled && config.deviceLock.value.isNotEmpty()) {
+            if (config.deviceLock.enabled && config.deviceLock.ready) {
                 PinEntryDialogFragment.newInstance(
                     title = "Confirm Current Credential",
                     subtitle = "Enter current PIN/password to change Device Lock",
                     credential = config.deviceLock,
                     isCancelable = true,
+                    lockScope = LockSecurity.SCOPE_DEVICE,
                     onSuccess = { showSetup() }
                 ).show(parentFragmentManager, PinEntryDialogFragment.TAG)
             } else {
@@ -694,7 +784,7 @@ class SettingsBottomSheetFragment : DialogFragment() {
         binding.switchAppLock.isChecked = config.appLock.enabled
         binding.rowToggleAppLock.setOnClickListener {
             if (!config.appLock.enabled) {
-                if (config.appLock.value.isEmpty()) {
+                if (!config.appLock.ready) {
                     PinSetupDialogFragment.newInstance(
                         initialType = config.appLock.type,
                         initialPinLength = config.appLock.pinLength
@@ -724,6 +814,7 @@ class SettingsBottomSheetFragment : DialogFragment() {
                     subtitle = "Enter current PIN/password to disable App Lock",
                     credential = config.appLock,
                     isCancelable = true,
+                    lockScope = LockSecurity.SCOPE_APP,
                     onSuccess = {
                         val updated = config.appLock.copy(enabled = false)
                         binding.switchAppLock.isChecked = false
@@ -758,12 +849,13 @@ class SettingsBottomSheetFragment : DialogFragment() {
                 }.show(parentFragmentManager, PinSetupDialogFragment.TAG)
             }
 
-            if (config.appLock.enabled && config.appLock.value.isNotEmpty()) {
+            if (config.appLock.enabled && config.appLock.ready) {
                 PinEntryDialogFragment.newInstance(
                     title = "Confirm Current Credential",
                     subtitle = "Enter current PIN/password to change App Lock",
                     credential = config.appLock,
                     isCancelable = true,
+                    lockScope = LockSecurity.SCOPE_APP,
                     onSuccess = { showSetup() }
                 ).show(parentFragmentManager, PinEntryDialogFragment.TAG)
             } else {
@@ -772,12 +864,13 @@ class SettingsBottomSheetFragment : DialogFragment() {
         }
 
         binding.btnManageLockedApps.setOnClickListener {
-            if (config.appLock.enabled && config.appLock.value.isNotEmpty()) {
+            if (config.appLock.enabled && config.appLock.ready) {
                 PinEntryDialogFragment.newInstance(
                     title = "Manage Locked Apps",
                     subtitle = "Enter credential to manage locked apps",
                     credential = config.appLock,
                     isCancelable = true,
+                    lockScope = LockSecurity.SCOPE_APP,
                     onSuccess = {
                         openManageAppsScreen(isForHidden = false)
                     }
@@ -791,7 +884,7 @@ class SettingsBottomSheetFragment : DialogFragment() {
         binding.switchHiddenLock.isChecked = config.hiddenAppsLock.enabled
         binding.rowToggleHiddenLock.setOnClickListener {
             if (!config.hiddenAppsLock.enabled) {
-                if (config.hiddenAppsLock.value.isEmpty()) {
+                if (!config.hiddenAppsLock.ready) {
                     PinSetupDialogFragment.newInstance(
                         initialType = config.hiddenAppsLock.type,
                         initialPinLength = config.hiddenAppsLock.pinLength
@@ -821,6 +914,7 @@ class SettingsBottomSheetFragment : DialogFragment() {
                     subtitle = "Enter current PIN/password to disable Hidden Apps Lock",
                     credential = config.hiddenAppsLock,
                     isCancelable = true,
+                    lockScope = LockSecurity.SCOPE_VAULT,
                     onSuccess = {
                         val updated = config.hiddenAppsLock.copy(enabled = false)
                         binding.switchHiddenLock.isChecked = false
@@ -840,12 +934,13 @@ class SettingsBottomSheetFragment : DialogFragment() {
 
         updateRevealCodeLabel()
         binding.rowHiddenRevealCode.setOnClickListener {
-            if (config.hiddenAppsLock.enabled && config.hiddenAppsLock.value.isNotEmpty()) {
+            if (config.hiddenAppsLock.enabled && config.hiddenAppsLock.ready) {
                 PinEntryDialogFragment.newInstance(
                     title = "Change Reveal Code",
                     subtitle = "Enter credential to change reveal code",
                     credential = config.hiddenAppsLock,
                     isCancelable = true,
+                    lockScope = LockSecurity.SCOPE_VAULT,
                     onSuccess = {
                         showEditRevealCodeDialog()
                     }
@@ -872,12 +967,13 @@ class SettingsBottomSheetFragment : DialogFragment() {
                 }.show(parentFragmentManager, PinSetupDialogFragment.TAG)
             }
 
-            if (config.hiddenAppsLock.enabled && config.hiddenAppsLock.value.isNotEmpty()) {
+            if (config.hiddenAppsLock.enabled && config.hiddenAppsLock.ready) {
                 PinEntryDialogFragment.newInstance(
                     title = "Confirm Current Credential",
                     subtitle = "Enter current PIN/password to change Hidden Apps Lock",
                     credential = config.hiddenAppsLock,
                     isCancelable = true,
+                    lockScope = LockSecurity.SCOPE_VAULT,
                     onSuccess = { showSetup() }
                 ).show(parentFragmentManager, PinEntryDialogFragment.TAG)
             } else {
@@ -886,12 +982,13 @@ class SettingsBottomSheetFragment : DialogFragment() {
         }
 
         binding.btnManageHiddenApps.setOnClickListener {
-            if (config.hiddenAppsLock.enabled && config.hiddenAppsLock.value.isNotEmpty()) {
+            if (config.hiddenAppsLock.enabled && config.hiddenAppsLock.ready) {
                 PinEntryDialogFragment.newInstance(
                     title = "Manage Hidden Apps",
                     subtitle = "Enter credential to manage hidden apps",
                     credential = config.hiddenAppsLock,
                     isCancelable = true,
+                    lockScope = LockSecurity.SCOPE_VAULT,
                     onSuccess = {
                         openManageAppsScreen(isForHidden = true)
                     }
@@ -903,8 +1000,9 @@ class SettingsBottomSheetFragment : DialogFragment() {
     }
 
     private fun updateRevealCodeLabel() {
+        // Never render the code itself - a shared TV would expose the whole vault.
         binding.txtHiddenRevealCodeValue.text = if (config.hiddenAppsRevealCode.isNotEmpty()) {
-            "Active: \"${config.hiddenAppsRevealCode}\" (type in search)"
+            "Active: •••••• (type the code in search\u2026 click to change)"
         } else {
             "Not set — click to set reveal code"
         }
@@ -926,7 +1024,8 @@ class SettingsBottomSheetFragment : DialogFragment() {
 
         dialogBinding.btnSaveRevealCode.setOnClickListener {
             val code = dialogBinding.etRevealCode.text.toString().trim()
-            lifecycleScope.launch {
+            if (_binding == null || !isAdded) return@setOnClickListener
+            viewLifecycleOwner.lifecycleScope.launch {
                 store.update { it.copy(hiddenAppsRevealCode = code) }
                 config = config.copy(hiddenAppsRevealCode = code)
                 updateRevealCodeLabel()
@@ -935,6 +1034,17 @@ class SettingsBottomSheetFragment : DialogFragment() {
             }
         }
 
+        // TV: make sure the dialog window takes D-pad focus and the text field is focused,
+        // otherwise the dialog can appear without any focusable target on some firmware.
+        dialog.setOnShowListener {
+            dialog.window?.let { window ->
+                window.setLayout(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+            }
+            dialogBinding.etRevealCode.requestFocus()
+        }
         dialog.show()
     }
 
@@ -1021,6 +1131,32 @@ class SettingsBottomSheetFragment : DialogFragment() {
         binding.rowSysFullSettings.setOnClickListener {
             safeStartActivity(Settings.ACTION_SETTINGS)
         }
+
+        binding.switchVpnButton.isChecked = config.showVpnButton
+        binding.rowToggleVpnButton.setOnClickListener {
+            val newVal = !binding.switchVpnButton.isChecked
+            binding.switchVpnButton.isChecked = newVal
+            lifecycleScope.launch {
+                store.update { it.copy(showVpnButton = newVal) }
+                config = config.copy(showVpnButton = newVal)
+                updateVpnSubtitle()
+            }
+        }
+
+        updateVpnSubtitle()
+        binding.rowPickVpnApp.setOnClickListener {
+            openAppPickerForVpn()
+        }
+    }
+
+    private fun updateVpnSubtitle() {
+        val pkg = config.vpnApp
+        val label = if (pkg.isEmpty()) {
+            "System VPN settings"
+        } else {
+            apps.firstOrNull { it.pkg == pkg }?.label ?: pkg
+        }
+        binding.txtVpnAppValue.text = label
     }
 
     // =========================================================================
@@ -1041,6 +1177,11 @@ class SettingsBottomSheetFragment : DialogFragment() {
     // SUB-PAGE 8: REMOTE BUTTON MAPPING (Phase 5)
     // =========================================================================
     private var capturedKeyCodeForMapping: Int? = null
+
+    /** What the shared app-picker sub-page is currently selecting an app for. */
+    private enum class PickAppMode { BUTTON_MAP, VPN_SHORTCUT }
+
+    private var pickAppMode: PickAppMode = PickAppMode.BUTTON_MAP
 
     private fun bindButtonMappingSettings() {
         renderButtonMappingsList()
@@ -1093,10 +1234,19 @@ class SettingsBottomSheetFragment : DialogFragment() {
     }
 
     private fun openAppPickerForMapping(keyCode: Int) {
+        pickAppMode = PickAppMode.BUTTON_MAP
         val buttonName = ButtonMappingManager.getKeyName(keyCode)
         binding.txtPickAppHeader.text = "Detected Key: $buttonName (Keycode $keyCode)"
         populateAppPickerList(keyCode)
         navigateToSubPage(binding.subpagePickApp, "Assign App to Button")
+    }
+
+    /** Picks the app the status-bar VPN shortcut should open. */
+    private fun openAppPickerForVpn() {
+        pickAppMode = PickAppMode.VPN_SHORTCUT
+        binding.txtPickAppHeader.text = "Choose the app the VPN shortcut opens"
+        populateAppPickerList(targetKeyCode = -1)
+        navigateToSubPage(binding.subpagePickApp, "VPN Shortcut App")
     }
 
     private fun populateAppPickerList(targetKeyCode: Int) {
@@ -1105,6 +1255,25 @@ class SettingsBottomSheetFragment : DialogFragment() {
 
         val sortedApps = apps.sortedBy { it.label.lowercase() }
         val inflater = LayoutInflater.from(requireContext())
+
+        // VPN mode: offer "no app" (system VPN settings) as the first choice.
+        if (pickAppMode == PickAppMode.VPN_SHORTCUT) {
+            val systemDefault = ItemPickAppBinding.inflate(inflater, container, false)
+            systemDefault.txtAppLabel.text = "System VPN settings"
+            systemDefault.txtAppPackage.text = "Default — open Android VPN settings"
+            systemDefault.imgAppIcon.setImageDrawable(
+                AppIcons.createDrawable(AppIcons.PATH_GEAR, Color.WHITE)
+            )
+            systemDefault.root.setOnClickListener {
+                lifecycleScope.launch {
+                    store.update { it.copy(vpnApp = "") }
+                    config = config.copy(vpnApp = "")
+                    updateVpnSubtitle()
+                    navigateToSubPage(binding.pageDevicePrefs, "Device Preferences")
+                }
+            }
+            container.addView(systemDefault.root)
+        }
 
         for (app in sortedApps) {
             val itemBinding = ItemPickAppBinding.inflate(inflater, container, false)
@@ -1119,7 +1288,17 @@ class SettingsBottomSheetFragment : DialogFragment() {
             }
 
             itemBinding.root.setOnClickListener {
-                assignMapping(targetKeyCode, app.pkg, app.label)
+                if (pickAppMode == PickAppMode.VPN_SHORTCUT) {
+                    lifecycleScope.launch {
+                        store.update { it.copy(vpnApp = app.pkg) }
+                        config = config.copy(vpnApp = app.pkg)
+                        updateVpnSubtitle()
+                        Actions.toast(requireContext(), "VPN shortcut set to ${app.label}")
+                        navigateToSubPage(binding.pageDevicePrefs, "Device Preferences")
+                    }
+                } else {
+                    assignMapping(targetKeyCode, app.pkg, app.label)
+                }
             }
 
             container.addView(itemBinding.root)

@@ -20,7 +20,8 @@ class SearchAppAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(getItem(position))
+        val item = currentList.getOrNull(position) ?: return
+        holder.bind(item)
     }
 
     inner class ViewHolder(private val binding: ItemSearchAppBinding) : RecyclerView.ViewHolder(binding.root) {
@@ -29,7 +30,7 @@ class SearchAppAdapter(
             binding.root.setOnClickListener {
                 val pos = bindingAdapterPosition
                 if (pos != RecyclerView.NO_POSITION) {
-                    onAppClick(getItem(pos))
+                    currentList.getOrNull(pos)?.let { onAppClick(it) }
                 }
             }
         }

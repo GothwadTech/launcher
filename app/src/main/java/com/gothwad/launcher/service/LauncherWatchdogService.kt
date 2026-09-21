@@ -7,23 +7,37 @@ import android.content.Intent
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.SystemClock
 import android.util.Log
 import com.gothwad.launcher.data.AccessibilityStateTracker
+import com.gothwad.launcher.data.ProcessHeartbeat
 import com.gothwad.launcher.data.ProcessHelper
+import com.gothwad.launcher.data.SelfHealGuard
 
 /**
  * Ultra-lightweight crash & ANR self-healing watchdog running in its own `:watchdog` process.
- * Memory footprint: under 3-5MB steady state (pure Handler loop, zero external libraries).
+ * Memory footprint: a few MB steady state (pure Handler loop, zero libraries).
  *
- * Every 10 seconds, it verifies if:
- * 1) The main process (com.gothwad.launcher) is alive and healthy. If dead or in an ANR condition,
- *    it immediately triggers a relaunch of MainActivity to restore the TV home screen.
- * 2) The accessibility service was disabled by Android after a crash; if so, notifies the main UI/system.
+ * Every [CHECK_INTERVAL_MS] it verifies:
+ * 1) Whether the main process is still publishing its liveness heartbeat
+ *    ([ProcessHeartbeat]). If the beat has gone stale the process is genuinely dead or
+ *    hung, and MainActivity is relaunched - subject to the [SelfHealGuard] budget.
+ * 2) Whether the process has entered an ANR state (`processesInErrorState`), which is
+ *    checked defensively: `null` there means "unknown", never "crashed".
+ * 3) Whether the accessibility service was disabled by Android after a crash; if so the
+ *    main UI gets told so it can show the recovery banner.
+ *
+ * NOTE: `ActivityManager.getRunningAppProcesses()` is deliberately *not* used as a
+ * liveness signal any more. On restricted OEM firmware (Jio/Airtel STBs, several Google
+ * TV builds) it returns `null`/a filtered list for third-party apps, and treating that
+ * as "the launcher is dead" made this watchdog yank the user back to HOME every 10
+ * seconds while they were watching something.
  */
 class LauncherWatchdogService : Service() {
 
     private val handler = Handler(Looper.getMainLooper())
     private var isChecking = false
+    private var startedAtElapsed = 0L
 
     private val checkRunnable = object : Runnable {
         override fun run() {
@@ -38,7 +52,10 @@ class LauncherWatchdogService : Service() {
     override fun onCreate() {
         super.onCreate()
         Log.i(TAG, "Watchdog service started in process: ${ProcessHelper.currentProcessName()}")
+        startedAtElapsed = SystemClock.elapsedRealtime()
         isChecking = true
+        // Give the main process a full interval plus the staleness window before the
+        // first verdict, so a slow cold boot is never mistaken for a dead process.
         handler.postDelayed(checkRunnable, CHECK_INTERVAL_MS)
     }
 
@@ -61,28 +78,28 @@ class LauncherWatchdogService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun checkMainProcessHealth() {
-        val am = getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager ?: return
-        val targetProcessName = packageName // "com.gothwad.launcher"
-
-        // 1. Inspect running app processes (Works reliably on Android 8-14 without foreground task restrictions)
-        val runningProcesses = runCatching { am.runningAppProcesses }.getOrNull()
-
-        val mainProcInfo = runningProcesses?.firstOrNull { it.processName == targetProcessName }
-
-        if (mainProcInfo == null) {
-            // Main process is dead! Relaunch immediately
-            Log.w(TAG, "Main process '$targetProcessName' is not running! Triggering relaunch.")
-            relaunchLauncher()
+        // 1. Heartbeat: authoritative, works on every OEM firmware and needs no permissions.
+        val upLongEnough = SystemClock.elapsedRealtime() - startedAtElapsed > CHECK_INTERVAL_MS + 5_000L
+        if (upLongEnough && ProcessHeartbeat.isMainProcessStale(applicationContext)) {
+            val lastBeat = ProcessHeartbeat.lastProcessBeat(applicationContext)
+            val ageMs = if (lastBeat > 0L) SystemClock.elapsedRealtime() - lastBeat else -1L
+            Log.w(TAG, "Main process heartbeat stale (age=${ageMs}ms). Relaunching launcher.")
+            relaunchLauncher("heartbeat stale (age=${ageMs}ms)")
             return
         }
 
-        // 2. Check if the process has entered an ANR / Not Responding state
-        val errorProcesses = runCatching { am.processesInErrorState }.getOrNull()
-        val errorInfo = errorProcesses?.firstOrNull { it.processName == targetProcessName }
+        // 2. ANR detection (defensive: null/empty means unknown, not broken).
+        val errorInfo = runCatching {
+            (getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager)
+                ?.processesInErrorState
+                ?.firstOrNull { it.processName == packageName }
+        }.getOrNull()
 
-        if (errorInfo != null && errorInfo.condition == ActivityManager.ProcessErrorStateInfo.NOT_RESPONDING) {
-            Log.e(TAG, "Main process '$targetProcessName' is in NOT_RESPONDING condition (ANR)! Relaunching...")
-            relaunchLauncher()
+        if (errorInfo != null &&
+            errorInfo.condition == ActivityManager.ProcessErrorStateInfo.NOT_RESPONDING
+        ) {
+            Log.e(TAG, "Main process is in NOT_RESPONDING (ANR) state. Relaunching launcher.")
+            relaunchLauncher("ANR detected")
         }
     }
 
@@ -99,7 +116,11 @@ class LauncherWatchdogService : Service() {
         }
     }
 
-    private fun relaunchLauncher() {
+    private fun relaunchLauncher(reason: String) {
+        if (!SelfHealGuard.shouldRelaunch(applicationContext)) {
+            Log.w(TAG, "Skipping relaunch ($reason): self-healing is paused after repeated restarts.")
+            return
+        }
         runCatching {
             LauncherAccessibilityService.launchHome(applicationContext)
         }.onFailure { e ->
@@ -109,7 +130,7 @@ class LauncherWatchdogService : Service() {
 
     companion object {
         private const val TAG = "LauncherWatchdog"
-        private const val CHECK_INTERVAL_MS = 10_000L // 10 seconds check loop
+        private const val CHECK_INTERVAL_MS = 15_000L // 15 second check loop (was 10s)
         const val ACTION_ACCESSIBILITY_DISABLED_ALERT = "com.gothwad.launcher.ACCESSIBILITY_DISABLED_ALERT"
 
         fun start(context: Context) {

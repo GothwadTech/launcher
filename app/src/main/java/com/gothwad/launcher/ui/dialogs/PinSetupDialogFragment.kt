@@ -11,6 +11,7 @@ import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.fragment.app.DialogFragment
 import com.gothwad.launcher.data.LockCredential
+import com.gothwad.launcher.data.LockSecurity
 import com.gothwad.launcher.data.LockCredentialType
 import com.gothwad.launcher.databinding.DialogPinSetupBinding
 import com.gothwad.launcher.ui.AppIcons
@@ -54,6 +55,11 @@ class PinSetupDialogFragment : DialogFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        if (onCredentialSaved == null) { // recreated after process death
+            dismiss()
+            return
+        }
 
         binding.imgPinIcon.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_LOCK, 0xFF4C8DFF.toInt()))
 
@@ -312,11 +318,11 @@ class PinSetupDialogFragment : DialogFragment() {
         } else {
             val confirmed = currentDigits.toString()
             if (confirmed == firstEnteredSecret) {
-                val cred = LockCredential(
-                    enabled = true,
+                // Store a salted PBKDF2 hash - never the PIN itself.
+                val cred = LockSecurity.createCredential(
+                    secret = confirmed,
                     type = LockCredentialType.NUMERIC,
-                    value = confirmed,
-                    pinLength = pinLength
+                    pinLength = pinLength,
                 )
                 onCredentialSaved?.invoke(cred)
                 dismiss()
@@ -406,11 +412,11 @@ class PinSetupDialogFragment : DialogFragment() {
             if (inputModeTv) binding.onScreenKeyboard.requestFirstFocus() else binding.etPassword.requestFocus()
         } else {
             if (entered == firstEnteredSecret) {
-                val cred = LockCredential(
-                    enabled = true,
+                // Store a salted PBKDF2 hash - never the password itself.
+                val cred = LockSecurity.createCredential(
+                    secret = entered,
                     type = LockCredentialType.ALPHANUMERIC,
-                    value = entered,
-                    pinLength = 4
+                    pinLength = 4,
                 )
                 onCredentialSaved?.invoke(cred)
                 dismiss()

@@ -59,6 +59,11 @@ class VoiceSearchDialogFragment : DialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        if (onLaunchApp == null) { // recreated after process death - nothing to launch with
+            dismiss()
+            return
+        }
+
         binding.btnClose.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_CLOSE, Color.WHITE))
         binding.imgSearchIcon.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_SEARCH, 0x99FFFFFF.toInt()))
         binding.btnClear.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_CLOSE, Color.WHITE))
@@ -101,8 +106,10 @@ class VoiceSearchDialogFragment : DialogFragment() {
             Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH), 0
         ).isNotEmpty()
         if (isAvailable) {
-            binding.root.postDelayed({
-                launchSpeechInput()
+            view.postDelayed({
+                // The view can be destroyed within those 300ms (dialog closed) - never
+                // start a speech prompt from a dead fragment.
+                if (isAdded && _binding != null) launchSpeechInput()
             }, 300)
         }
     }

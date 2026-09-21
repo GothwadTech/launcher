@@ -6,9 +6,12 @@ import android.app.PendingIntent
 import android.content.ComponentCallbacks2
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.SystemClock
 import android.util.Log
 import com.gothwad.launcher.data.AppLaunchTracker
+import com.gothwad.launcher.data.ProcessHeartbeat
+import com.gothwad.launcher.data.SelfHealGuard
 import com.gothwad.launcher.service.LauncherWatchdogService
 import java.io.File
 import java.io.PrintWriter
@@ -37,6 +40,9 @@ class GothwadApplication : Application() {
 
         // Only initialize main process handlers & watchdog from the main process
         if (currentProc.isEmpty() || currentProc == packageName) {
+            // Liveness heartbeat: the :watchdog process uses this (instead of the
+            // unreliable getRunningAppProcesses()) to decide whether we are dead/hung.
+            ProcessHeartbeat.start(this)
             setupCrashSelfHealing()
             LauncherWatchdogService.start(this)
         }
@@ -52,8 +58,15 @@ class GothwadApplication : Application() {
                 // 1. Log crash to small rolling file in filesDir for diagnosis
                 logCrashToFile(throwable)
 
-                // 2. Schedule immediate relaunch of MainActivity via AlarmManager (1-2 seconds out)
-                scheduleEmergencyRelaunch()
+                // 2. Schedule an immediate relaunch of MainActivity via AlarmManager (a
+                //    couple of seconds out) - but only while we are not already stuck in a
+                //    crash loop. Without this budget a startup crash + HOME role would
+                //    relaunch the launcher forever and make the TV unusable.
+                if (SelfHealGuard.shouldRelaunch(this)) {
+                    scheduleEmergencyRelaunch()
+                } else {
+                    Log.w(TAG, "Crash loop detected - skipping emergency relaunch (safe mode)")
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Error in crash handler", e)
             } finally {
@@ -101,12 +114,41 @@ class GothwadApplication : Application() {
             val alarmManager = getSystemService(Context.ALARM_SERVICE) as? AlarmManager
             if (alarmManager != null) {
                 val triggerAtMillis = SystemClock.elapsedRealtime() + 1500L // 1.5s after crash
-                alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.ELAPSED_REALTIME_WAKEUP,
-                    triggerAtMillis,
-                    pendingIntent
-                )
-                Log.i(TAG, "Emergency launcher restart scheduled in 1500ms via AlarmManager")
+
+                // setExactAndAllowWhileIdle() is API 23+ (minSdk is 21) and needs the
+                // SCHEDULE_EXACT_ALARM permission on Android 12+; without the guard the
+                // call throws SecurityException, which used to be swallowed by
+                // runCatching() and silently disabled crash recovery altogether.
+                val canUseExact = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
+                    (Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+                        runCatching { alarmManager.canScheduleExactAlarms() }.getOrDefault(false))
+
+                val scheduled = runCatching {
+                    if (canUseExact) {
+                        alarmManager.setExactAndAllowWhileIdle(
+                            AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                            triggerAtMillis,
+                            pendingIntent
+                        )
+                    } else {
+                        alarmManager.set(
+                            AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                            triggerAtMillis,
+                            pendingIntent
+                        )
+                    }
+                }.isSuccess
+
+                if (scheduled) {
+                    Log.i(TAG, "Emergency launcher restart scheduled in 1500ms (exact=$canUseExact)")
+                } else {
+                    // Last resort: post it on our own main looper (the process is already
+                    // dying, so this is best effort only).
+                    Log.w(TAG, "AlarmManager refused the emergency restart; using handler fallback")
+                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                        runCatching { startActivity(intent) }
+                    }, 1500L)
+                }
             }
         }
     }

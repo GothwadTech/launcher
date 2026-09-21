@@ -59,6 +59,23 @@ object Actions {
             .onFailure { openSystemSettings(context) }
     }
 
+    /** Opens the system VPN settings (falls back to the wireless settings screen). */
+    fun openVpnSettings(context: Context) {
+        val actions = mutableListOf<String>()
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+            actions.add(Settings.ACTION_VPN_SETTINGS)
+        }
+        actions.add(Settings.ACTION_WIRELESS_SETTINGS)
+        actions.add(Settings.ACTION_SETTINGS)
+
+        for (action in actions) {
+            val ok = runCatching {
+                context.startActivity(Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            }.isSuccess
+            if (ok) return
+        }
+    }
+
     fun openBluetoothSettings(context: Context) {
         runCatching { context.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS)) }
             .onFailure { openSystemSettings(context) }
@@ -92,7 +109,6 @@ object Actions {
     }
 
     /** AerialViews screensaver (github.com/theothernt/AerialViews) */
-    const val AERIAL_PKG = "com.neilturner.aerialviews"
 
     fun isInstalled(context: Context, pkg: String): Boolean =
         runCatching { context.packageManager.getPackageInfo(pkg, 0) }.isSuccess
