@@ -1399,7 +1399,7 @@
                             android:focusable="false" />
                     </LinearLayout>
 
-                    <!-- Switch: Glass Effect -->
+                    <!-- Switch: Glass Effect vs Solid -->
                     <LinearLayout
                         android:id="@+id/row_toggle_statusbar_glass"
                         android:layout_width="match_parent"
@@ -1416,7 +1416,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Status Bar Glass Effect"
+                            android:text="Header Glass Background"
                             android:textColor="#FFFFFF"
                             android:textSize="14sp" />
 
@@ -1425,6 +1425,38 @@
                             app:trackTint="@color/switch_track_tint"
                             app:useMaterialThemeColors="false"
                             android:id="@+id/switch_statusbar_glass"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:clickable="false"
+                            android:focusable="false" />
+                    </LinearLayout>
+
+                    <!-- Switch: Match Icon Curve -->
+                    <LinearLayout
+                        android:id="@+id/row_toggle_statusbar_match_corners"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:layout_marginBottom="16dp"
+                        android:background="@drawable/bg_settings_row"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="24dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Match Icon Corner Curve"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp" />
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            app:thumbTint="@color/switch_thumb_tint"
+                            app:trackTint="@color/switch_track_tint"
+                            app:useMaterialThemeColors="false"
+                            android:id="@+id/switch_statusbar_match_corners"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:clickable="false"

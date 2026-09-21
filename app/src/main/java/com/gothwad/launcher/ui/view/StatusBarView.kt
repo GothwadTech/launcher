@@ -4,6 +4,7 @@ import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
@@ -12,6 +13,7 @@ import androidx.core.content.ContextCompat
 import com.gothwad.launcher.R
 import com.gothwad.launcher.data.BackgroundMediaState
 import com.gothwad.launcher.data.BluetoothDeviceStatus
+import com.gothwad.launcher.data.CORNER_RADII
 import com.gothwad.launcher.data.LauncherConfig
 import com.gothwad.launcher.data.NetStatus
 import com.gothwad.launcher.databinding.ViewStatusBarBinding
@@ -26,9 +28,8 @@ class StatusBarView @JvmOverloads constructor(
     val binding: ViewStatusBarBinding =
         ViewStatusBarBinding.inflate(LayoutInflater.from(context), this, true)
 
-    var onDashboardClick: (() -> Unit)? = null
+    var onHomeClick: (() -> Unit)? = null
     var onSearchClick: (() -> Unit)? = null
-    var onVoiceSearchClick: (() -> Unit)? = null
     var onBluetoothClick: (() -> Unit)? = null
     var onBackgroundMediaClick: (() -> Unit)? = null
     var onNetworkClick: (() -> Unit)? = null
@@ -44,10 +45,9 @@ class StatusBarView @JvmOverloads constructor(
     }
 
     private fun setupStaticIcons() {
-        binding.btnDashboard.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_DASHBOARD, Color.WHITE))
+        binding.btnHome.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_HOME, Color.WHITE))
         binding.btnSearch.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_SEARCH, Color.WHITE))
-        binding.btnVoiceSearch.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_MIC, Color.WHITE))
-        binding.imgBluetooth.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BLUETOOTH, 0xFF64B5F6.toInt()))
+        binding.btnBluetooth.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BLUETOOTH, 0xFF64B5F6.toInt()))
         binding.btnNetwork.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_WIFI, Color.WHITE))
         binding.btnVpn.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_KEY, 0xFF81C995.toInt()))
         binding.btnNotifications.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BELL, Color.WHITE))
@@ -55,10 +55,9 @@ class StatusBarView @JvmOverloads constructor(
     }
 
     private fun setupListeners() {
-        binding.btnDashboard.setOnClickListener { onDashboardClick?.invoke() }
+        binding.btnHome.setOnClickListener { onHomeClick?.invoke() }
         binding.btnSearch.setOnClickListener { onSearchClick?.invoke() }
-        binding.btnVoiceSearch.setOnClickListener { onVoiceSearchClick?.invoke() }
-        binding.layoutBluetoothPill.setOnClickListener { onBluetoothClick?.invoke() }
+        binding.btnBluetooth.setOnClickListener { onBluetoothClick?.invoke() }
         binding.btnBgMedia.setOnClickListener { onBackgroundMediaClick?.invoke() }
         binding.btnNetwork.setOnClickListener { onNetworkClick?.invoke() }
         binding.btnVpn.setOnClickListener { onVpnClick?.invoke() }
@@ -67,13 +66,39 @@ class StatusBarView @JvmOverloads constructor(
     }
 
     fun applyConfig(config: LauncherConfig) {
-        val glassDrawable = if (config.statusBarGlass) {
-            ContextCompat.getDrawable(context, R.drawable.bg_glass_cluster)
+        val density = context.resources.displayMetrics.density
+        val radiusPx = if (config.headerMatchIconCorners) {
+            val cornerIdx = config.cornerRadius.coerceIn(0, CORNER_RADII.size - 1)
+            CORNER_RADII[cornerIdx] * density
         } else {
-            null
+            20f * density
         }
-        binding.clusterLeft.background = glassDrawable
-        binding.clusterRight.background = glassDrawable
+        val strokePx = (1f * density).toInt()
+
+        val bgLeft = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = radiusPx
+            if (config.statusBarGlass) {
+                setColor(ContextCompat.getColor(context, R.color.surface_glass))
+                setStroke(strokePx, ContextCompat.getColor(context, R.color.surface_glass_stroke))
+            } else {
+                setColor(Color.parseColor("#212124"))
+                setStroke(strokePx, Color.parseColor("#33FFFFFF"))
+            }
+        }
+        val bgRight = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = radiusPx
+            if (config.statusBarGlass) {
+                setColor(ContextCompat.getColor(context, R.color.surface_glass))
+                setStroke(strokePx, ContextCompat.getColor(context, R.color.surface_glass_stroke))
+            } else {
+                setColor(Color.parseColor("#212124"))
+                setStroke(strokePx, Color.parseColor("#33FFFFFF"))
+            }
+        }
+        binding.clusterLeft.background = bgLeft
+        binding.clusterRight.background = bgRight
     }
 
     fun setNetStatus(net: NetStatus) {
@@ -86,25 +111,12 @@ class StatusBarView @JvmOverloads constructor(
     }
 
     fun setBluetoothStatus(bt: BluetoothDeviceStatus) {
-        // The pill is only shown for a *reported* connection. There is no more fake
-        // "TV Remote 85%" fallback: unknown battery renders as an em dash.
         if (!bt.connected) {
-            binding.layoutBluetoothPill.visibility = View.GONE
+            binding.btnBluetooth.visibility = View.GONE
             return
         }
-
-        binding.layoutBluetoothPill.visibility = View.VISIBLE
-        binding.imgBluetooth.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BLUETOOTH, 0xFF64B5F6.toInt()))
-
-        binding.tvBtBattery.visibility = View.VISIBLE
-        if (bt.batteryLevel >= 0) {
-            binding.tvBtBattery.text = "${bt.batteryLevel}%"
-            val batteryColor = if (bt.batteryLevel in 0..20) 0xFFE57373.toInt() else 0xD9FFFFFF.toInt()
-            binding.tvBtBattery.setTextColor(batteryColor)
-        } else {
-            binding.tvBtBattery.text = "—"
-            binding.tvBtBattery.setTextColor(0x80FFFFFF.toInt())
-        }
+        binding.btnBluetooth.visibility = View.VISIBLE
+        binding.btnBluetooth.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BLUETOOTH, 0xFF64B5F6.toInt()))
     }
 
     /** Shows/hides the VPN shortcut (only while a VPN transport is actually up). */
@@ -141,14 +153,12 @@ class StatusBarView @JvmOverloads constructor(
         binding.btnNotifications.setImageDrawable(AppIcons.createDrawable(bellPath, bellColor))
 
         if (count > 0) {
-            binding.tvNotificationBadge.visibility = View.VISIBLE
-            binding.tvNotificationBadge.text = if (count > 9) "9+" else count.toString()
-            binding.viewNotificationDot.visibility = View.GONE
-        } else if (!hasPermission) {
-            binding.tvNotificationBadge.visibility = View.GONE
             binding.viewNotificationDot.visibility = View.VISIBLE
+            binding.viewNotificationDot.backgroundTintList = ContextCompat.getColorStateList(context, R.color.status_notification_badge)
+        } else if (!hasPermission) {
+            binding.viewNotificationDot.visibility = View.VISIBLE
+            binding.viewNotificationDot.backgroundTintList = ContextCompat.getColorStateList(context, R.color.status_warning)
         } else {
-            binding.tvNotificationBadge.visibility = View.GONE
             binding.viewNotificationDot.visibility = View.GONE
         }
     }

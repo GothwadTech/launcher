@@ -33,11 +33,9 @@ import com.gothwad.launcher.service.LauncherAccessibilityService
 import com.gothwad.launcher.service.NotificationManagerBridge
 import com.gothwad.launcher.ui.dialogs.BackgroundMediaDialogFragment
 import com.gothwad.launcher.ui.dialogs.NotificationBottomSheetFragment
-import com.gothwad.launcher.ui.dialogs.QuickDashboardDialogFragment
 import com.gothwad.launcher.ui.dialogs.SearchDialogFragment
 import com.gothwad.launcher.ui.dialogs.SettingsBottomSheetFragment
 import com.gothwad.launcher.ui.dialogs.SetupWizardDialogFragment
-import com.gothwad.launcher.ui.dialogs.VoiceSearchDialogFragment
 import com.gothwad.launcher.ui.tv.TvLauncherFragment
 import com.gothwad.launcher.ui.view.DeviceLockViewController
 import android.view.KeyEvent
@@ -291,13 +289,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupStatusBar() {
         binding.mainStatusBar.apply {
-            onDashboardClick = {
-                ensureBluetoothPermission()
-                QuickDashboardDialogFragment.newInstance(
-                    net = currentNetStatus,
-                    bt = currentBtStatus,
-                    onOpenSettings = { openSettingsDialog() }
-                ).show(supportFragmentManager, QuickDashboardDialogFragment.TAG)
+            onHomeClick = {
+                val navHost = supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
+                val currentFrag = navHost?.childFragmentManager?.fragments?.firstOrNull()
+                if (currentFrag is TvLauncherFragment) {
+                    currentFrag.scrollToTop()
+                }
             }
 
             onSearchClick = {
@@ -308,24 +305,8 @@ class MainActivity : AppCompatActivity() {
                 ).show(supportFragmentManager, SearchDialogFragment.TAG)
             }
 
-            onVoiceSearchClick = {
-                VoiceSearchDialogFragment.newInstance(
-                    // The vault stays closed for voice search too: hidden apps are only
-                    // listed once they were deliberately opened in this session.
-                    apps = allApps.filter { app ->
-                        app.pkg !in currentConfig.hidden ||
-                            LauncherAccessibilityService.unlockedPackagesSession.contains(app.pkg)
-                    },
-                    onLaunch = { app -> handleAppLaunch(app) }
-                ).show(supportFragmentManager, VoiceSearchDialogFragment.TAG)
-            }
-
             onBluetoothClick = {
-                QuickDashboardDialogFragment.newInstance(
-                    net = currentNetStatus,
-                    bt = currentBtStatus,
-                    onOpenSettings = { openSettingsDialog() }
-                ).show(supportFragmentManager, QuickDashboardDialogFragment.TAG)
+                Actions.openBluetoothSettings(this@MainActivity)
             }
 
             onBackgroundMediaClick = {

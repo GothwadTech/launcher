@@ -306,6 +306,10 @@ class TvLauncherFragment : Fragment() {
         categoryAdapter?.submitList(rows)
     }
 
+    fun scrollToTop() {
+        _binding?.recyclerCategories?.smoothScrollToPosition(0)
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null

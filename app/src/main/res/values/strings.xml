@@ -48,11 +48,8 @@
     <string name="notifications_title">Notifications</string>
 
     <!-- Header Left Card & Permission Features -->
-    <string name="cd_voice_search">Voice Search</string>
-    <string name="cd_bluetooth">Bluetooth &amp; Remote</string>
-    <string name="cd_dashboard">Quick Dashboard</string>
-    <string name="voice_search_listening">Listening… Speak app name</string>
-    <string name="voice_search_hint">Speak or type an app name…</string>
+    <string name="cd_home">Home</string>
+    <string name="cd_bluetooth">Bluetooth</string>
 
     <!-- Search & Secret Vault -->
     <string name="cd_search">Search</string>

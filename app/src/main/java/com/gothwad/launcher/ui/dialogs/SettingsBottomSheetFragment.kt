@@ -599,6 +599,16 @@ class SettingsBottomSheetFragment : DialogFragment() {
             }
         }
 
+        binding.switchStatusbarMatchCorners.isChecked = config.headerMatchIconCorners
+        binding.rowToggleStatusbarMatchCorners.setOnClickListener {
+            val newVal = !binding.switchStatusbarMatchCorners.isChecked
+            binding.switchStatusbarMatchCorners.isChecked = newVal
+            lifecycleScope.launch {
+                store.update { it.copy(headerMatchIconCorners = newVal) }
+                config = config.copy(headerMatchIconCorners = newVal)
+            }
+        }
+
         binding.switchVpnButton.isChecked = config.showVpnButton
         binding.rowToggleVpnButton.setOnClickListener {
             val newVal = !binding.switchVpnButton.isChecked

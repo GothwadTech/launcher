@@ -73,7 +73,7 @@ data class LauncherConfig(
     val wallpaper: Int = 1, // Aurora
     val useCustomWallpaper: Boolean = false,
     val accent: Int = 0,
-    val h24: Boolean = true,
+    val h24: Boolean = false,
     val showHidden: Boolean = false,
     val setupDone: Boolean = false,
     // ----- status bar -----
@@ -83,6 +83,8 @@ data class LauncherConfig(
     val showVpnButton: Boolean = true,
     /** wrap the status-bar icons in the same glass panel as dock mode */
     val statusBarGlass: Boolean = true,
+    /** Match status bar header cards corner curve to app icon curve */
+    val headerMatchIconCorners: Boolean = true,
     // ----- layout & visuals -----
     val layout: Int = LAYOUT_GRID,
     /** spacing step 0..4 (see GAP_SIZES) */
