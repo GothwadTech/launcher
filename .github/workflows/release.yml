@@ -1,4 +1,7 @@
-name: Release to GitHub Releases
+name: Release (tag-based)
+
+# The ONLY workflow that publishes a GitHub Release. Triggered by a `v*` tag so the
+# version in the tag always matches the artifacts (issue #42).
 
 on:
   push:
@@ -35,12 +38,19 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Validate and Prepare Gradle Wrapper
+      - name: Validate Gradle Wrapper
         run: |
+          # The wrapper is committed and pinned (Gradle 8.10.2 == supported by AGP 8.5.x).
+          # Never regenerate it here with a different version - that silently breaks the build.
           if [ ! -f "gradle/wrapper/gradle-wrapper.jar" ]; then
-            echo "gradle-wrapper.jar not found, generating wrapper..."
-            gradle wrapper --gradle-version 8.10.2 || true
+            echo "❌ gradle/wrapper/gradle-wrapper.jar is missing from the repository."
+            exit 1
           fi
+          grep -q "gradle-8.10.2-bin.zip" gradle/wrapper/gradle-wrapper.properties || {
+            echo "❌ Unexpected Gradle version in gradle-wrapper.properties (expected 8.10.2 for AGP 8.5.2)."
+            grep distributionUrl gradle/wrapper/gradle-wrapper.properties
+            exit 1
+          }
           chmod +x ./gradlew
 
       - name: Determine Version Code and Name
