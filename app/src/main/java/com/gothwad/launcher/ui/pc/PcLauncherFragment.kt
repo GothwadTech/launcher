@@ -54,7 +54,11 @@ import com.gothwad.launcher.ui.dialogs.SettingsBottomSheetFragment
 import com.gothwad.launcher.ui.dialogs.SetupWizardDialogFragment
 import com.gothwad.launcher.apps.files.FileManagerView
 import com.gothwad.launcher.apps.floating.FloatingWindowManager
+import com.gothwad.launcher.apps.webapp.InstallWebAppDialog
+import com.gothwad.launcher.apps.webapp.WebAppManager
 import com.gothwad.launcher.apps.webapp.WebAppView
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import com.gothwad.launcher.service.FloatingTaskbarService
 import com.gothwad.launcher.ui.view.SmoothOutlineProvider
 import kotlinx.coroutines.Dispatchers
@@ -764,6 +768,7 @@ class PcLauncherFragment : Fragment() {
         menuBinding.imgIconRefresh.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_REFRESH, Color.WHITE))
         menuBinding.imgIconFileMgr.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_FOLDER, 0xFF4FA7FA.toInt()))
         menuBinding.imgIconWebApp.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_GLOBE, 0xFF60A5FA.toInt()))
+        menuBinding.imgIconInstallWebApp.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_GLOBE, 0xFF4FA7FA.toInt()))
         menuBinding.imgIconPersonalize.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_PALETTE, Color.WHITE))
         menuBinding.imgIconSettings.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_GEAR, Color.WHITE))
 
@@ -871,6 +876,18 @@ class PcLauncherFragment : Fragment() {
         menuBinding.itemOpenWebApp.setOnClickListener {
             popup.dismiss()
             openWebAppWindow()
+        }
+
+        // Install Web App to Desktop
+        menuBinding.itemInstallWebApp.setOnClickListener {
+            popup.dismiss()
+            InstallWebAppDialog(
+                onInstalled = {
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        loadApps()
+                    }
+                }
+            ).show(childFragmentManager, "install_web_app")
         }
 
         // 8. Wallpaper / Personalize Option
@@ -1191,8 +1208,15 @@ class PcLauncherFragment : Fragment() {
             return
         }
         if (app.pkg == "com.gothwad.launcher.webapp" || app.pkg.startsWith("pwa://")) {
-            val url = if (app.pkg.startsWith("pwa://")) app.pkg.removePrefix("pwa://") else "https://www.google.com"
-            openWebAppWindow(initialUrl = url, title = app.label)
+            val isPwa = app.pkg.startsWith("pwa://")
+            val url = if (isPwa) app.pkg.removePrefix("pwa://") else "https://www.google.com"
+            val iconDrawable = if (app.icon != null) BitmapDrawable(resources, app.icon) else null
+            openWebAppWindow(
+                initialUrl = url,
+                title = app.label,
+                customIconDrawable = iconDrawable,
+                isStandalone = isPwa
+            )
             return
         }
 
@@ -1227,44 +1251,41 @@ class PcLauncherFragment : Fragment() {
         )
     }
 
-    fun openWebAppWindow(initialUrl: String = "https://www.google.com", title: String = "Web Browser") {
+    fun openWebAppWindow(
+        initialUrl: String = "https://www.google.com",
+        title: String = "Web Browser",
+        customIconDrawable: Drawable? = null,
+        isStandalone: Boolean = false
+    ) {
         val fwm = floatingWindowManager ?: return
         var webAppView: WebAppView? = null
         webAppView = WebAppView(
             context = requireContext(),
             initialUrl = initialUrl,
+            isStandaloneWebApp = isStandalone,
             onPinShortcut = { siteTitle, siteUrl, iconBmp ->
-                // Pin shortcut to desktop by adding to desktop custom list
                 viewLifecycleOwner.lifecycleScope.launch {
-                    val shortcutPkg = "pwa://$siteUrl"
-                    ConfigStore(requireContext()).update { cfg ->
-                        val updatedDesktopOrder = cfg.pcDesktopOrder.toMutableList().apply {
-                            if (!contains(shortcutPkg)) add(shortcutPkg)
-                        }
-                        val updatedLabels = cfg.pcCustomLabels.toMutableMap().apply {
-                            put(shortcutPkg, siteTitle)
-                        }
-                        val updatedPinned = cfg.pcPinnedApps.toMutableList().apply {
-                            if (!contains(shortcutPkg)) add(shortcutPkg)
-                        }
-                        cfg.copy(
-                            pcDesktopOrder = updatedDesktopOrder,
-                            pcCustomLabels = updatedLabels,
-                            pcPinnedApps = updatedPinned
-                        )
-                    }
+                    WebAppManager.installWebApp(
+                        context = requireContext(),
+                        url = siteUrl,
+                        title = siteTitle,
+                        icon = iconBmp
+                    )
                     loadApps()
                 }
             }
         )
 
+        val windowIcon = customIconDrawable ?: AppIcons.createDrawable(AppIcons.PATH_GLOBE, 0xFF60A5FA.toInt())
+        val windowId = if (isStandalone) "app_pwa_${WebAppManager.getSafeId(initialUrl)}" else "app_web_${System.currentTimeMillis() % 10000}"
+
         fwm.openWindow(
-            id = "app_web_${System.currentTimeMillis() % 10000}",
+            id = windowId,
             title = title,
-            iconDrawable = AppIcons.createDrawable(AppIcons.PATH_GLOBE, 0xFF60A5FA.toInt()),
+            iconDrawable = windowIcon,
             contentView = webAppView.getView(),
-            defaultWidthDp = 740,
-            defaultHeightDp = 500,
+            defaultWidthDp = if (isStandalone) 800 else 760,
+            defaultHeightDp = if (isStandalone) 560 else 500,
             onClose = {
                 webAppView?.destroy()
             }
@@ -1457,14 +1478,18 @@ class PcLauncherFragment : Fragment() {
         }
 
         // Add any pinned PWA shortcuts from config
-        for ((pkg, label) in currentConfig.pcCustomLabels) {
-            if (pkg.startsWith("pwa://") && scanned.none { it.pkg == pkg }) {
+        val pwaPkgs = (currentConfig.pcCustomLabels.keys + currentConfig.pcDesktopOrder).filter { it.startsWith("pwa://") }.distinct()
+        for (pkg in pwaPkgs) {
+            if (scanned.none { it.pkg == pkg }) {
+                val label = currentConfig.pcCustomLabels[pkg] ?: WebAppManager.formatUrl(pkg.removePrefix("pwa://")).removePrefix("https://").removePrefix("http://")
+                val iconBmp = WebAppManager.loadSavedIcon(requireContext(), pkg)
+                    ?: WebAppManager.generateFallbackSquircleIcon(label)
                 scanned.add(
                     AppEntry(
                         pkg = pkg,
                         label = label,
                         banner = null,
-                        icon = null,
+                        icon = iconBmp,
                         autoCategory = "apps",
                         tile = 0xFF0284C7.toInt(),
                         stamp = System.currentTimeMillis(),

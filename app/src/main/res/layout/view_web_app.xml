@@ -3,18 +3,57 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#181B20"
+    android:background="#1F2229"
     android:orientation="vertical">
 
-    <!-- Top URL / Address Bar -->
+    <!-- 1. Chrome Tab Strip (Desktop & Tablet Chrome style) -->
     <LinearLayout
+        android:id="@+id/layout_chrome_tab_strip"
         android:layout_width="match_parent"
-        android:layout_height="40dp"
-        android:background="#23272F"
+        android:layout_height="36dp"
+        android:background="#181A20"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp">
+
+        <HorizontalScrollView
+            android:id="@+id/scroll_chrome_tabs"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:id="@+id/container_chrome_tabs"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:orientation="horizontal" />
+        </HorizontalScrollView>
+
+        <!-- New Tab '+' Button -->
+        <ImageButton
+            android:id="@+id/btn_chrome_new_tab"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/bg_win_btn"
+            android:contentDescription="New tab"
+            android:padding="6dp" />
+    </LinearLayout>
+
+    <!-- 2. Chrome Omnibox & Navigation Toolbar -->
+    <LinearLayout
+        android:id="@+id/layout_chrome_toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:background="#262A34"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingHorizontal="8dp">
 
+        <!-- Back Button -->
         <ImageButton
             android:id="@+id/btn_web_back"
             android:layout_width="32dp"
@@ -23,6 +62,7 @@
             android:contentDescription="Back"
             android:padding="6dp" />
 
+        <!-- Forward Button -->
         <ImageButton
             android:id="@+id/btn_web_forward"
             android:layout_width="32dp"
@@ -32,6 +72,7 @@
             android:contentDescription="Forward"
             android:padding="6dp" />
 
+        <!-- Refresh / Stop Button -->
         <ImageButton
             android:id="@+id/btn_web_refresh"
             android:layout_width="32dp"
@@ -41,17 +82,28 @@
             android:contentDescription="Refresh"
             android:padding="6dp" />
 
-        <!-- Address Bar Input -->
+        <!-- Home Button -->
+        <ImageButton
+            android:id="@+id/btn_web_home"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="2dp"
+            android:background="@drawable/bg_win_btn"
+            android:contentDescription="Home"
+            android:padding="6dp" />
+
+        <!-- Address Bar Pill (Omnibox) -->
         <LinearLayout
+            android:id="@+id/layout_omnibox"
             android:layout_width="0dp"
-            android:layout_height="30dp"
+            android:layout_height="32dp"
             android:layout_marginStart="6dp"
             android:layout_marginEnd="6dp"
             android:layout_weight="1"
             android:background="@drawable/bg_pc_taskbar_search_bar"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="8dp">
+            android:paddingHorizontal="10dp">
 
             <ImageView
                 android:id="@+id/img_web_ssl_icon"
@@ -64,33 +116,129 @@
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_marginStart="6dp"
+                android:layout_marginEnd="4dp"
                 android:layout_weight="1"
                 android:background="@android:color/transparent"
-                android:hint="Enter URL (e.g., https://google.com)"
+                android:hint="Search Google or type a URL"
                 android:imeOptions="actionGo"
                 android:inputType="textUri"
                 android:maxLines="1"
                 android:textColor="#FFFFFF"
                 android:textColorHint="#66FFFFFF"
-                android:textSize="11.5sp" />
+                android:textSize="12sp" />
 
+            <!-- Clear URL input button -->
+            <ImageButton
+                android:id="@+id/btn_web_clear"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:background="@drawable/bg_win_btn"
+                android:contentDescription="Clear"
+                android:padding="4dp"
+                android:visibility="gone" />
+
+            <!-- Bookmark Star Button -->
+            <ImageButton
+                android:id="@+id/btn_web_bookmark"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:layout_marginStart="2dp"
+                android:background="@drawable/bg_win_btn"
+                android:contentDescription="Bookmark"
+                android:padding="4dp" />
+
+            <!-- Go / Enter button -->
             <ImageButton
                 android:id="@+id/btn_web_go"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:layout_marginStart="2dp"
                 android:background="@drawable/bg_win_btn"
                 android:contentDescription="Go"
                 android:padding="4dp" />
         </LinearLayout>
 
-        <!-- Action: Pin as Desktop Shortcut / PWA App -->
+        <!-- Install Web App Shortcut Button -->
         <ImageButton
             android:id="@+id/btn_pin_to_desktop"
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:background="@drawable/bg_win_btn"
-            android:contentDescription="Pin App"
+            android:contentDescription="Install as App"
             android:padding="6dp" />
+
+        <!-- Chrome 3-Dots Menu Button -->
+        <ImageButton
+            android:id="@+id/btn_chrome_menu"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="2dp"
+            android:background="@drawable/bg_win_btn"
+            android:contentDescription="More options"
+            android:padding="6dp" />
+    </LinearLayout>
+
+    <!-- 3. Find in Page Bar (Floating underneath toolbar) -->
+    <LinearLayout
+        android:id="@+id/layout_find_in_page"
+        android:layout_width="match_parent"
+        android:layout_height="38dp"
+        android:background="#20242D"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="12dp"
+        android:visibility="gone">
+
+        <EditText
+            android:id="@+id/et_find_query"
+            android:layout_width="0dp"
+            android:layout_height="30dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_pc_taskbar_search_bar"
+            android:hint="Find in page..."
+            android:imeOptions="actionSearch"
+            android:inputType="text"
+            android:maxLines="1"
+            android:paddingHorizontal="8dp"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#66FFFFFF"
+            android:textSize="11.5sp" />
+
+        <TextView
+            android:id="@+id/tv_find_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="0/0"
+            android:textColor="#99FFFFFF"
+            android:textSize="11sp" />
+
+        <ImageButton
+            android:id="@+id/btn_find_prev"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/bg_win_btn"
+            android:contentDescription="Previous"
+            android:padding="4dp" />
+
+        <ImageButton
+            android:id="@+id/btn_find_next"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/bg_win_btn"
+            android:contentDescription="Next"
+            android:padding="4dp" />
+
+        <ImageButton
+            android:id="@+id/btn_find_close"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/bg_win_btn"
+            android:contentDescription="Close find bar"
+            android:padding="4dp" />
     </LinearLayout>
 
     <!-- Web Loading Progress Bar -->
@@ -98,22 +246,391 @@
         android:id="@+id/web_progress_bar"
         style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="match_parent"
-        android:layout_height="2dp"
+        android:layout_height="2.5dp"
         android:indeterminate="false"
         android:max="100"
         android:progressDrawable="@drawable/bg_circle_badge"
         android:visibility="gone" />
 
-    <!-- Web View Frame -->
+    <!-- 4. Web View Container Frame -->
     <FrameLayout
+        android:id="@+id/web_view_container"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1">
 
+        <!-- Active WebViews are dynamically added and switched here -->
+
+        <!-- Fallback initial WebView for immediate compatibility -->
         <WebView
             android:id="@+id/web_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
+
+        <!-- Chrome New Tab Page (Speed Dial) -->
+        <ScrollView
+            android:id="@+id/layout_new_tab_page"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#202124"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:padding="28dp">
+
+                <!-- Chrome / Google Header -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="G"
+                        android:textColor="#4285F4"
+                        android:textSize="32sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="o"
+                        android:textColor="#EA4335"
+                        android:textSize="32sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="o"
+                        android:textColor="#FBBC05"
+                        android:textSize="32sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="g"
+                        android:textColor="#4285F4"
+                        android:textSize="32sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="l"
+                        android:textColor="#34A853"
+                        android:textSize="32sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="e"
+                        android:textColor="#EA4335"
+                        android:textSize="32sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Search Pill in New Tab Page -->
+                <LinearLayout
+                    android:id="@+id/layout_ntp_search"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:layout_marginTop="20dp"
+                    android:background="@drawable/bg_pc_taskbar_search_bar"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="16dp">
+
+                    <ImageView
+                        android:id="@+id/img_ntp_search_icon"
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:contentDescription="@null" />
+
+                    <EditText
+                        android:id="@+id/et_ntp_search"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="10dp"
+                        android:background="@android:color/transparent"
+                        android:hint="Search Google or type a URL"
+                        android:imeOptions="actionGo"
+                        android:inputType="text"
+                        android:maxLines="1"
+                        android:textColor="#FFFFFF"
+                        android:textColorHint="#77FFFFFF"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <!-- Speed Dial Shortcuts Grid -->
+                <GridLayout
+                    android:id="@+id/grid_ntp_shortcuts"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="28dp"
+                    android:columnCount="4">
+
+                    <!-- Google -->
+                    <LinearLayout
+                        android:id="@+id/ntp_shortcut_google"
+                        android:layout_width="72dp"
+                        android:layout_height="80dp"
+                        android:layout_margin="8dp"
+                        android:background="@drawable/bg_pc_taskbar_btn"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:padding="6dp">
+
+                        <ImageView
+                            android:id="@+id/img_ntp_google"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:contentDescription="Google" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="Google"
+                            android:textColor="#E2E8F0"
+                            android:textSize="10.5sp" />
+                    </LinearLayout>
+
+                    <!-- YouTube -->
+                    <LinearLayout
+                        android:id="@+id/ntp_shortcut_youtube"
+                        android:layout_width="72dp"
+                        android:layout_height="80dp"
+                        android:layout_margin="8dp"
+                        android:background="@drawable/bg_pc_taskbar_btn"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:padding="6dp">
+
+                        <ImageView
+                            android:id="@+id/img_ntp_youtube"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:contentDescription="YouTube" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="YouTube"
+                            android:textColor="#E2E8F0"
+                            android:textSize="10.5sp" />
+                    </LinearLayout>
+
+                    <!-- Telegram Web -->
+                    <LinearLayout
+                        android:id="@+id/ntp_shortcut_telegram"
+                        android:layout_width="72dp"
+                        android:layout_height="80dp"
+                        android:layout_margin="8dp"
+                        android:background="@drawable/bg_pc_taskbar_btn"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:padding="6dp">
+
+                        <ImageView
+                            android:id="@+id/img_ntp_telegram"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:contentDescription="Telegram" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="Telegram"
+                            android:textColor="#E2E8F0"
+                            android:textSize="10.5sp" />
+                    </LinearLayout>
+
+                    <!-- Wikipedia -->
+                    <LinearLayout
+                        android:id="@+id/ntp_shortcut_wikipedia"
+                        android:layout_width="72dp"
+                        android:layout_height="80dp"
+                        android:layout_margin="8dp"
+                        android:background="@drawable/bg_pc_taskbar_btn"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:padding="6dp">
+
+                        <ImageView
+                            android:id="@+id/img_ntp_wikipedia"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:contentDescription="Wikipedia" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="Wikipedia"
+                            android:textColor="#E2E8F0"
+                            android:textSize="10.5sp" />
+                    </LinearLayout>
+
+                    <!-- GitHub -->
+                    <LinearLayout
+                        android:id="@+id/ntp_shortcut_github"
+                        android:layout_width="72dp"
+                        android:layout_height="80dp"
+                        android:layout_margin="8dp"
+                        android:background="@drawable/bg_pc_taskbar_btn"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:padding="6dp">
+
+                        <ImageView
+                            android:id="@+id/img_ntp_github"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:contentDescription="GitHub" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="GitHub"
+                            android:textColor="#E2E8F0"
+                            android:textSize="10.5sp" />
+                    </LinearLayout>
+
+                    <!-- Reddit -->
+                    <LinearLayout
+                        android:id="@+id/ntp_shortcut_reddit"
+                        android:layout_width="72dp"
+                        android:layout_height="80dp"
+                        android:layout_margin="8dp"
+                        android:background="@drawable/bg_pc_taskbar_btn"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:padding="6dp">
+
+                        <ImageView
+                            android:id="@+id/img_ntp_reddit"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:contentDescription="Reddit" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="Reddit"
+                            android:textColor="#E2E8F0"
+                            android:textSize="10.5sp" />
+                    </LinearLayout>
+
+                    <!-- ChatGPT -->
+                    <LinearLayout
+                        android:id="@+id/ntp_shortcut_chatgpt"
+                        android:layout_width="72dp"
+                        android:layout_height="80dp"
+                        android:layout_margin="8dp"
+                        android:background="@drawable/bg_pc_taskbar_btn"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:padding="6dp">
+
+                        <ImageView
+                            android:id="@+id/img_ntp_chatgpt"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:contentDescription="ChatGPT" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="ChatGPT"
+                            android:textColor="#E2E8F0"
+                            android:textSize="10.5sp" />
+                    </LinearLayout>
+
+                    <!-- WhatsApp Web -->
+                    <LinearLayout
+                        android:id="@+id/ntp_shortcut_whatsapp"
+                        android:layout_width="72dp"
+                        android:layout_height="80dp"
+                        android:layout_margin="8dp"
+                        android:background="@drawable/bg_pc_taskbar_btn"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:padding="6dp">
+
+                        <ImageView
+                            android:id="@+id/img_ntp_whatsapp"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:contentDescription="WhatsApp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="WhatsApp"
+                            android:textColor="#E2E8F0"
+                            android:textSize="10.5sp" />
+                    </LinearLayout>
+                </GridLayout>
+            </LinearLayout>
+        </ScrollView>
+
+        <!-- Drag and Drop Overlay HUD (Appears when dragging files from File Manager over the browser!) -->
+        <FrameLayout
+            android:id="@+id/layout_file_drop_overlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#B30B132B"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_dialog_glass"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:padding="28dp">
+
+                <ImageView
+                    android:id="@+id/img_drop_indicator"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:contentDescription="@null" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="Drop file to upload / drop on website"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_drop_file_hint"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Files will be injected to dropzones or file inputs"
+                    android:textColor="#99FFFFFF"
+                    android:textSize="11.5sp" />
+            </LinearLayout>
+        </FrameLayout>
 
         <!-- Fallback/Offline State -->
         <LinearLayout
@@ -158,10 +675,19 @@
                 android:layout_height="36dp"
                 android:layout_marginTop="16dp"
                 android:background="@drawable/bg_pc_taskbar_btn"
-                android:text="Retry"
+                android:paddingHorizontal="20dp"
+                android:text="Reload"
+                android:textAllCaps="false"
                 android:textColor="#FFFFFF"
                 android:textSize="12sp" />
         </LinearLayout>
-    </FrameLayout>
 
+        <!-- Fullscreen Video View Container -->
+        <FrameLayout
+            android:id="@+id/fullscreen_custom_view_container"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#000000"
+            android:visibility="gone" />
+    </FrameLayout>
 </LinearLayout>

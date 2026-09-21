@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/tab_root"
+    android:layout_width="wrap_content"
+    android:layout_height="32dp"
+    android:layout_marginEnd="2dp"
+    android:background="@drawable/bg_win_btn"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="8dp"
+    android:paddingEnd="4dp">
+
+    <ImageView
+        android:id="@+id/img_tab_favicon"
+        android:layout_width="14dp"
+        android:layout_height="14dp"
+        android:contentDescription="@null"
+        android:scaleType="fitCenter" />
+
+    <TextView
+        android:id="@+id/tv_tab_title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="6dp"
+        android:layout_marginEnd="4dp"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:text="New Tab"
+        android:textColor="#E2E8F0"
+        android:textSize="11sp" />
+
+    <ImageButton
+        android:id="@+id/btn_tab_close"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:background="@drawable/bg_win_btn"
+        android:contentDescription="Close tab"
+        android:padding="4dp" />
+</LinearLayout>

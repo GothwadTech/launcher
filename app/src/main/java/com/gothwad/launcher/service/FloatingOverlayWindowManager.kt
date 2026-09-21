@@ -116,7 +116,8 @@ class FloatingOverlayWindowManager(private val context: Context) {
             initialW,
             initialH,
             overlayType,
-            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
                 WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
             PixelFormat.TRANSLUCENT
         ).apply {
@@ -197,9 +198,32 @@ class FloatingOverlayWindowManager(private val context: Context) {
             }
         }
 
+        frameBinding.root.setOnTouchListener { _, event ->
+            if (event.action == MotionEvent.ACTION_OUTSIDE) {
+                releaseWindowFocus(holder)
+            } else if (event.action == MotionEvent.ACTION_DOWN) {
+                requestWindowFocus(holder)
+            }
+            false
+        }
+
         runCatching {
             windowManager.addView(frameBinding.root, params)
             activeWindows[id] = holder
+        }
+    }
+
+    private fun requestWindowFocus(holder: OverlayWindowHolder) {
+        if ((holder.params.flags and WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE) != 0) {
+            holder.params.flags = holder.params.flags and WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE.inv()
+            runCatching { windowManager.updateViewLayout(holder.frameBinding.root, holder.params) }
+        }
+    }
+
+    private fun releaseWindowFocus(holder: OverlayWindowHolder) {
+        if ((holder.params.flags and WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE) == 0) {
+            holder.params.flags = holder.params.flags or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+            runCatching { windowManager.updateViewLayout(holder.frameBinding.root, holder.params) }
         }
     }
 

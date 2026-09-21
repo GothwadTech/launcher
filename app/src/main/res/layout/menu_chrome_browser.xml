@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="220dp"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_dialog_glass"
+    android:orientation="vertical"
+    android:padding="6dp">
+
+    <!-- New Tab -->
+    <LinearLayout
+        android:id="@+id/menu_item_new_tab"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:background="@drawable/bg_pc_taskbar_btn"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp">
+
+        <ImageView
+            android:id="@+id/img_menu_new_tab"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="New tab"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- New Incognito Tab -->
+    <LinearLayout
+        android:id="@+id/menu_item_incognito"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:layout_marginTop="2dp"
+        android:background="@drawable/bg_pc_taskbar_btn"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp">
+
+        <ImageView
+            android:id="@+id/img_menu_incognito"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="New incognito tab"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginVertical="4dp"
+        android:background="#22FFFFFF" />
+
+    <!-- Bookmarks -->
+    <LinearLayout
+        android:id="@+id/menu_item_bookmarks"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:background="@drawable/bg_pc_taskbar_btn"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp">
+
+        <ImageView
+            android:id="@+id/img_menu_bookmarks"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="Bookmarks"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- History -->
+    <LinearLayout
+        android:id="@+id/menu_item_history"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:layout_marginTop="2dp"
+        android:background="@drawable/bg_pc_taskbar_btn"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp">
+
+        <ImageView
+            android:id="@+id/img_menu_history"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="History"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- Downloads -->
+    <LinearLayout
+        android:id="@+id/menu_item_downloads"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:layout_marginTop="2dp"
+        android:background="@drawable/bg_pc_taskbar_btn"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp">
+
+        <ImageView
+            android:id="@+id/img_menu_downloads"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="Downloads"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginVertical="4dp"
+        android:background="#22FFFFFF" />
+
+    <!-- Desktop Site (Toggle Checkbox) -->
+    <LinearLayout
+        android:id="@+id/menu_item_desktop_site"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:background="@drawable/bg_pc_taskbar_btn"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp">
+
+        <ImageView
+            android:id="@+id/img_menu_desktop"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="Desktop site"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp" />
+
+        <CheckBox
+            android:id="@+id/chk_desktop_site"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:clickable="false"
+            android:focusable="false" />
+    </LinearLayout>
+
+    <!-- Find in Page -->
+    <LinearLayout
+        android:id="@+id/menu_item_find"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:layout_marginTop="2dp"
+        android:background="@drawable/bg_pc_taskbar_btn"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp">
+
+        <ImageView
+            android:id="@+id/img_menu_find"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="Find in page"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- Share -->
+    <LinearLayout
+        android:id="@+id/menu_item_share"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:layout_marginTop="2dp"
+        android:background="@drawable/bg_pc_taskbar_btn"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp">
+
+        <ImageView
+            android:id="@+id/img_menu_share"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="Share..."
+            android:textColor="#FFFFFF"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- Install as Desktop App -->
+    <LinearLayout
+        android:id="@+id/menu_item_install_app"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:layout_marginTop="2dp"
+        android:background="@drawable/bg_pc_taskbar_btn"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp">
+
+        <ImageView
+            android:id="@+id/img_menu_install_app"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="Install as Desktop App"
+            android:textColor="#4FA7FA"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginVertical="4dp"
+        android:background="#22FFFFFF" />
+
+    <!-- Clear Browsing Data -->
+    <LinearLayout
+        android:id="@+id/menu_item_clear_data"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:background="@drawable/bg_pc_taskbar_btn"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp">
+
+        <ImageView
+            android:id="@+id/img_menu_clear"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="Clear browsing data"
+            android:textColor="#EF4444"
+            android:textSize="12sp" />
+    </LinearLayout>
+</LinearLayout>

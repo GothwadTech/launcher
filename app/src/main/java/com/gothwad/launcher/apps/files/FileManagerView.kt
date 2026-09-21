@@ -3,6 +3,7 @@ package com.gothwad.launcher.apps.files
 import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.content.ClipData
+import android.content.ClipDescription
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
@@ -482,19 +483,34 @@ class FileManagerView(
 
     private fun startFileDrag(view: View, item: FileItem) {
         view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-        val clipItem = ClipData.Item(item.file.absolutePath)
-        val clipData = ClipData(
-            "FILE_DRAG",
-            arrayOf("application/x-gothwad-file"),
-            clipItem
+        val fileUri = Uri.fromFile(item.file)
+        val clipItem = ClipData.Item(fileUri)
+        val ext = item.file.extension.lowercase()
+        val mimeType = runCatching {
+            android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext)
+        }.getOrNull() ?: "*/*"
+
+        val mimeTypes = arrayOf(
+            "application/x-gothwad-file",
+            ClipDescription.MIMETYPE_TEXT_PLAIN,
+            ClipDescription.MIMETYPE_TEXT_URILIST,
+            mimeType
         )
+        val clipData = ClipData("FILE_DRAG", mimeTypes, clipItem).apply {
+            addItem(ClipData.Item(item.file.absolutePath))
+        }
         val shadow = View.DragShadowBuilder(view)
         binding.tvDragDropHint.visibility = View.VISIBLE
+        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            View.DRAG_FLAG_GLOBAL or View.DRAG_FLAG_GLOBAL_URI_READ
+        } else {
+            0
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            view.startDragAndDrop(clipData, shadow, item, 0)
+            view.startDragAndDrop(clipData, shadow, item, flags)
         } else {
             @Suppress("DEPRECATION")
-            view.startDrag(clipData, shadow, item, 0)
+            view.startDrag(clipData, shadow, item, flags)
         }
     }
 

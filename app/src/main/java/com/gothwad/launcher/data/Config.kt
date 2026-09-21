@@ -98,6 +98,7 @@ data class LauncherConfig(
     val pcShowLabels: Boolean = true,
     val pcDesktopOrder: List<String> = emptyList(),
     val pcCustomLabels: Map<String, String> = emptyMap(),
+    val pcCustomIcons: Map<String, String> = emptyMap(),
     val pcPinnedApps: List<String> = emptyList(),
     val pcTaskbarHeight: Int = 44,
     val pcTaskbarCenter: Boolean = false,
