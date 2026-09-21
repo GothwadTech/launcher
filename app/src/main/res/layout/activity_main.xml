@@ -35,20 +35,4 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Fullscreen In-Activity Device Lock Container (Phase 4) -->
-    <FrameLayout
-        android:id="@+id/device_lock_container"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#FF0D1117"
-        android:clickable="true"
-        android:focusable="true"
-        android:focusableInTouchMode="true"
-        android:elevation="100dp"
-        android:visibility="gone"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -238,24 +238,6 @@ class LauncherAccessibilityService : AccessibilityService() {
     override fun onKeyEvent(event: KeyEvent): Boolean {
         val keyCode = event.keyCode
 
-        // 0. Authoritative DEVICE LOCK guard.
-        //    While the device lock is active and has not been satisfied in this process,
-        //    nothing may be launched. Without this guard a mapped remote hotkey
-        //    (red/green/yellow/blue buttons, GUIDE, TV ... which are auto-seeded with
-        //    YouTube/Netflix/Prime/Hotstar on first run) or the capture/listen mode would
-        //    start an app straight past the lock screen.
-        val cfg = cachedConfig
-        if (cfg.deviceLock.enabled && cfg.deviceLock.ready &&
-            !GothwadApplication.hasUnlockedDeviceThisProcess
-        ) {
-            if (keyCode == KeyEvent.KEYCODE_HOME && event.action == KeyEvent.ACTION_UP) {
-                launchHome(this)
-            }
-            // Let BACK through so the lock screen itself stays dismissible/handled by the
-            // in-activity lock UI; swallow everything else.
-            return keyCode != KeyEvent.KEYCODE_BACK
-        }
-
         // 1. If ButtonMappingManager is currently in "listen-mode" for learning a new button,
         // capture the raw key event (on ACTION_UP to prevent double captures) and notify UI
         if (ButtonMappingManager.isListening()) {

@@ -113,7 +113,6 @@ data class LauncherConfig(
     val autoCategoryOnInstall: Boolean = true,
     /** app lock: list of package names requiring a PIN to open */
     val lockedApps: Set<String> = emptySet(),
-    val deviceLock: LockCredential = LockCredential(),
     val appLock: LockCredential = LockCredential(),
     val hiddenAppsLock: LockCredential = LockCredential(),
     val hiddenAppsRevealCode: String = "",

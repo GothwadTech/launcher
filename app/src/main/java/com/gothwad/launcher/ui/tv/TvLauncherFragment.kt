@@ -17,7 +17,6 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.gothwad.launcher.Actions
-import com.gothwad.launcher.GothwadApplication
 import com.gothwad.launcher.data.AppEntry
 import com.gothwad.launcher.data.AppRepository
 import com.gothwad.launcher.data.CORNER_RADII
@@ -146,12 +145,11 @@ class TvLauncherFragment : Fragment() {
     }
 
     private fun handleAppLaunch(app: AppEntry) {
-        // One shared gate for device lock / app lock / hidden vault (issue #31).
+        // App lock & hidden vault gate
         AppLockGate.evaluate(
             fragmentManager = parentFragmentManager,
             app = app,
             config = currentConfig,
-            deviceUnlockedThisProcess = GothwadApplication.hasUnlockedDeviceThisProcess,
         ) {
             Actions.launchApp(requireContext(), app.pkg)
         }

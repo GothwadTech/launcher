@@ -250,9 +250,8 @@ class SettingsBottomSheetFragment : DialogFragment() {
         binding.txtAppsSubtitle.text = if (hiddenCount > 0) "$hiddenCount apps protected" else "Recent apps • Auto-sort"
         binding.txtHiddenAppsCount.text = "$hiddenCount apps configured in secret vault"
 
-        // Security subtitle (Phase 6: independent status summary per section)
+        // Security subtitle (independent status summary per section)
         val activeLocks = mutableListOf<String>()
-        if (config.deviceLock.enabled) activeLocks.add("Device")
         if (config.appLock.enabled) activeLocks.add("App")
         if (config.hiddenAppsLock.enabled) activeLocks.add("Vault")
         binding.txtSecuritySubtitle.text = if (activeLocks.isNotEmpty()) {
@@ -303,7 +302,6 @@ class SettingsBottomSheetFragment : DialogFragment() {
 
         binding.rowSecurity.setOnClickListener {
             val primaryLock = when {
-                config.deviceLock.enabled && config.deviceLock.ready -> config.deviceLock
                 config.appLock.enabled && config.appLock.ready -> config.appLock
                 config.hiddenAppsLock.enabled && config.hiddenAppsLock.ready -> config.hiddenAppsLock
                 else -> null
@@ -720,93 +718,10 @@ class SettingsBottomSheetFragment : DialogFragment() {
     }
 
     // =========================================================================
-    // SUB-PAGE 5: SECURITY & LOCKS (Phase 6: 3 Independent Sections)
+    // SUB-PAGE 5: SECURITY & LOCKS (App Lock & Hidden Apps Vault)
     // =========================================================================
     private fun bindSecuritySettings() {
-        // --- 1. DEVICE LOCK ---
-        binding.switchDeviceLock.isChecked = config.deviceLock.enabled
-        binding.rowToggleDeviceLock.setOnClickListener {
-            if (!config.deviceLock.enabled) {
-                if (!config.deviceLock.ready) {
-                    PinSetupDialogFragment.newInstance(
-                        initialType = config.deviceLock.type,
-                        initialPinLength = config.deviceLock.pinLength
-                    ) { newCred ->
-                        lifecycleScope.launch {
-                            val updatedCred = newCred.copy(enabled = true)
-                            store.update { it.copy(deviceLock = updatedCred) }
-                            config = config.copy(deviceLock = updatedCred)
-                            binding.switchDeviceLock.isChecked = true
-                            updateSubtitles()
-                            Actions.toast(requireContext(), "Device Lock Enabled")
-                        }
-                    }.show(parentFragmentManager, PinSetupDialogFragment.TAG)
-                } else {
-                    val updated = config.deviceLock.copy(enabled = true)
-                    binding.switchDeviceLock.isChecked = true
-                    lifecycleScope.launch {
-                        store.update { it.copy(deviceLock = updated) }
-                        config = config.copy(deviceLock = updated)
-                        updateSubtitles()
-                    }
-                }
-            } else {
-                // Must verify current credential to disable Device Lock
-                PinEntryDialogFragment.newInstance(
-                    title = "Confirm Device Lock",
-                    subtitle = "Enter current PIN/password to disable Device Lock",
-                    credential = config.deviceLock,
-                    isCancelable = true,
-                    lockScope = LockSecurity.SCOPE_DEVICE,
-                    onSuccess = {
-                        val updated = config.deviceLock.copy(enabled = false)
-                        binding.switchDeviceLock.isChecked = false
-                        lifecycleScope.launch {
-                            store.update { it.copy(deviceLock = updated) }
-                            config = config.copy(deviceLock = updated)
-                            updateSubtitles()
-                            Actions.toast(requireContext(), "Device Lock Disabled")
-                        }
-                    },
-                    onCancelled = {
-                        binding.switchDeviceLock.isChecked = true
-                    }
-                ).show(parentFragmentManager, PinEntryDialogFragment.TAG)
-            }
-        }
-
-        binding.btnSetupDeviceLock.setOnClickListener {
-            val showSetup = {
-                PinSetupDialogFragment.newInstance(
-                    initialType = config.deviceLock.type,
-                    initialPinLength = config.deviceLock.pinLength
-                ) { newCred ->
-                    lifecycleScope.launch {
-                        val updatedCred = newCred.copy(enabled = true)
-                        store.update { it.copy(deviceLock = updatedCred) }
-                        config = config.copy(deviceLock = updatedCred)
-                        binding.switchDeviceLock.isChecked = true
-                        updateSubtitles()
-                        Actions.toast(requireContext(), "Device Lock credential updated")
-                    }
-                }.show(parentFragmentManager, PinSetupDialogFragment.TAG)
-            }
-
-            if (config.deviceLock.enabled && config.deviceLock.ready) {
-                PinEntryDialogFragment.newInstance(
-                    title = "Confirm Current Credential",
-                    subtitle = "Enter current PIN/password to change Device Lock",
-                    credential = config.deviceLock,
-                    isCancelable = true,
-                    lockScope = LockSecurity.SCOPE_DEVICE,
-                    onSuccess = { showSetup() }
-                ).show(parentFragmentManager, PinEntryDialogFragment.TAG)
-            } else {
-                showSetup()
-            }
-        }
-
-        // --- 2. APP LOCK ---
+        // --- 1. APP LOCK ---
         binding.switchAppLock.isChecked = config.appLock.enabled
         binding.rowToggleAppLock.setOnClickListener {
             if (!config.appLock.enabled) {

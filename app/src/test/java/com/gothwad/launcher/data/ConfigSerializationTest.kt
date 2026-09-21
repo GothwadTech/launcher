@@ -56,16 +56,16 @@ class ConfigSerializationTest {
     @Test
     fun `credential hashing fields round-trip`() {
         val credential = LockSecurity.createCredential("9876", LockCredentialType.NUMERIC, 4)
-        val config = LauncherConfig(deviceLock = credential)
+        val config = LauncherConfig(appLock = credential)
 
         val decoded = json.decodeFromString(
             LauncherConfig.serializer(),
             json.encodeToString(LauncherConfig.serializer(), config),
         )
 
-        assertEquals(credential.credentialHash, decoded.deviceLock.credentialHash)
-        assertEquals(credential.credentialSalt, decoded.deviceLock.credentialSalt)
-        assertTrue(LockSecurity.verify(decoded.deviceLock, "9876"))
-        assertTrue(decoded.deviceLock.value.isEmpty())
+        assertEquals(credential.credentialHash, decoded.appLock.credentialHash)
+        assertEquals(credential.credentialSalt, decoded.appLock.credentialSalt)
+        assertTrue(LockSecurity.verify(decoded.appLock, "9876"))
+        assertTrue(decoded.appLock.value.isEmpty())
     }
 }

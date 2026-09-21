@@ -32,8 +32,7 @@ object LockSecurity {
 
     private const val TAG = "LockSecurity"
 
-    /** Throttle buckets - one per independent lock. */
-    const val SCOPE_DEVICE = "device"
+    /** Throttle buckets - one per independent lock (App Lock and Vault). */
     const val SCOPE_APP = "app"
     const val SCOPE_VAULT = "vault"
     const val SCOPE_DEFAULT = "default"
@@ -137,7 +136,6 @@ object LockSecurity {
         Log.i(TAG, "Migrating legacy plain-text lock credentials to PBKDF2 hashes")
         store.update { cfg ->
             cfg.copy(
-                deviceLock = migrateOne(cfg.deviceLock),
                 appLock = migrateOne(cfg.appLock),
                 hiddenAppsLock = migrateOne(cfg.hiddenAppsLock),
             )
@@ -145,8 +143,7 @@ object LockSecurity {
     }
 
     private fun hasLegacyPlainText(config: LauncherConfig): Boolean =
-        (config.deviceLock.value.isNotEmpty() && config.deviceLock.credentialHash.isEmpty()) ||
-            (config.appLock.value.isNotEmpty() && config.appLock.credentialHash.isEmpty()) ||
+        (config.appLock.value.isNotEmpty() && config.appLock.credentialHash.isEmpty()) ||
             (config.hiddenAppsLock.value.isNotEmpty() && config.hiddenAppsLock.credentialHash.isEmpty())
 
     private fun migrateOne(credential: LockCredential): LockCredential {

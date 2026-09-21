@@ -1770,70 +1770,14 @@
                     android:orientation="vertical"
                     android:visibility="gone">
 
-                    <!-- SECTION 1: DEVICE LOCK -->
+                    <!-- SECTION 1: APP LOCK -->
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:paddingStart="24dp"
                         android:paddingEnd="24dp"
                         android:layout_marginBottom="8dp"
-                        android:text="1. Device Lock"
-                        android:textAllCaps="true"
-                        android:textColor="#4DD0E1"
-                        android:textSize="12sp"
-                        android:textStyle="bold" />
-
-                    <LinearLayout
-                        android:id="@+id/row_toggle_device_lock"
-                        android:layout_width="match_parent"
-                        android:layout_height="52dp"
-                        android:layout_marginBottom="0dp"
-                        android:background="@drawable/bg_settings_row"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingHorizontal="24dp">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Require Credential on Launcher Start"
-                            android:textColor="#FFFFFF"
-                            android:textSize="14sp" />
-
-                        <com.google.android.material.switchmaterial.SwitchMaterial
-                            android:id="@+id/switch_device_lock"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:clickable="false"
-                            android:focusable="false"
-                            app:thumbTint="@color/switch_thumb_tint"
-                            app:trackTint="@color/switch_track_tint"
-                            app:useMaterialThemeColors="false" />
-                    </LinearLayout>
-
-                    <Button
-                        android:id="@+id/btn_setup_device_lock"
-                        android:layout_width="match_parent"
-                        android:layout_height="48dp"
-                        android:layout_marginBottom="16dp"
-                        android:background="@drawable/bg_settings_row"
-                        android:gravity="start|center_vertical"
-                        android:paddingHorizontal="24dp"
-                        android:text="🛡️ Set / Change Device Credential"
-                        android:textColor="#FFFFFF"
-                        android:textSize="13sp" />
-
-                    <!-- SECTION 2: APP LOCK -->
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:paddingStart="24dp"
-                        android:paddingEnd="24dp"
-                        android:layout_marginBottom="8dp"
-                        android:text="2. App Lock"
+                        android:text="1. App Lock"
                         android:textAllCaps="true"
                         android:textColor="#4DD0E1"
                         android:textSize="12sp"
@@ -1894,14 +1838,14 @@
                         android:textColor="#FFFFFF"
                         android:textSize="13sp" />
 
-                    <!-- SECTION 3: HIDDEN APPS VAULT -->
+                    <!-- SECTION 2: HIDDEN APPS VAULT -->
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:paddingStart="24dp"
                         android:paddingEnd="24dp"
                         android:layout_marginBottom="8dp"
-                        android:text="3. Hidden Apps Vault"
+                        android:text="2. Hidden Apps Vault"
                         android:textAllCaps="true"
                         android:textColor="#4DD0E1"
                         android:textSize="12sp"

@@ -37,7 +37,6 @@ import com.gothwad.launcher.ui.dialogs.SearchDialogFragment
 import com.gothwad.launcher.ui.dialogs.SettingsBottomSheetFragment
 import com.gothwad.launcher.ui.dialogs.SetupWizardDialogFragment
 import com.gothwad.launcher.ui.tv.TvLauncherFragment
-import com.gothwad.launcher.ui.view.DeviceLockViewController
 import android.view.KeyEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -207,9 +206,6 @@ class MainActivity : AppCompatActivity() {
             SelfHealGuard.markHealthy(this@MainActivity)
         }
 
-        // Phase 4: Device Lock on cold launcher process start
-        checkDeviceLockOnColdStart()
-
         setupA11yRecoveryBanner()
         setupNavigation()
         setupStatusBar()
@@ -219,39 +215,6 @@ class MainActivity : AppCompatActivity() {
 
     private val bluetoothPermissionLauncher =
         registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { /* status is refreshed by the BT flow */ }
-
-    private var deviceLockController: DeviceLockViewController? = null
-
-    private fun checkDeviceLockOnColdStart() {
-        if (GothwadApplication.hasUnlockedDeviceThisProcess) {
-            binding.deviceLockContainer.visibility = View.GONE
-            return
-        }
-
-        // Show solid lock container immediately so not even a single frame of home UI is leaked
-        binding.deviceLockContainer.visibility = View.VISIBLE
-        binding.deviceLockContainer.bringToFront()
-
-        lifecycleScope.launch {
-            val store = ConfigStore(this@MainActivity)
-            val config = store.flow.first()
-            currentConfig = config
-            if (config.deviceLock.enabled && config.deviceLock.ready) {
-                deviceLockController = DeviceLockViewController(
-                    container = binding.deviceLockContainer,
-                    credential = config.deviceLock,
-                    onUnlocked = {
-                        GothwadApplication.hasUnlockedDeviceThisProcess = true
-                        deviceLockController = null
-                    }
-                )
-                deviceLockController?.show()
-            } else {
-                GothwadApplication.hasUnlockedDeviceThisProcess = true
-                binding.deviceLockContainer.visibility = View.GONE
-            }
-        }
-    }
 
     private fun setupA11yRecoveryBanner() {
         binding.bannerA11yRecovery.btnA11yAction.setOnClickListener {
@@ -356,9 +319,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openSettingsDialog() {
-        if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
-            return
-        }
         SettingsBottomSheetFragment.newInstance(
             config = currentConfig,
             apps = allApps,
@@ -383,14 +343,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleAppLaunch(app: AppEntry) {
-        // All lock decisions (device lock, app lock, hidden vault) go through one place -
-        // see AppLockGate. The unbypassable enforcement still lives in the accessibility
-        // service; this only keeps the prompt UX consistent and avoids double-prompting.
+        // App lock & hidden vault gate
         AppLockGate.evaluate(
             fragmentManager = supportFragmentManager,
             app = app,
             config = currentConfig,
-            deviceUnlockedThisProcess = GothwadApplication.hasUnlockedDeviceThisProcess,
         ) {
             Actions.launchApp(this, app.pkg)
         }
@@ -484,14 +441,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
-            if (deviceLockController?.handleKeyEvent(event.keyCode, event) == true) {
-                return true
-            }
-            if (event.keyCode == KeyEvent.KEYCODE_BACK) {
-                return true
-            }
-        }
         return super.dispatchKeyEvent(event)
     }
 

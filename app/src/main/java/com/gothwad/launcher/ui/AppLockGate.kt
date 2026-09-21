@@ -23,13 +23,6 @@ import com.gothwad.launcher.ui.dialogs.PinEntryDialogFragment
  */
 object AppLockGate {
 
-    /**
-     * True when the device lock is active and has not been satisfied in this process.
-     * The device-lock screen itself blocks the launcher, so nothing may be launched.
-     */
-    fun isDeviceLockBlocking(config: LauncherConfig, deviceUnlockedThisProcess: Boolean): Boolean =
-        config.deviceLock.enabled && config.deviceLock.ready && !deviceUnlockedThisProcess
-
     /** What the caller has to do after [evaluate] returns. */
     enum class Result {
         /** Launch immediately. */
@@ -37,13 +30,11 @@ object AppLockGate {
 
         /** A credential prompt was shown; the callback will launch on success. */
         PROMPTED,
-
-        /** Access refused (device lock active) - do nothing. */
-        BLOCKED,
     }
 
     /**
      * Evaluates the locks for [app] and shows the credential prompt when one is needed.
+     * Only App Lock and Hidden App Vault Lock are evaluated.
      *
      * @param onProceed invoked on the calling (main) thread once the app may be launched -
      *   either immediately, or after the user entered the correct credential.
@@ -52,13 +43,8 @@ object AppLockGate {
         fragmentManager: FragmentManager,
         app: AppEntry,
         config: LauncherConfig,
-        deviceUnlockedThisProcess: Boolean,
         onProceed: () -> Unit,
     ): Result {
-        if (isDeviceLockBlocking(config, deviceUnlockedThisProcess)) {
-            return Result.BLOCKED
-        }
-
         val needsAppUnlock = config.appLock.enabled &&
             config.appLock.ready &&
             app.pkg in config.lockedApps &&
