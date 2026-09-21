@@ -19,24 +19,6 @@ val WALLPAPERS: List<WallpaperPreset> = listOf(
     WallpaperPreset("Charcoal", listOf(0xFF16161A.toInt(), 0xFF232526.toInt(), 0xFF2F3437.toInt())),
 )
 
-data class PcWallpaperPreset(val id: Int, val name: String, val resId: Int)
-
-val PC_WALLPAPERS: List<PcWallpaperPreset> = listOf(
-    PcWallpaperPreset(0, "Windows 11 Bloom", com.gothwad.launcher.R.drawable.wallpaper_pc_0),
-    PcWallpaperPreset(1, "Flow Dark", com.gothwad.launcher.R.drawable.wallpaper_pc_1),
-    PcWallpaperPreset(2, "Glow Blue", com.gothwad.launcher.R.drawable.wallpaper_pc_2),
-    PcWallpaperPreset(3, "Sunrise", com.gothwad.launcher.R.drawable.wallpaper_pc_3),
-    PcWallpaperPreset(4, "Captured Motion", com.gothwad.launcher.R.drawable.wallpaper_pc_4),
-    PcWallpaperPreset(5, "Solitude", com.gothwad.launcher.R.drawable.wallpaper_pc_5),
-    PcWallpaperPreset(6, "Spotlight", com.gothwad.launcher.R.drawable.wallpaper_pc_6),
-    PcWallpaperPreset(7, "Earth Horizon", com.gothwad.launcher.R.drawable.wallpaper_pc_7),
-    PcWallpaperPreset(8, "Dark Bloom", com.gothwad.launcher.R.drawable.wallpaper_pc_8),
-    PcWallpaperPreset(9, "Desert Dunes", com.gothwad.launcher.R.drawable.wallpaper_pc_9),
-    PcWallpaperPreset(10, "Flow Light", com.gothwad.launcher.R.drawable.wallpaper_pc_10),
-    PcWallpaperPreset(11, "Neon Glow", com.gothwad.launcher.R.drawable.wallpaper_pc_11),
-    PcWallpaperPreset(12, "Luminescence", com.gothwad.launcher.R.drawable.wallpaper_pc_12),
-)
-
 /** Deterministic tile color for apps that ship no banner artwork. */
 fun tileColor(pkg: String): Int {
     val palette = listOf(

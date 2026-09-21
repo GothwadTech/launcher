@@ -232,7 +232,7 @@ class SystemLockOverlayView(
             updateInputModeToggleUi()
         }
 
-        binding.btnModePcKeyboard.setOnClickListener {
+        binding.btnModeKeyboard.setOnClickListener {
             inputModeTv = false
             updateInputModeToggleUi()
         }
@@ -295,11 +295,11 @@ class SystemLockOverlayView(
     private fun updateInputModeToggleUi() {
         if (inputModeTv) {
             binding.btnModeTvGrid.setTextColor(0xFF4C8DFF.toInt())
-            binding.btnModePcKeyboard.setTextColor(0x99FFFFFF.toInt())
+            binding.btnModeKeyboard.setTextColor(0x99FFFFFF.toInt())
             binding.onScreenKeyboard.visibility = View.VISIBLE
         } else {
             binding.btnModeTvGrid.setTextColor(0x99FFFFFF.toInt())
-            binding.btnModePcKeyboard.setTextColor(0xFF4C8DFF.toInt())
+            binding.btnModeKeyboard.setTextColor(0xFF4C8DFF.toInt())
             binding.onScreenKeyboard.visibility = View.GONE
             binding.etPassword.requestFocus()
         }

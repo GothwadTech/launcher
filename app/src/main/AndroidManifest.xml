@@ -47,10 +47,6 @@
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
-    <uses-permission
-        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        android:maxSdkVersion="29"
-        tools:ignore="ScopedStorage" />
     <!-- 7. Boot completed to launch on TV start and guard against OEM boot ads -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
@@ -122,11 +118,6 @@
             android:process=":watchdog"
             android:exported="false" />
 
-        <!-- Floating Taskbar & Quick Assist Panel Overlay Service (Display Over Other Apps) -->
-        <service
-            android:name=".service.FloatingTaskbarService"
-            android:exported="false" />
-
         <!-- Boot Receiver for TV Boot Auto-Start & OEM Boot Ad Shield -->
         <receiver
             android:name=".receiver.BootReceiver"
@@ -140,16 +131,5 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
-
-        <!-- FileProvider for secure file sharing in File Manager -->
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.fileprovider"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths" />
-        </provider>
     </application>
 </manifest>

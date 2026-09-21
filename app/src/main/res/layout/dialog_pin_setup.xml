@@ -107,7 +107,7 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Input Mode Selector (Remote / TV vs Keyboard / PC) -->
+        <!-- Input Mode Selector (On-Screen Keyboard vs Hardware Keyboard) -->
         <LinearLayout
             android:id="@+id/layout_input_mode_toggle"
             android:layout_width="wrap_content"
@@ -122,19 +122,19 @@
                 android:layout_height="32dp"
                 android:background="@drawable/bg_dialog_button"
                 android:paddingHorizontal="14dp"
-                android:text="Remote / TV Keypad"
+                android:text="On-Screen Keyboard"
                 android:textColor="#4C8DFF"
                 android:textSize="11sp"
                 android:textStyle="bold" />
 
             <Button
-                android:id="@+id/btn_mode_pc_keyboard"
+                android:id="@+id/btn_mode_keyboard"
                 android:layout_width="wrap_content"
                 android:layout_height="32dp"
                 android:layout_marginStart="8dp"
                 android:background="@drawable/bg_dialog_button"
                 android:paddingHorizontal="14dp"
-                android:text="Keyboard / PC"
+                android:text="Keyboard"
                 android:textColor="#99FFFFFF"
                 android:textSize="11sp"
                 android:textStyle="bold" />

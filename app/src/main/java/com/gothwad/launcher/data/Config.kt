@@ -78,9 +78,6 @@ data class LauncherConfig(
     val showAppLabels: Boolean = true,
     /** 0 = full, 1 = top only, 2 = bottom only, 3 = both, 4 = none */
     val scrimMode: Int = 0,
-    // ----- display density (DPI) -----
-    val useCustomDpi: Boolean = false,
-    val customDpi: Int = 0,
     // ----- behavior -----
     val launchOnBoot: Boolean = false,
     val autoCategoryOnInstall: Boolean = true,
@@ -90,30 +87,10 @@ data class LauncherConfig(
     val appLock: LockCredential = LockCredential(),
     val hiddenAppsLock: LockCredential = LockCredential(),
     val hiddenAppsRevealCode: String = "",
-    /** launcher mode: 0 = TV, 1 = PC Desktop */
-    val launcherMode: Int = MODE_TV,
-    // ----- PC Desktop settings -----
-    val pcWallpaper: Int = 0,
-    val pcUseCustomWallpaper: Boolean = false,
-    val pcUiScale: Float = 0.85f,
-    val pcIconSize: Int = 44,
-    val pcShowLabels: Boolean = true,
-    val pcDesktopOrder: List<String> = emptyList(),
-    val pcCustomLabels: Map<String, String> = emptyMap(),
-    val pcCustomIcons: Map<String, String> = emptyMap(),
-    val pcPinnedApps: List<String> = emptyList(),
-    val pcTaskbarHeight: Int = 44,
-    val pcTaskbarCenter: Boolean = false,
-    val pcOverlayTaskbarEnabled: Boolean = true,
-    val pcGridSpacing: Int = 12,
-    val pcSortOrder: Int = 0,
     // ----- Remote Button Mapping (Phase 5) -----
     val buttonMap: Map<Int, String> = emptyMap(),
     val buttonMapDefaultsApplied: Boolean = false,
 )
-
-const val MODE_TV = 0
-const val MODE_PC = 1
 
 const val LAYOUT_GRID = 0
 const val LAYOUT_CAROUSEL = 1
@@ -128,30 +105,16 @@ class ConfigStore(private val context: Context) {
     val flow: Flow<LauncherConfig> = context.dataStore.data.map { prefs ->
         prefs[key]?.let {
             runCatching { json.decodeFromString<LauncherConfig>(it) }.getOrNull()
-        } ?: LauncherConfig(
-            // On fresh install on a touch-first non-TV device, default to PC mode
-            launcherMode = if (isProbablyTouchDevice(context)) MODE_PC else MODE_TV
-        )
+        } ?: LauncherConfig()
     }
 
     suspend fun update(transform: (LauncherConfig) -> LauncherConfig) {
         context.dataStore.edit { prefs ->
             val current = prefs[key]?.let {
                 runCatching { json.decodeFromString<LauncherConfig>(it) }.getOrNull()
-            } ?: LauncherConfig(
-                launcherMode = if (isProbablyTouchDevice(context)) MODE_PC else MODE_TV
-            )
+            } ?: LauncherConfig()
             val updated = transform(current)
             prefs[key] = json.encodeToString(updated)
         }
-    }
-
-    private fun isProbablyTouchDevice(context: Context): Boolean {
-        val uiMode = context.resources.configuration.uiMode
-        val isTv = (uiMode and android.content.res.Configuration.UI_MODE_TYPE_MASK) ==
-            android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
-        val hasTouch = context.packageManager.hasSystemFeature("android.hardware.touchscreen")
-        val hasLeanback = context.packageManager.hasSystemFeature("android.software.leanback")
-        return !isTv && !hasLeanback && hasTouch
     }
 }

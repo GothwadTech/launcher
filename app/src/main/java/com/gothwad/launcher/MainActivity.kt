@@ -21,7 +21,6 @@ import com.gothwad.launcher.data.BackgroundMediaTracker
 import com.gothwad.launcher.data.BluetoothDeviceStatus
 import com.gothwad.launcher.data.ConfigStore
 import com.gothwad.launcher.data.LauncherConfig
-import com.gothwad.launcher.data.MODE_PC
 import com.gothwad.launcher.data.NetStatus
 import com.gothwad.launcher.data.bluetoothStatusFlow
 import com.gothwad.launcher.data.networkStatusFlow
@@ -105,27 +104,11 @@ class MainActivity : AppCompatActivity() {
     override fun attachBaseContext(newBase: Context) {
         val lang = newBase.getSharedPreferences(LOCALE_PREFS, MODE_PRIVATE)
             .getString(LOCALE_KEY, "").orEmpty()
-        val contextWithLocale = if (lang.isEmpty()) newBase else applyLocale(newBase, lang)
-        val contextWithDpi = com.gothwad.launcher.data.DpiHelper.wrapContext(contextWithLocale)
-        super.attachBaseContext(contextWithDpi)
-    }
-
-    override fun applyOverrideConfiguration(overrideConfiguration: Configuration?) {
-        if (overrideConfiguration != null && com.gothwad.launcher.data.DpiHelper.isCustomDpiEnabled(this)) {
-            overrideConfiguration.densityDpi = com.gothwad.launcher.data.DpiHelper.getCustomDpiValue(this)
-        }
-        super.applyOverrideConfiguration(overrideConfiguration)
+        super.attachBaseContext(if (lang.isEmpty()) newBase else applyLocale(newBase, lang))
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        if (com.gothwad.launcher.data.DpiHelper.isCustomDpiEnabled(this)) {
-            com.gothwad.launcher.data.DpiHelper.applyToResources(
-                resources,
-                com.gothwad.launcher.data.DpiHelper.getCustomDpiValue(this)
-            )
-        }
 
         // A home screen never exits on Back
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
@@ -210,44 +193,6 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         checkAccessibilityState()
-        if (currentConfig.launcherMode == MODE_PC && currentConfig.pcOverlayTaskbarEnabled &&
-            com.gothwad.launcher.service.FloatingTaskbarService.canDrawOverlays(this)) {
-            com.gothwad.launcher.service.FloatingTaskbarService.startIfEnabled(this)
-        }
-    }
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        setIntent(intent)
-        when (intent.action) {
-            "ACTION_SEARCH" -> {
-                SearchDialogFragment.newInstance(
-                    apps = allApps,
-                    config = currentConfig,
-                    onLaunch = { app -> handleAppLaunch(app) }
-                ).show(supportFragmentManager, SearchDialogFragment.TAG)
-            }
-            "ACTION_NOTIFICATIONS" -> {
-                com.gothwad.launcher.ui.dialogs.NotificationBottomSheetFragment.newInstance()
-                    .show(supportFragmentManager, com.gothwad.launcher.ui.dialogs.NotificationBottomSheetFragment.TAG)
-            }
-            "ACTION_SETTINGS" -> {
-                openSettingsDialog()
-            }
-            "ACTION_QUICK_SETTINGS" -> {
-                QuickDashboardDialogFragment.newInstance(
-                    net = currentNetStatus,
-                    bt = currentBtStatus,
-                    onOpenSettings = { openSettingsDialog() }
-                ).show(supportFragmentManager, QuickDashboardDialogFragment.TAG)
-            }
-            "OPEN_APP" -> {
-                val pkg = intent.getStringExtra("EXTRA_PKG")
-                if (!pkg.isNullOrEmpty()) {
-                    Actions.launchApp(this, pkg)
-                }
-            }
-        }
     }
 
     private fun checkAccessibilityState() {
@@ -259,27 +204,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupNavigation() {
-        val navHostFragment = supportFragmentManager
-            .findFragmentById(R.id.nav_host_fragment) as? NavHostFragment ?: return
-        val navController = navHostFragment.navController
-
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.CREATED) {
-                ConfigStore(this@MainActivity).flow.collectLatest { config ->
-                    val targetDest = if (config.launcherMode == MODE_PC) {
-                        R.id.pcLauncherFragment
-                    } else {
-                        R.id.tvLauncherFragment
-                    }
-
-                    if (navController.currentDestination?.id != targetDest) {
-                        val navGraph = navController.navInflater.inflate(R.navigation.nav_graph)
-                        navGraph.setStartDestination(targetDest)
-                        navController.graph = navGraph
-                    }
-                }
-            }
-        }
+        // NavHostFragment loads tvLauncherFragment as startDestination from nav_graph.xml
     }
 
     private fun setupStatusBar() {
@@ -351,8 +276,7 @@ class MainActivity : AppCompatActivity() {
                     currentFragment.applyWallpaper()
                 }
             },
-            onRerunWizard = { showSetupWizard() },
-            onModeSelected = { /* handled by ConfigStore */ }
+            onRerunWizard = { showSetupWizard() }
         ).show(supportFragmentManager, SettingsBottomSheetFragment.TAG)
     }
 
@@ -398,7 +322,7 @@ class MainActivity : AppCompatActivity() {
                         currentConfig = config
                         binding.mainStatusBar.applyConfig(config)
                         binding.mainStatusBar.visibility =
-                            if (config.launcherMode == MODE_PC || !config.showStatusBar) View.GONE else View.VISIBLE
+                            if (!config.showStatusBar) View.GONE else View.VISIBLE
                     }
                 }
 

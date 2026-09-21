@@ -32,7 +32,7 @@ class PinEntryDialogFragment : DialogFragment() {
     private val enteredDigits = StringBuilder()
     private val dotViews = mutableListOf<View>()
     private var isPasswordVisible: Boolean = false
-    private var inputModeTv: Boolean = true // true = on-screen grid, false = PC direct EditText
+    private var inputModeTv: Boolean = true // true = on-screen grid, false = direct EditText
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -239,7 +239,7 @@ class PinEntryDialogFragment : DialogFragment() {
             updateInputModeToggleUi()
         }
 
-        binding.btnModePcKeyboard.setOnClickListener {
+        binding.btnModeKeyboard.setOnClickListener {
             inputModeTv = false
             updateInputModeToggleUi()
         }
@@ -303,11 +303,11 @@ class PinEntryDialogFragment : DialogFragment() {
     private fun updateInputModeToggleUi() {
         if (inputModeTv) {
             binding.btnModeTvGrid.setTextColor(0xFF4C8DFF.toInt())
-            binding.btnModePcKeyboard.setTextColor(0x99FFFFFF.toInt())
+            binding.btnModeKeyboard.setTextColor(0x99FFFFFF.toInt())
             binding.onScreenKeyboard.visibility = View.VISIBLE
         } else {
             binding.btnModeTvGrid.setTextColor(0x99FFFFFF.toInt())
-            binding.btnModePcKeyboard.setTextColor(0xFF4C8DFF.toInt())
+            binding.btnModeKeyboard.setTextColor(0xFF4C8DFF.toInt())
             binding.onScreenKeyboard.visibility = View.GONE
             binding.etPassword.requestFocus()
         }

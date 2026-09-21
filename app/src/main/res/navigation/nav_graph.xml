@@ -11,10 +11,4 @@
         android:label="TvLauncherFragment"
         tools:layout="@layout/fragment_tv_launcher" />
 
-    <fragment
-        android:id="@+id/pcLauncherFragment"
-        android:name="com.gothwad.launcher.ui.pc.PcLauncherFragment"
-        android:label="PcLauncherFragment"
-        tools:layout="@layout/fragment_pc_launcher" />
-
 </navigation>
