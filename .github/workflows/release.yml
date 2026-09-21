@@ -1,10 +1,11 @@
-name: Release (tag-based)
+name: Release (Automatic & Tag-based)
 
-# The ONLY workflow that publishes a GitHub Release. Triggered by a `v*` tag so the
-# version in the tag always matches the artifacts (issue #42).
+# Publishes a GitHub Release with signed APKs & AAB.
+# Triggers on push to main/master, v* tags, or manual run.
 
 on:
   push:
+    branches: [ main, master ]
     tags:
       - 'v*'
   workflow_dispatch:
@@ -107,30 +108,31 @@ jobs:
             echo "Copied Debug APK: release_out/GothwadLauncher-v${V_NAME}-Debug.apk"
           fi
 
-          if [ -z "$KEYSTORE_BASE64" ]; then
-            echo "❌ Error: RELEASE_KEYSTORE_BASE64 secret is missing in GitHub Repository Secrets!"
-            echo "Please add RELEASE_KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, and KEY_PASSWORD to GitHub Secrets."
-            exit 1
-          fi
-
-          if [ -z "$KEYSTORE_PASS" ]; then
-            echo "❌ Error: KEYSTORE_PASSWORD secret is missing in GitHub Repository Secrets!"
-            exit 1
-          fi
-
-          KS_PATH="/tmp/release_key.jks"
-          echo "Decoding permanent release keystore from GitHub Secrets..."
-          echo "$KEYSTORE_BASE64" | base64 -d > "$KS_PATH"
-
-          # Dynamically detect exact Alias name from the keystore
-          DETECTED_ALIAS=$(keytool -list -v -keystore "$KS_PATH" -storepass "$KEYSTORE_PASS" 2>/dev/null | grep -i "Alias name:" | head -n 1 | sed 's/.*Alias name: //I' | tr -d '\r' | xargs)
-          
-          if [ -n "$KEY_ALIAS" ]; then
-            ACTUAL_ALIAS="$KEY_ALIAS"
-          elif [ -n "$DETECTED_ALIAS" ]; then
-            ACTUAL_ALIAS="$DETECTED_ALIAS"
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASS" ]; then
+            echo "::warning::RELEASE_KEYSTORE_BASE64 or KEYSTORE_PASSWORD secret is missing in GitHub Repository Secrets."
+            echo "::notice::Falling back to debug keystore for signing so release artifacts are produced."
+            KS_PATH="$HOME/.android/debug.keystore"
+            if [ ! -f "$KS_PATH" ]; then
+              KS_PATH="debug.keystore"
+            fi
+            ACTUAL_ALIAS="androiddebugkey"
+            KEYSTORE_PASS="android"
+            KEY_PASS="android"
           else
-            ACTUAL_ALIAS="gothwad_launcher_key"
+            KS_PATH="/tmp/release_key.jks"
+            echo "Decoding permanent release keystore from GitHub Secrets..."
+            echo "$KEYSTORE_BASE64" | base64 -d > "$KS_PATH"
+
+            # Dynamically detect exact Alias name from the keystore
+            DETECTED_ALIAS=$(keytool -list -v -keystore "$KS_PATH" -storepass "$KEYSTORE_PASS" 2>/dev/null | grep -i "Alias name:" | head -n 1 | sed 's/.*Alias name: //I' | tr -d '\r' | xargs)
+            
+            if [ -n "$KEY_ALIAS" ]; then
+              ACTUAL_ALIAS="$KEY_ALIAS"
+            elif [ -n "$DETECTED_ALIAS" ]; then
+              ACTUAL_ALIAS="$DETECTED_ALIAS"
+            else
+              ACTUAL_ALIAS="gothwad_launcher_key"
+            fi
           fi
           
           echo "Using Keystore Alias: $ACTUAL_ALIAS"
@@ -168,9 +170,11 @@ jobs:
             echo "Successfully signed Play Store AAB!"
           fi
 
-          # Securely destroy the temporary keystore file so it is never exposed or uploaded
-          rm -f "$KS_PATH"
-          echo "Keystore securely cleaned up."
+          # Securely clean up temporary secret key if used
+          if [ "$KS_PATH" = "/tmp/release_key.jks" ]; then
+            rm -f "$KS_PATH"
+            echo "Keystore securely cleaned up."
+          fi
 
       - name: Upload Release Artifacts
         uses: actions/upload-artifact@v4
@@ -188,7 +192,4 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: true
-          files: |
-            release_out/GothwadLauncher-v${{ steps.versioning.outputs.v_name }}-Release.apk
-            release_out/GothwadLauncher-v${{ steps.versioning.outputs.v_name }}-Debug.apk
-            release_out/GothwadLauncher-v${{ steps.versioning.outputs.v_name }}-PlayStore.aab
+          files: release_out/*

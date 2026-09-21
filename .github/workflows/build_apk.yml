@@ -5,8 +5,6 @@ name: Build APKs & AAB (artifacts)
 # `action-gh-release` collide and doubled every build (issue #42).
 
 on:
-  push:
-    branches: [ main, master ]
   pull_request:
   workflow_dispatch:
     inputs:
