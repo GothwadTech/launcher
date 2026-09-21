@@ -10,44 +10,24 @@ import android.view.View
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.NavHostFragment
 import com.gothwad.launcher.data.AppEntry
 import com.gothwad.launcher.data.AppRepository
-import com.gothwad.launcher.data.BackgroundMediaState
-import com.gothwad.launcher.data.BackgroundMediaTracker
-import com.gothwad.launcher.data.BluetoothDeviceStatus
 import com.gothwad.launcher.data.ConfigStore
 import com.gothwad.launcher.ui.AppLockGate
 import com.gothwad.launcher.data.LauncherConfig
 import com.gothwad.launcher.data.LockSecurity
-import com.gothwad.launcher.data.ProcessHeartbeat
 import com.gothwad.launcher.data.SelfHealGuard
-import com.gothwad.launcher.data.NetStatus
-import com.gothwad.launcher.data.bluetoothStatusFlow
-import com.gothwad.launcher.data.networkStatusFlow
 import com.gothwad.launcher.databinding.ActivityMainBinding
-import com.gothwad.launcher.service.LauncherAccessibilityService
-import com.gothwad.launcher.service.NotificationManagerBridge
-import com.gothwad.launcher.ui.dialogs.BackgroundMediaDialogFragment
-import com.gothwad.launcher.ui.dialogs.NotificationBottomSheetFragment
-import com.gothwad.launcher.ui.dialogs.SearchDialogFragment
-import com.gothwad.launcher.ui.dialogs.SettingsBottomSheetFragment
-import com.gothwad.launcher.ui.dialogs.SetupWizardDialogFragment
+import com.gothwad.launcher.ui.MainStatusBarController
 import com.gothwad.launcher.ui.tv.TvLauncherFragment
 import android.view.KeyEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
@@ -59,18 +39,8 @@ class MainActivity : AppCompatActivity() {
         private set
 
     private var currentConfig: LauncherConfig = LauncherConfig()
-
-    // Clock formatters are cached: this loop runs once per second, 24x7 on a TV, and used
-    // to allocate two SimpleDateFormat + Date objects every tick (issue #32).
-    private var clockFormatter: SimpleDateFormat? = null
-    private var clockPatternInUse: String? = null
-
-    /** Debounce for package add/remove bursts (issue #33). */
     private var rescanJob: Job? = null
-
-    private var currentNetStatus: NetStatus = NetStatus()
-    private var currentBtStatus: BluetoothDeviceStatus = BluetoothDeviceStatus()
-    private var currentMediaState: BackgroundMediaState = BackgroundMediaState()
+    private var statusBarController: MainStatusBarController? = null
 
     /** Written from an IO coroutine, read from the UI thread - keep it volatile. */
     @Volatile
@@ -208,8 +178,14 @@ class MainActivity : AppCompatActivity() {
 
         setupA11yRecoveryBanner()
         setupNavigation()
-        setupStatusBar()
-        observeStatusBarData()
+        statusBarController = MainStatusBarController(
+            activity = this,
+            binding = binding,
+            getCurrentConfig = { currentConfig },
+            onConfigChanged = { currentConfig = it },
+            getAllApps = { allApps },
+            onAppLaunch = { handleAppLaunch(it) }
+        ).also { it.setup() }
         refreshAppsList()
     }
 
@@ -250,98 +226,6 @@ class MainActivity : AppCompatActivity() {
         // NavHostFragment loads tvLauncherFragment as startDestination from nav_graph.xml
     }
 
-    private fun setupStatusBar() {
-        binding.mainStatusBar.apply {
-            onHomeClick = {
-                val navHost = supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
-                val currentFrag = navHost?.childFragmentManager?.fragments?.firstOrNull()
-                if (currentFrag is TvLauncherFragment) {
-                    currentFrag.scrollToTop()
-                }
-            }
-
-            onSearchClick = {
-                SearchDialogFragment.newInstance(
-                    apps = allApps,
-                    config = currentConfig,
-                    onLaunch = { app -> handleAppLaunch(app) }
-                ).show(supportFragmentManager, SearchDialogFragment.TAG)
-            }
-
-            onBluetoothClick = {
-                Actions.openBluetoothSettings(this@MainActivity)
-            }
-
-            onBackgroundMediaClick = {
-                BackgroundMediaDialogFragment.newInstance(
-                    state = currentMediaState
-                ).show(supportFragmentManager, BackgroundMediaDialogFragment.TAG)
-            }
-
-            onNetworkClick = {
-                Actions.openNetworkSettings(this@MainActivity)
-            }
-
-            onVpnClick = {
-                // Opens the user's chosen VPN app when configured, else system VPN settings.
-                val pkg = currentConfig.vpnApp
-                if (pkg.isNotEmpty() && Actions.isInstalled(this@MainActivity, pkg)) {
-                    Actions.launchApp(this@MainActivity, pkg)
-                } else {
-                    Actions.openVpnSettings(this@MainActivity)
-                }
-            }
-
-            onNotificationsClick = {
-                NotificationBottomSheetFragment.newInstance()
-                    .show(supportFragmentManager, NotificationBottomSheetFragment.TAG)
-            }
-
-            onSettingsClick = {
-                openSettingsDialog()
-            }
-        }
-    }
-
-    /**
-     * BLUETOOTH_CONNECT is a runtime permission on Android 12+. Without it the remote
-     * battery / device name can never be read, so ask for it the first time the user opens
-     * a screen that shows Bluetooth information (previously it was only *checked*).
-     */
-    private fun ensureBluetoothPermission() {
-        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S) return
-        val granted = ContextCompat.checkSelfPermission(
-            this,
-            android.Manifest.permission.BLUETOOTH_CONNECT
-        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-        if (granted) return
-        runCatching { bluetoothPermissionLauncher.launch(android.Manifest.permission.BLUETOOTH_CONNECT) }
-    }
-
-    private fun openSettingsDialog() {
-        SettingsBottomSheetFragment.newInstance(
-            config = currentConfig,
-            apps = allApps,
-            onWallpaperChanged = {
-                val navHostFragment = supportFragmentManager
-                    .findFragmentById(R.id.nav_host_fragment) as? NavHostFragment
-                val currentFragment = navHostFragment?.childFragmentManager?.fragments?.firstOrNull()
-                if (currentFragment is TvLauncherFragment) {
-                    currentFragment.applyWallpaper()
-                }
-            },
-            onRerunWizard = { showSetupWizard() }
-        ).show(supportFragmentManager, SettingsBottomSheetFragment.TAG)
-    }
-
-    private fun showSetupWizard() {
-        SetupWizardDialogFragment.newInstance {
-            lifecycleScope.launch {
-                ConfigStore(this@MainActivity).update { it.copy(setupDone = true) }
-            }
-        }.show(supportFragmentManager, SetupWizardDialogFragment.TAG)
-    }
-
     private fun handleAppLaunch(app: AppEntry) {
         // App lock & hidden vault gate
         AppLockGate.evaluate(
@@ -350,93 +234,6 @@ class MainActivity : AppCompatActivity() {
             config = currentConfig,
         ) {
             Actions.launchApp(this, app.pkg)
-        }
-    }
-
-
-    private fun observeStatusBarData() {
-        val configStore = ConfigStore(this)
-
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                // 1. Config flow
-                launch {
-                    configStore.flow.collectLatest { config ->
-                        currentConfig = config
-
-                        // Keep the memory guardian and the density adapter in sync with
-                        // the user's preferences (both default to the safe/off choice).
-                        com.gothwad.launcher.data.AppLaunchTracker.aggressiveTrimEnabled =
-                            config.aggressiveMemoryTrim
-                        if (com.gothwad.launcher.ui.DensityAdapter.respectSystemFontScale != config.respectSystemFontScale) {
-                            com.gothwad.launcher.ui.DensityAdapter.respectSystemFontScale =
-                                config.respectSystemFontScale
-                            runCatching { com.gothwad.launcher.ui.DensityAdapter.apply(this@MainActivity) }
-                        }
-
-                        binding.mainStatusBar.applyConfig(config)
-                        binding.mainStatusBar.visibility =
-                            if (!config.showStatusBar) View.GONE else View.VISIBLE
-                        binding.mainStatusBar.setVpnStatus(currentNetStatus.vpn, config.showVpnButton)
-                    }
-                }
-
-                // 2. Network status flow
-                launch {
-                    networkStatusFlow(this@MainActivity).collectLatest { net ->
-                        currentNetStatus = net
-                        binding.mainStatusBar.setNetStatus(net)
-                        binding.mainStatusBar.setVpnStatus(net.vpn, currentConfig.showVpnButton)
-                    }
-                }
-
-                // 3. Bluetooth status flow
-                launch {
-                    bluetoothStatusFlow(this@MainActivity).flowOn(Dispatchers.IO).collectLatest { bt ->
-                        currentBtStatus = bt
-                        binding.mainStatusBar.setBluetoothStatus(bt)
-                    }
-                }
-
-                // 4. Background media flow
-                launch {
-                    BackgroundMediaTracker.backgroundMediaFlow(this@MainActivity).collectLatest { media ->
-                        currentMediaState = media
-                        binding.mainStatusBar.setBackgroundMedia(media)
-                    }
-                }
-
-                // 5. Notifications flow
-                launch {
-                    NotificationManagerBridge.notifications.collectLatest { notifs ->
-                        val hasPermission = NotificationManagerBridge.isServiceConnected.value
-                        binding.mainStatusBar.setNotificationCount(notifs.size, hasPermission)
-                    }
-                }
-
-                // 6. Clock & Date loop (Format: 16 Sep • Wed • 01:26 AM)
-                launch {
-                    var heartbeatTick = 0
-                    while (isActive) {
-                        // Publish a foreground heartbeat every ~5s (cheap, tiny file) so the
-                        // watchdog can tell "process alive" from "process dead/hung".
-                        if (heartbeatTick++ % 5 == 0) {
-                            ProcessHeartbeat.touch(this@MainActivity, foreground = true)
-                        }
-                        val now = Date()
-                        val timePattern = if (currentConfig.h24) PATTERN_24H else PATTERN_12H
-                        if (clockPatternInUse != timePattern || clockFormatter == null) {
-                            clockFormatter = SimpleDateFormat(timePattern, Locale.ENGLISH)
-                            clockPatternInUse = timePattern
-                        }
-                        val dateFormatted = dateFormatter.format(now)
-                        val timeFormatted = clockFormatter!!.format(now)
-                        val fullDateTime = "$dateFormatted • $timeFormatted"
-                        binding.mainStatusBar.setClockTime(fullDateTime)
-                        delay(1000)
-                    }
-                }
-            }
         }
     }
 
@@ -457,11 +254,6 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val RESCAN_DEBOUNCE_MS = 600L
-        private const val PATTERN_24H = "HH:mm"
-        private const val PATTERN_12H = "hh:mm a"
-
-        /** Main-thread only (see the status bar clock loop). */
-        private val dateFormatter = SimpleDateFormat("d MMM • EEE", Locale.ENGLISH)
 
         /**
          * Applies a locale for the current context. Kept as the single entry point for a

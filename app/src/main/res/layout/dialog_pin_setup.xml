@@ -107,7 +107,7 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Input Mode Selector (On-Screen Keyboard vs Hardware Keyboard) -->
+        <!-- Input Mode Selector -->
         <LinearLayout
             android:id="@+id/layout_input_mode_toggle"
             android:layout_width="wrap_content"
@@ -168,168 +168,36 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal">
-
-                    <Button
-                        android:id="@+id/btn_key_1"
-                        android:layout_width="0dp"
-                        android:layout_height="50dp"
-                        android:layout_margin="3dp"
-                        android:layout_weight="1"
-                        android:background="@drawable/bg_dialog_button"
-                        android:text="1"
-                        android:textColor="#FFFFFF"
-                        android:textSize="19sp"
-                        android:textStyle="bold" />
-
-                    <Button
-                        android:id="@+id/btn_key_2"
-                        android:layout_width="0dp"
-                        android:layout_height="50dp"
-                        android:layout_margin="3dp"
-                        android:layout_weight="1"
-                        android:background="@drawable/bg_dialog_button"
-                        android:text="2"
-                        android:textColor="#FFFFFF"
-                        android:textSize="19sp"
-                        android:textStyle="bold" />
-
-                    <Button
-                        android:id="@+id/btn_key_3"
-                        android:layout_width="0dp"
-                        android:layout_height="50dp"
-                        android:layout_margin="3dp"
-                        android:layout_weight="1"
-                        android:background="@drawable/bg_dialog_button"
-                        android:text="3"
-                        android:textColor="#FFFFFF"
-                        android:textSize="19sp"
-                        android:textStyle="bold" />
+                    <Button android:id="@+id/btn_key_1" android:layout_width="0dp" android:layout_height="50dp" android:layout_margin="3dp" android:layout_weight="1" android:background="@drawable/bg_dialog_button" android:text="1" android:textColor="#FFFFFF" android:textSize="19sp" android:textStyle="bold" />
+                    <Button android:id="@+id/btn_key_2" android:layout_width="0dp" android:layout_height="50dp" android:layout_margin="3dp" android:layout_weight="1" android:background="@drawable/bg_dialog_button" android:text="2" android:textColor="#FFFFFF" android:textSize="19sp" android:textStyle="bold" />
+                    <Button android:id="@+id/btn_key_3" android:layout_width="0dp" android:layout_height="50dp" android:layout_margin="3dp" android:layout_weight="1" android:background="@drawable/bg_dialog_button" android:text="3" android:textColor="#FFFFFF" android:textSize="19sp" android:textStyle="bold" />
                 </LinearLayout>
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal">
-
-                    <Button
-                        android:id="@+id/btn_key_4"
-                        android:layout_width="0dp"
-                        android:layout_height="50dp"
-                        android:layout_margin="3dp"
-                        android:layout_weight="1"
-                        android:background="@drawable/bg_dialog_button"
-                        android:text="4"
-                        android:textColor="#FFFFFF"
-                        android:textSize="19sp"
-                        android:textStyle="bold" />
-
-                    <Button
-                        android:id="@+id/btn_key_5"
-                        android:layout_width="0dp"
-                        android:layout_height="50dp"
-                        android:layout_margin="3dp"
-                        android:layout_weight="1"
-                        android:background="@drawable/bg_dialog_button"
-                        android:text="5"
-                        android:textColor="#FFFFFF"
-                        android:textSize="19sp"
-                        android:textStyle="bold" />
-
-                    <Button
-                        android:id="@+id/btn_key_6"
-                        android:layout_width="0dp"
-                        android:layout_height="50dp"
-                        android:layout_margin="3dp"
-                        android:layout_weight="1"
-                        android:background="@drawable/bg_dialog_button"
-                        android:text="6"
-                        android:textColor="#FFFFFF"
-                        android:textSize="19sp"
-                        android:textStyle="bold" />
+                    <Button android:id="@+id/btn_key_4" android:layout_width="0dp" android:layout_height="50dp" android:layout_margin="3dp" android:layout_weight="1" android:background="@drawable/bg_dialog_button" android:text="4" android:textColor="#FFFFFF" android:textSize="19sp" android:textStyle="bold" />
+                    <Button android:id="@+id/btn_key_5" android:layout_width="0dp" android:layout_height="50dp" android:layout_margin="3dp" android:layout_weight="1" android:background="@drawable/bg_dialog_button" android:text="5" android:textColor="#FFFFFF" android:textSize="19sp" android:textStyle="bold" />
+                    <Button android:id="@+id/btn_key_6" android:layout_width="0dp" android:layout_height="50dp" android:layout_margin="3dp" android:layout_weight="1" android:background="@drawable/bg_dialog_button" android:text="6" android:textColor="#FFFFFF" android:textSize="19sp" android:textStyle="bold" />
                 </LinearLayout>
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal">
-
-                    <Button
-                        android:id="@+id/btn_key_7"
-                        android:layout_width="0dp"
-                        android:layout_height="50dp"
-                        android:layout_margin="3dp"
-                        android:layout_weight="1"
-                        android:background="@drawable/bg_dialog_button"
-                        android:text="7"
-                        android:textColor="#FFFFFF"
-                        android:textSize="19sp"
-                        android:textStyle="bold" />
-
-                    <Button
-                        android:id="@+id/btn_key_8"
-                        android:layout_width="0dp"
-                        android:layout_height="50dp"
-                        android:layout_margin="3dp"
-                        android:layout_weight="1"
-                        android:background="@drawable/bg_dialog_button"
-                        android:text="8"
-                        android:textColor="#FFFFFF"
-                        android:textSize="19sp"
-                        android:textStyle="bold" />
-
-                    <Button
-                        android:id="@+id/btn_key_9"
-                        android:layout_width="0dp"
-                        android:layout_height="50dp"
-                        android:layout_margin="3dp"
-                        android:layout_weight="1"
-                        android:background="@drawable/bg_dialog_button"
-                        android:text="9"
-                        android:textColor="#FFFFFF"
-                        android:textSize="19sp"
-                        android:textStyle="bold" />
+                    <Button android:id="@+id/btn_key_7" android:layout_width="0dp" android:layout_height="50dp" android:layout_margin="3dp" android:layout_weight="1" android:background="@drawable/bg_dialog_button" android:text="7" android:textColor="#FFFFFF" android:textSize="19sp" android:textStyle="bold" />
+                    <Button android:id="@+id/btn_key_8" android:layout_width="0dp" android:layout_height="50dp" android:layout_margin="3dp" android:layout_weight="1" android:background="@drawable/bg_dialog_button" android:text="8" android:textColor="#FFFFFF" android:textSize="19sp" android:textStyle="bold" />
+                    <Button android:id="@+id/btn_key_9" android:layout_width="0dp" android:layout_height="50dp" android:layout_margin="3dp" android:layout_weight="1" android:background="@drawable/bg_dialog_button" android:text="9" android:textColor="#FFFFFF" android:textSize="19sp" android:textStyle="bold" />
                 </LinearLayout>
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal">
-
-                    <Button
-                        android:id="@+id/btn_key_clear"
-                        android:layout_width="0dp"
-                        android:layout_height="50dp"
-                        android:layout_margin="3dp"
-                        android:layout_weight="1"
-                        android:background="@drawable/bg_dialog_button"
-                        android:text="C"
-                        android:textColor="#FF5252"
-                        android:textSize="17sp"
-                        android:textStyle="bold" />
-
-                    <Button
-                        android:id="@+id/btn_key_0"
-                        android:layout_width="0dp"
-                        android:layout_height="50dp"
-                        android:layout_margin="3dp"
-                        android:layout_weight="1"
-                        android:background="@drawable/bg_dialog_button"
-                        android:text="0"
-                        android:textColor="#FFFFFF"
-                        android:textSize="19sp"
-                        android:textStyle="bold" />
-
-                    <Button
-                        android:id="@+id/btn_key_backspace"
-                        android:layout_width="0dp"
-                        android:layout_height="50dp"
-                        android:layout_margin="3dp"
-                        android:layout_weight="1"
-                        android:background="@drawable/bg_dialog_button"
-                        android:text="⌫"
-                        android:textColor="#FFFFFF"
-                        android:textSize="17sp"
-                        android:textStyle="bold" />
+                    <Button android:id="@+id/btn_key_clear" android:layout_width="0dp" android:layout_height="50dp" android:layout_margin="3dp" android:layout_weight="1" android:background="@drawable/bg_dialog_button" android:text="C" android:textColor="#FF5252" android:textSize="17sp" android:textStyle="bold" />
+                    <Button android:id="@+id/btn_key_0" android:layout_width="0dp" android:layout_height="50dp" android:layout_margin="3dp" android:layout_weight="1" android:background="@drawable/bg_dialog_button" android:text="0" android:textColor="#FFFFFF" android:textSize="19sp" android:textStyle="bold" />
+                    <Button android:id="@+id/btn_key_backspace" android:layout_width="0dp" android:layout_height="50dp" android:layout_margin="3dp" android:layout_weight="1" android:background="@drawable/bg_dialog_button" android:text="⌫" android:textColor="#FFFFFF" android:textSize="17sp" android:textStyle="bold" />
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
@@ -378,7 +246,6 @@
                     android:padding="6dp" />
             </LinearLayout>
 
-            <!-- On-Screen QWERTY Keyboard for TV remote navigation -->
             <com.gothwad.launcher.ui.view.OnScreenKeyboardView
                 android:id="@+id/on_screen_keyboard"
                 android:layout_width="match_parent"
@@ -398,7 +265,6 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Dialog Action Buttons -->
         <Button
             android:id="@+id/btn_cancel"
             android:layout_width="wrap_content"

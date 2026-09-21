@@ -122,8 +122,6 @@ data class LauncherConfig(
 )
 
 const val LAYOUT_GRID = 0
-const val LAYOUT_CAROUSEL = 1
-const val LAYOUT_DOCK = 2
 
 private val Context.dataStore by preferencesDataStore(name = "launcher_config")
 

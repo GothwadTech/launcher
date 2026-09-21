@@ -24,7 +24,6 @@ import com.gothwad.launcher.data.CategoryAssigner
 import com.gothwad.launcher.data.ConfigStore
 import com.gothwad.launcher.data.GAP_SIZES
 import com.gothwad.launcher.data.ICON_SIZES
-import com.gothwad.launcher.data.LAYOUT_GRID
 import com.gothwad.launcher.data.LauncherConfig
 import com.gothwad.launcher.data.UI_SCALES
 import com.gothwad.launcher.databinding.FragmentTvLauncherBinding
@@ -85,32 +84,23 @@ class TvLauncherFragment : Fragment() {
     }
 
     private fun calculateCardDimensions(
-        isGrid: Boolean,
         gapPx: Int,
         density: Float,
         columns: Int = gridSpanCount(),
     ): Pair<Int, Int> {
-        return if (isGrid) {
-            val screenWidthPx = resources.displayMetrics.widthPixels
-            val horizontalPaddingPx = (48 * 2 * density).toInt() // 48dp on each side
-            val availableWidthPx = screenWidthPx - horizontalPaddingPx - ((columns - 1) * gapPx)
-            val cardWidth = (availableWidthPx / columns).coerceAtLeast((60 * density).toInt())
-            val cardHeight = (cardWidth * 9f / 16f).toInt()
-            Pair(cardWidth, cardHeight)
-        } else {
-            val defaultWidthDp = ICON_SIZES.getOrElse(currentConfig.iconScale.coerceIn(0, ICON_SIZES.size - 1)) { ICON_SIZES[2] }
-            val widthPx = (defaultWidthDp * density * uiScaleMultiplier()).toInt()
-            val heightPx = (widthPx * 9f / 16f).toInt()
-            Pair(widthPx, heightPx)
-        }
+        val screenWidthPx = resources.displayMetrics.widthPixels
+        val horizontalPaddingPx = (48 * 2 * density).toInt() // 48dp on each side
+        val availableWidthPx = screenWidthPx - horizontalPaddingPx - ((columns - 1) * gapPx)
+        val cardWidth = (availableWidthPx / columns).coerceAtLeast((60 * density).toInt())
+        val cardHeight = (cardWidth * 9f / 16f).toInt()
+        return Pair(cardWidth, cardHeight)
     }
 
     private fun setupRecyclerView() {
         val density = resources.displayMetrics.density
-        val isGrid = currentConfig.layout == LAYOUT_GRID
         val gapPx = (GAP_SIZES.getOrElse(currentConfig.spacing.coerceIn(0, GAP_SIZES.size - 1)) { GAP_SIZES[2] } * density).toInt()
         val spanCount = gridSpanCount()
-        val (defaultWidthPx, defaultHeightPx) = calculateCardDimensions(isGrid, gapPx, density, spanCount)
+        val (defaultWidthPx, defaultHeightPx) = calculateCardDimensions(gapPx, density, spanCount)
         val defaultRadiusPx = (CORNER_RADII.getOrElse(currentConfig.cornerRadius.coerceIn(0, CORNER_RADII.size - 1)) { CORNER_RADII[2] } * density)
         val accentColor = ACCENTS.getOrElse(currentConfig.accent.coerceIn(0, ACCENTS.size - 1)) { ACCENTS[0] }
         val accentArgb = accentColor
@@ -124,7 +114,6 @@ class TvLauncherFragment : Fragment() {
             accentColor = accentArgb,
             showCategoryNames = currentConfig.showCategoryNames,
             showAppLabels = currentConfig.showAppLabels,
-            isGridMode = isGrid,
             gridSpanCount = spanCount,
             lockedPackages = currentConfig.lockedApps,
             movingPackage = null,
@@ -269,10 +258,9 @@ class TvLauncherFragment : Fragment() {
 
     private fun updateDimensionsAndStyling() {
         val density = resources.displayMetrics.density
-        val isGrid = currentConfig.layout == LAYOUT_GRID
         val gapPx = (GAP_SIZES.getOrElse(currentConfig.spacing.coerceIn(0, GAP_SIZES.size - 1)) { GAP_SIZES[2] } * density).toInt()
         val spanCount = gridSpanCount()
-        val (widthPx, heightPx) = calculateCardDimensions(isGrid, gapPx, density, spanCount)
+        val (widthPx, heightPx) = calculateCardDimensions(gapPx, density, spanCount)
         val radiusPx = (CORNER_RADII.getOrElse(currentConfig.cornerRadius.coerceIn(0, CORNER_RADII.size - 1)) { CORNER_RADII[2] } * density)
         val accentColor = ACCENTS.getOrElse(currentConfig.accent.coerceIn(0, ACCENTS.size - 1)) { ACCENTS[0] }
         val accentArgb = accentColor
@@ -285,7 +273,6 @@ class TvLauncherFragment : Fragment() {
             accent = accentArgb,
             categoryNames = currentConfig.showCategoryNames,
             appLabels = currentConfig.showAppLabels,
-            gridMode = isGrid,
             spanCount = spanCount,
             locked = currentConfig.lockedApps,
             moving = null

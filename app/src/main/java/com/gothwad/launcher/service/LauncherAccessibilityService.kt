@@ -19,7 +19,7 @@ import com.gothwad.launcher.data.ConfigStore
 import com.gothwad.launcher.data.LauncherConfig
 import com.gothwad.launcher.data.LockCredential
 import com.gothwad.launcher.data.LockSecurity
-import com.gothwad.launcher.ui.view.SystemLockOverlayView
+import com.gothwad.launcher.ui.view.AppLockOverlayView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -45,7 +45,7 @@ class LauncherAccessibilityService : AccessibilityService() {
     private var cachedConfig: LauncherConfig = LauncherConfig()
 
     // Overlay state for system-wide app lock
-    private var currentLockOverlay: SystemLockOverlayView? = null
+    private var currentLockOverlay: AppLockOverlayView? = null
     @Volatile
     private var pendingLockedPkg: String? = null
 
@@ -195,7 +195,7 @@ class LauncherAccessibilityService : AccessibilityService() {
 
         pendingLockedPkg = pkg
 
-        currentLockOverlay = SystemLockOverlayView(
+        currentLockOverlay = AppLockOverlayView(
             context = this@LauncherAccessibilityService,
             credential = credential,
             title = title,
@@ -292,72 +292,13 @@ class LauncherAccessibilityService : AccessibilityService() {
          * JioTV / Airtel Xstream / Tata Play Binge from this launcher was instantly
          * "corrected" back to Home: those apps could never be opened.
          */
-        val STOCK_LAUNCHERS = setOf(
-            // Google TV / Android TV
-            "com.google.android.apps.tv.launcherx",
-            "com.google.android.tvlauncher",
-            "com.google.android.tungsten.setupwraith",
-            // JioFiber / Jio STB launchers
-            "com.jio.media.stblauncher",
-            "com.jio.media.jiohome",
-            "com.ril.jio.stb",
-            // Airtel Xstream STB launchers
-            "com.airtel.smartbox",
-            "tv.airtel.smartbox.launcher",
-            "com.airtel.tv.launcher",
-            // Tata Play / Dish / D2H / regional operator launchers
-            "com.tatasky.stb",
-            "com.dishtv.smrt",
-            "com.d2h.stream",
-            "com.nes.tvlauncher",
-            "com.sdmc.launcher",
-            // Chipset / OEM TV launchers
-            "com.geniatech.launcher",
-            "com.amlogic.tvlauncher",
-            "com.realtek.tvlauncher",
-            "com.amazon.tv.launcher",
-            "com.amazon.firehomestarter",
-            "com.xiaomi.mitv.tvhome",
-            "com.mitv.tvhome",
-            "com.hisense.tv.launcher",
-            "com.droidlogic.tv.launcher"
-        )
+        val STOCK_LAUNCHERS get() = StockLauncherDetector.STOCK_LAUNCHERS
 
-        /** Cache of packages that currently hold the system HOME role (checked per event is too costly). */
-        @Volatile
-        private var homeHandlerCache: Pair<Long, Set<String>> = 0L to emptySet()
-
-        /** Packages that resolve the CATEGORY_HOME intent right now (60s cache). */
-        private fun homeHandlerPackages(context: Context): Set<String> {
-            val (stamp, cached) = homeHandlerCache
-            val now = android.os.SystemClock.elapsedRealtime()
-            if (now - stamp < 60_000L && cached.isNotEmpty()) return cached
-
-            val packages = runCatching {
-                val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
-                context.packageManager.queryIntentActivities(intent, 0)
-                    .mapNotNull { it.activityInfo?.packageName }
-                    .toSet()
-            }.getOrDefault(emptySet())
-
-            homeHandlerCache = now to packages
-            return packages
-        }
-
-        /** Exact-match check against the curated list (kept for callers without a Context). */
         fun isStockTvLauncher(pkg: String): Boolean =
-            STOCK_LAUNCHERS.any { it.equals(pkg, ignoreCase = true) }
+            StockLauncherDetector.isStockTvLauncher(pkg)
 
-        /**
-         * As above, but also treats any other installed package that currently handles the
-         * HOME intent as a stock launcher. This catches OEM launchers that are not in the
-         * curated list without ever mis-classifying a normal app as a launcher.
-         */
-        fun isStockTvLauncher(context: Context, pkg: String): Boolean {
-            if (pkg.equals(context.packageName, ignoreCase = true)) return false
-            if (isStockTvLauncher(pkg)) return true
-            return homeHandlerPackages(context).any { it.equals(pkg, ignoreCase = true) }
-        }
+        fun isStockTvLauncher(context: Context, pkg: String): Boolean =
+            StockLauncherDetector.isStockTvLauncher(context, pkg)
 
         fun launchHome(context: Context) {
             val intent = Intent(context, MainActivity::class.java).apply {

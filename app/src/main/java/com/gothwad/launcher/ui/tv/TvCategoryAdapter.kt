@@ -41,8 +41,6 @@ class TvCategoryAdapter(
     private var accentColor: Int,
     private var showCategoryNames: Boolean,
     private var showAppLabels: Boolean,
-    private var isGridMode: Boolean = true,
-    /** Columns per row in grid mode - driven by the user's UI scale (see #18). */
     private var gridSpanCount: Int = 6,
     private var lockedPackages: Set<String> = emptySet(),
     private var movingPackage: String? = null,
@@ -58,13 +56,12 @@ class TvCategoryAdapter(
         accent: Int,
         categoryNames: Boolean,
         appLabels: Boolean,
-        gridMode: Boolean = true,
         spanCount: Int = gridSpanCount,
         locked: Set<String>,
         moving: String?,
     ) {
         val sizeChanged = cardWidthPx != widthPx || cardHeightPx != heightPx || gapPx != gap ||
-                isGridMode != gridMode || gridSpanCount != spanCount
+                gridSpanCount != spanCount
         val visualChanged = cornerRadiusPx != radiusPx || accentColor != accent ||
                 showCategoryNames != categoryNames || showAppLabels != appLabels ||
                 lockedPackages != locked || movingPackage != moving
@@ -77,14 +74,11 @@ class TvCategoryAdapter(
         accentColor = accent
         showCategoryNames = categoryNames
         showAppLabels = appLabels
-        isGridMode = gridMode
         lockedPackages = locked
         movingPackage = moving
 
         if (!sizeChanged && !visualChanged) return
 
-        // Same reasoning as AppCardAdapter: payload for style-only changes, never notify
-        // while the RecyclerView is computing a layout (that throws).
         runCatching {
             if (sizeChanged) notifyItemRangeChanged(0, itemCount)
             else notifyItemRangeChanged(0, itemCount, PAYLOAD_CONFIG)
@@ -115,61 +109,31 @@ class TvCategoryAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         private var childAdapter: AppCardAdapter? = null
-        private var rowHeightApplied = false
 
         init {
             binding.recyclerCarousel.setRecycledViewPool(recycledViewPool)
-            // NOTE: setHasFixedSize(true) is only valid *after* the inner row has an
-            // explicit height - see [applyRowHeight]. With wrap_content it made the
-            // RecyclerView measure all children at once, defeating recycling (issue #29).
-        }
-
-        /**
-         * Gives the inner row an explicit height derived from the configured card size
-         * (plus headroom for the focus zoom) so RecyclerView can recycle children instead
-         * of measuring everything, and so `setHasFixedSize(true)` is actually true.
-         */
-        private fun applyRowHeight() {
-            val fullHeight = cardHeightPx + (2 * FOCUS_HEADROOM_DP * binding.root.resources.displayMetrics.density).toInt()
-            val lp = binding.recyclerCarousel.layoutParams
-            if (lp != null && lp.height != fullHeight) {
-                lp.height = fullHeight
-                binding.recyclerCarousel.layoutParams = lp
-            }
-            if (!rowHeightApplied) {
-                // Now legitimately "fixed size": the height is ours, not wrap_content.
-                binding.recyclerCarousel.setHasFixedSize(true)
-                rowHeightApplied = true
-            }
+            binding.recyclerCarousel.isNestedScrollingEnabled = false
         }
 
         private fun applyLayoutManager() {
-            if (isGridMode) {
-                val currentLm = binding.recyclerCarousel.layoutManager as? GridLayoutManager
-                if (currentLm == null || currentLm.spanCount != gridSpanCount) {
-                    binding.recyclerCarousel.layoutManager =
-                        GridLayoutManager(binding.root.context, gridSpanCount)
-                }
-            } else {
-                val currentLm = binding.recyclerCarousel.layoutManager as? LinearLayoutManager
-                if (currentLm == null || currentLm.orientation != LinearLayoutManager.HORIZONTAL) {
-                    binding.recyclerCarousel.layoutManager = LinearLayoutManager(
-                        binding.root.context,
-                        LinearLayoutManager.HORIZONTAL,
-                        false
-                    )
-                }
+            val currentLm = binding.recyclerCarousel.layoutManager as? GridLayoutManager
+            if (currentLm == null || currentLm.spanCount != gridSpanCount) {
+                binding.recyclerCarousel.layoutManager =
+                    GridLayoutManager(binding.root.context, gridSpanCount)
+            }
+            val lp = binding.recyclerCarousel.layoutParams
+            if (lp != null && lp.height != ViewGroup.LayoutParams.WRAP_CONTENT) {
+                lp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+                binding.recyclerCarousel.layoutParams = lp
             }
         }
 
         /** Style-only rebind (payload path): re-applies geometry/decorations, no re-bind of cards. */
         fun applyConfig() {
-            applyRowHeight()
             applyLayoutManager()
         }
 
         fun bind(item: CategoryRowItem) {
-            applyRowHeight()
             applyLayoutManager()
 
             binding.txtCategoryTitle.text = item.category.name
@@ -192,7 +156,7 @@ class TvCategoryAdapter(
                     cornerRadiusPx = cornerRadiusPx,
                     accentColor = accentColor,
                     showLabels = showAppLabels,
-                    isGridMode = isGridMode,
+                    isGridMode = true,
                     lockedPackages = lockedPackages,
                     movingPackage = movingPackage,
                     onLaunchApp = onLaunchApp,
@@ -206,7 +170,7 @@ class TvCategoryAdapter(
                     radiusPx = cornerRadiusPx,
                     accent = accentColor,
                     labels = showAppLabels,
-                    gridMode = isGridMode,
+                    gridMode = true,
                     locked = lockedPackages,
                     moving = movingPackage
                 )
