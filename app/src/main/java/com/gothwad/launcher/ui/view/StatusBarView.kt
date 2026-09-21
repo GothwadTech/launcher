@@ -111,12 +111,9 @@ class StatusBarView @JvmOverloads constructor(
     }
 
     fun setBluetoothStatus(bt: BluetoothDeviceStatus) {
-        if (!bt.connected) {
-            binding.btnBluetooth.visibility = View.GONE
-            return
-        }
         binding.btnBluetooth.visibility = View.VISIBLE
-        binding.btnBluetooth.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BLUETOOTH, 0xFF64B5F6.toInt()))
+        val color = if (bt.connected) 0xFF64B5F6.toInt() else Color.WHITE
+        binding.btnBluetooth.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BLUETOOTH, color))
     }
 
     /** Shows/hides the VPN shortcut (only while a VPN transport is actually up). */

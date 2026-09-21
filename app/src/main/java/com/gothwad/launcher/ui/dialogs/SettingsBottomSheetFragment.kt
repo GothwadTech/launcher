@@ -73,16 +73,16 @@ class SettingsBottomSheetFragment : DialogFragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setStyle(STYLE_NO_TITLE, R.style.Theme_LiteTV_Dialog)
+        setStyle(STYLE_NO_TITLE, R.style.Theme_LiteTV_FullScreenDialog)
     }
 
     override fun onStart() {
         super.onStart()
         dialog?.window?.let { window ->
             window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-            window.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-            window.setGravity(Gravity.END)
-            window.setWindowAnimations(R.style.Animation_TvSettingsPanel)
+            window.setBackgroundDrawable(ColorDrawable(Color.parseColor("#16171A")))
+            window.setGravity(Gravity.CENTER)
+            window.setWindowAnimations(android.R.style.Animation_Activity)
         }
     }
 
@@ -110,6 +110,7 @@ class SettingsBottomSheetFragment : DialogFragment() {
         initDelegates()
         updateSubtitles()
         setupRootMenuClicks()
+        setupFocusDescriptions()
         bindAboutSettings()
         setupBackKeyHandling()
     }
@@ -232,6 +233,42 @@ class SettingsBottomSheetFragment : DialogFragment() {
         binding.rowAbout.setOnClickListener { navigateToSubPage(binding.pageAbout, "About & System") }
     }
 
+    private fun setupFocusDescriptions() {
+        binding.rowWallpaper.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) binding.txtHeroSubtitle.text = "Choose dynamic gradient themes, solid colors, or set a personal custom wallpaper."
+        }
+        binding.rowDisplay.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) binding.txtHeroSubtitle.text = "Adjust app grid columns, banner scaling, and UI layout scale for your TV screen."
+        }
+        binding.rowStatusbar.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) binding.txtHeroSubtitle.text = "Configure digital clock format, network speed, Bluetooth shortcut, and VPN toggle."
+        }
+        binding.rowApps.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) binding.txtHeroSubtitle.text = "Manage installed apps, hide sensitive apps into a PIN-protected vault, and set sorting."
+        }
+        binding.rowSecurity.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) binding.txtHeroSubtitle.text = "Protect apps and vault settings with secure PIN or pattern locks."
+        }
+        binding.rowButtonMapping.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) binding.txtHeroSubtitle.text = "Map dedicated TV remote hotkeys to directly launch your favorite apps."
+        }
+        binding.rowNetwork.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) binding.txtHeroSubtitle.text = "Configure Wi-Fi, Ethernet, and network proxy connections."
+        }
+        binding.rowDevicePrefs.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) binding.txtHeroSubtitle.text = "Open full device Android system preferences, display, audio, and accounts."
+        }
+        binding.rowPermissions.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) binding.txtHeroSubtitle.text = "Review and manage system permissions, overlay rights, and storage access."
+        }
+        binding.rowWizard.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) binding.txtHeroSubtitle.text = "Rerun the first-time setup guide to reconfigure your home screen."
+        }
+        binding.rowAbout.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) binding.txtHeroSubtitle.text = "View version, device information, restart launcher, or set as default home."
+        }
+    }
+
     private fun bindAboutSettings() {
         binding.btnSetDefaultHome.setOnClickListener {
             safeStartActivity(Settings.ACTION_HOME_SETTINGS, Settings.ACTION_SETTINGS)
@@ -294,6 +331,18 @@ class SettingsBottomSheetFragment : DialogFragment() {
 
         binding.btnBack.visibility = View.VISIBLE
         binding.txtSettingsTitle.text = title
+
+        val heroDesc = when (subPage) {
+            binding.pageWallpaper -> "Select from dynamic background gradients, solid hues, or upload a custom TV wallpaper."
+            binding.pageDisplay -> "Fine-tune app icon sizing, UI scale density, and layout geometry for your display."
+            binding.pageStatusbar -> "Customize clock time format, network indicators, Bluetooth controls, and VPN shortcuts."
+            binding.pageApps -> "Reorder apps, manage auto-categorization, or hide private apps in the secret vault."
+            binding.pageSecurity -> "Configure lock types, PIN entry codes, biometric access, and secure application protection."
+            binding.subpageButtonMapping -> "Map dedicated colored buttons or app hotkeys on your TV remote."
+            binding.pageAbout -> "Launcher version details, credits, system restart, and default home screen settings."
+            else -> "Customize your launcher settings and system preferences."
+        }
+        binding.txtHeroSubtitle.text = heroDesc
         binding.scrollContainer.smoothScrollTo(0, 0)
     }
 
@@ -312,6 +361,7 @@ class SettingsBottomSheetFragment : DialogFragment() {
         binding.layoutRootMenu.visibility = View.VISIBLE
         binding.btnBack.visibility = View.GONE
         binding.txtSettingsTitle.text = "Settings"
+        binding.txtHeroSubtitle.text = "Customize launcher display, apps, locks, and system preferences"
         binding.scrollContainer.smoothScrollTo(0, 0)
     }
 

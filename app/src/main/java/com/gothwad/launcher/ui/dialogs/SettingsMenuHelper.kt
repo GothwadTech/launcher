@@ -11,40 +11,20 @@ import com.gothwad.launcher.ui.AppIcons
 object SettingsMenuHelper {
 
     fun setupMenuIcons(binding: SheetSettingsBinding) {
-        val iconColor = Color.WHITE
-        val chevronColor = Color.parseColor("#64748B")
+        val chevronColor = Color.parseColor("#94A3B8")
+        val chevronDrawable = AppIcons.createDrawable(AppIcons.PATH_CHEVRON_RIGHT, chevronColor)
 
-        binding.iconWallpaper.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_IMAGE, iconColor))
-        binding.chevronWallpaper.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_CHEVRON_RIGHT, chevronColor))
-
-        binding.iconDisplay.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_DISPLAY, iconColor))
-        binding.chevronDisplay.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_CHEVRON_RIGHT, chevronColor))
-
-        binding.iconStatusbar.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_TIME, iconColor))
-        binding.chevronStatusbar.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_CHEVRON_RIGHT, chevronColor))
-
-        binding.iconApps.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_APPS, iconColor))
-        binding.chevronApps.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_CHEVRON_RIGHT, chevronColor))
-
-        binding.iconSecurity.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_LOCK, iconColor))
-        binding.chevronSecurity.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_CHEVRON_RIGHT, chevronColor))
-
-        binding.iconButtonMapping.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_ACCESSIBILITY, iconColor))
-        binding.chevronButtonMapping.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_CHEVRON_RIGHT, chevronColor))
-
-        binding.iconNetwork.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_WIFI, iconColor))
-        binding.chevronNetwork.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_CHEVRON_RIGHT, chevronColor))
-
-        binding.iconDevicePrefs.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_GEAR, iconColor))
-        binding.chevronDevicePrefs.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_CHEVRON_RIGHT, chevronColor))
-
-        binding.iconPermissions.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_SHIELD, iconColor))
-        binding.chevronPermissions.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_CHEVRON_RIGHT, chevronColor))
-
-        binding.iconWizard.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_WIZARD, iconColor))
-
-        binding.iconAbout.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_INFO, iconColor))
-        binding.chevronAbout.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_CHEVRON_RIGHT, chevronColor))
+        binding.chevronWallpaper.setImageDrawable(chevronDrawable)
+        binding.chevronDisplay.setImageDrawable(chevronDrawable)
+        binding.chevronStatusbar.setImageDrawable(chevronDrawable)
+        binding.chevronApps.setImageDrawable(chevronDrawable)
+        binding.chevronSecurity.setImageDrawable(chevronDrawable)
+        binding.chevronButtonMapping.setImageDrawable(chevronDrawable)
+        binding.chevronNetwork.setImageDrawable(chevronDrawable)
+        binding.chevronDevicePrefs.setImageDrawable(chevronDrawable)
+        binding.chevronPermissions.setImageDrawable(chevronDrawable)
+        binding.chevronWizard.setImageDrawable(chevronDrawable)
+        binding.chevronAbout.setImageDrawable(chevronDrawable)
     }
 
     fun updateSubtitles(binding: SheetSettingsBinding, config: LauncherConfig, context: Context) {

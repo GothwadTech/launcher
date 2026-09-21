@@ -41,7 +41,7 @@
             android:layout_marginStart="4dp"
             android:contentDescription="@string/cd_bluetooth"
             android:padding="7dp"
-            android:visibility="gone" />
+            android:visibility="visible" />
 
         <!-- Notification Bell with Red Dot -->
         <FrameLayout

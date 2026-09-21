@@ -1,27 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Focused state: solid #2E2F32 rectangle highlight -->
+    <!-- Focused state: solid white highlight with curved corners like in screenshot -->
     <item android:state_focused="true">
         <shape android:shape="rectangle">
-            <solid android:color="#2E2F32" />
+            <solid android:color="#FFFFFF" />
+            <corners android:radius="12dp" />
         </shape>
     </item>
     <!-- Pressed state -->
     <item android:state_pressed="true">
         <shape android:shape="rectangle">
-            <solid android:color="#2E2F32" />
+            <solid android:color="#E2E8F0" />
+            <corners android:radius="12dp" />
         </shape>
     </item>
     <!-- Selected state -->
     <item android:state_selected="true">
         <shape android:shape="rectangle">
-            <solid android:color="#2E2F32" />
+            <solid android:color="#FFFFFF" />
+            <corners android:radius="12dp" />
         </shape>
     </item>
-    <!-- Default state: completely transparent, seamless with parent #202124 -->
+    <!-- Default state: sleek dark rounded pill container matching screenshot -->
     <item>
         <shape android:shape="rectangle">
-            <solid android:color="@android:color/transparent" />
+            <solid android:color="#28292E" />
+            <corners android:radius="12dp" />
         </shape>
     </item>
 </selector>

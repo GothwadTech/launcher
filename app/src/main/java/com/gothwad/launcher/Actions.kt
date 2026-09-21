@@ -77,8 +77,20 @@ object Actions {
     }
 
     fun openBluetoothSettings(context: Context) {
-        runCatching { context.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS)) }
-            .onFailure { openSystemSettings(context) }
+        val intents = listOf(
+            Intent(Settings.ACTION_BLUETOOTH_SETTINGS),
+            Intent("android.settings.BLUETOOTH_SETTINGS"),
+            Intent().setClassName("com.android.tv.settings", "com.android.tv.settings.connectivity.BluetoothActivity"),
+            Intent().setClassName("com.android.tv.settings", "com.android.tv.settings.accessories.AccessoriesActivity"),
+            Intent(Settings.ACTION_SETTINGS)
+        )
+        for (intent in intents) {
+            val ok = runCatching {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+            }.isSuccess
+            if (ok) return
+        }
     }
 
     fun openAccessibilitySettings(context: Context) {
