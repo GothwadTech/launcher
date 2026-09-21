@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- PC Taskbar (Dark Theme - Google Material Dark #202124) -->
+    <color name="pc_taskbar_bg">#FF202124</color>
+    <color name="pc_taskbar_border">#FF303134</color>
+    <color name="pc_taskbar_search_bg">#FF17181B</color>
+    <color name="pc_taskbar_search_text">#FF9AA0A6</color>
+    <color name="pc_taskbar_text">#FFE8EAED</color>
+    <color name="pc_taskbar_text_secondary">#FF9AA0A6</color>
+    <color name="pc_taskbar_separator">#FF303134</color>
+    <color name="pc_taskbar_btn_hover">#1AFFFFFF</color>
+</resources>

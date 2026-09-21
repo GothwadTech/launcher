@@ -5,30 +5,27 @@
         <selector>
             <item android:state_focused="true">
                 <shape android:shape="rectangle">
-                    <corners android:radius="8dp" />
-                    <solid android:color="#384FA7FA" />
+                    <corners android:radius="7dp" />
+                    <solid android:color="#334FA7FA" />
                     <stroke android:width="1.5dp" android:color="#4FA7FA" />
                 </shape>
             </item>
             <item android:state_pressed="true">
                 <shape android:shape="rectangle">
-                    <corners android:radius="8dp" />
-                    <solid android:color="#504FA7FA" />
-                    <stroke android:width="1.5dp" android:color="#4FA7FA" />
+                    <corners android:radius="7dp" />
+                    <solid android:color="#4D4FA7FA" />
                 </shape>
             </item>
             <item android:state_hovered="true">
                 <shape android:shape="rectangle">
-                    <corners android:radius="8dp" />
-                    <solid android:color="#283242" />
-                    <stroke android:width="1dp" android:color="#4A5E78" />
+                    <corners android:radius="7dp" />
+                    <solid android:color="@color/pc_taskbar_btn_hover" />
                 </shape>
             </item>
             <item>
                 <shape android:shape="rectangle">
-                    <corners android:radius="8dp" />
-                    <solid android:color="#1A222E" />
-                    <stroke android:width="1dp" android:color="#2D3A4C" />
+                    <corners android:radius="7dp" />
+                    <solid android:color="@android:color/transparent" />
                 </shape>
             </item>
         </selector>

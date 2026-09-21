@@ -361,50 +361,80 @@
 
             <ImageButton
                 android:id="@+id/btn_overlay_start"
-                android:layout_width="34dp"
-                android:layout_height="34dp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 android:background="@drawable/bg_pc_start_btn"
                 android:contentDescription="Start Menu"
-                android:padding="5dp"
+                android:padding="2dp"
                 android:scaleType="fitCenter" />
 
-            <!-- Search Bar -->
+            <!-- Seamless Search Bar (No top/bottom lines) -->
             <LinearLayout
                 android:id="@+id/btn_overlay_search"
-                android:layout_width="140dp"
-                android:layout_height="28dp"
-                android:layout_marginStart="4dp"
+                android:layout_width="160dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="8dp"
                 android:background="@drawable/bg_pc_taskbar_search_bar"
                 android:clickable="true"
                 android:focusable="true"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingHorizontal="8dp">
+                android:paddingHorizontal="10dp">
 
                 <ImageView
                     android:id="@+id/img_overlay_search_icon"
-                    android:layout_width="13dp"
-                    android:layout_height="13dp"
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
                     android:contentDescription="@null" />
 
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
+                    android:layout_marginStart="8dp"
                     android:layout_weight="1"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:text="Type to search"
-                    android:textColor="#99FFFFFF"
-                    android:textSize="11sp" />
+                    android:text="Search apps, web..."
+                    android:textColor="@color/pc_taskbar_search_text"
+                    android:textSize="11.5sp" />
             </LinearLayout>
+
+            <!-- Subtle Vertical Separator -->
+            <View
+                android:id="@+id/view_sep_overlay_apps"
+                android:layout_width="1dp"
+                android:layout_height="20dp"
+                android:layout_marginHorizontal="6dp"
+                android:background="@color/pc_taskbar_separator" />
+
+            <!-- Core Quick Apps (File Manager & Browser - Android Squircle) -->
+            <ImageButton
+                android:id="@+id/btn_overlay_files"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="3dp"
+                android:background="@drawable/bg_pc_start_btn"
+                android:contentDescription="Files"
+                android:padding="2dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_taskbar_files" />
+
+            <ImageButton
+                android:id="@+id/btn_overlay_browser"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="4dp"
+                android:background="@drawable/bg_pc_start_btn"
+                android:contentDescription="Browser"
+                android:padding="2dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_taskbar_browser" />
 
             <!-- Pinned Apps List -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recycler_overlay_pinned"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
-                android:layout_marginStart="4dp"
                 android:clipToPadding="false"
                 android:orientation="horizontal"
                 android:overScrollMode="never" />
@@ -513,22 +543,23 @@
                     tools:text="09/15/2026" />
             </LinearLayout>
 
-            <!-- Hide Taskbar / Peek Button (Tap to hide taskbar back to floating bubble) -->
+            <!-- Dual Launcher Icon Corner Toggle: Tap to hide taskbar back into draggable floating bubble -->
             <FrameLayout
                 android:id="@+id/btn_hide_overlay_taskbar"
-                android:layout_width="28dp"
-                android:layout_height="match_parent"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 android:layout_marginStart="4dp"
-                android:background="@drawable/bg_pc_taskbar_btn"
+                android:background="@drawable/bg_pc_start_btn"
                 android:clickable="true"
                 android:focusable="true"
-                android:contentDescription="Hide Taskbar">
+                android:contentDescription="Hide Taskbar to Bubble">
 
                 <ImageView
                     android:id="@+id/img_hide_taskbar_icon"
-                    android:layout_width="14dp"
-                    android:layout_height="14dp"
-                    android:layout_gravity="center"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:padding="2dp"
+                    android:scaleType="fitCenter"
                     android:contentDescription="@null" />
             </FrameLayout>
         </LinearLayout>

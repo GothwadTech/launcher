@@ -1,41 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/root_taskbar_pinned"
-    android:layout_width="38dp"
-    android:layout_height="38dp"
+    android:layout_width="40dp"
+    android:layout_height="match_parent"
     android:layout_marginHorizontal="2dp"
     android:background="@drawable/bg_pc_pinned_app"
     android:clickable="true"
     android:focusable="true">
 
-    <!-- Square Curve Plate Container -->
-    <FrameLayout
-        android:id="@+id/container_taskbar_icon"
-        android:layout_width="28dp"
-        android:layout_height="28dp"
+    <!-- Direct Android-styled App Icon (No card backgrounds) -->
+    <ImageView
+        android:id="@+id/img_taskbar_pinned_icon"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
         android:layout_gravity="center"
-        android:background="@drawable/bg_pc_icon_squircle_plate">
+        android:scaleType="fitCenter"
+        android:contentDescription="@null" />
 
-        <ImageView
-            android:id="@+id/img_taskbar_pinned_icon"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_gravity="center"
-            android:scaleType="fitCenter"
-            android:contentDescription="@null" />
+    <TextView
+        android:id="@+id/tv_taskbar_pinned_fallback"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:textColor="@color/pc_taskbar_text"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
 
-        <TextView
-            android:id="@+id/tv_taskbar_pinned_fallback"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="center"
-            android:textColor="#FFFFFF"
-            android:textSize="13sp"
-            android:textStyle="bold"
-            android:visibility="gone" />
-    </FrameLayout>
-
-    <!-- Active Indicator Bar (Rounded Square Curve Pill) -->
+    <!-- Active Indicator Bar (Subtle Pill below active app) -->
     <View
         android:id="@+id/view_pinned_indicator"
         android:layout_width="14dp"

@@ -147,10 +147,26 @@ class PcLauncherFragment : Fragment() {
         }.getOrNull() ?: androidx.core.content.ContextCompat.getDrawable(requireContext(), R.mipmap.ic_launcher)
 
         val density = resources.displayMetrics.density
-        binding.btnStart.outlineProvider = SmoothOutlineProvider(cornerRadiusPx = 7.5f * density, smoothing = 0.6f)
+        val squircleRadius = 7.5f * density
+        binding.btnStart.outlineProvider = SmoothOutlineProvider(cornerRadiusPx = squircleRadius, smoothing = 0.6f)
         binding.btnStart.clipToOutline = true
         binding.btnStart.setImageDrawable(appIconDrawable)
-        binding.imgTaskbarSearchIcon.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_SEARCH, 0xCCFFFFFF.toInt()))
+
+        binding.btnTaskbarFiles.outlineProvider = SmoothOutlineProvider(cornerRadiusPx = squircleRadius, smoothing = 0.6f)
+        binding.btnTaskbarFiles.clipToOutline = true
+
+        binding.btnTaskbarBrowser.outlineProvider = SmoothOutlineProvider(cornerRadiusPx = squircleRadius, smoothing = 0.6f)
+        binding.btnTaskbarBrowser.clipToOutline = true
+
+        binding.btnTaskbarCornerLauncher.outlineProvider = SmoothOutlineProvider(cornerRadiusPx = squircleRadius, smoothing = 0.6f)
+        binding.btnTaskbarCornerLauncher.clipToOutline = true
+        binding.imgCornerLauncherIcon.setImageDrawable(appIconDrawable)
+
+        binding.btnFloatingCornerTab.outlineProvider = SmoothOutlineProvider(cornerRadiusPx = 9f * density, smoothing = 0.6f)
+        binding.btnFloatingCornerTab.clipToOutline = true
+        binding.imgFloatingCornerIcon.setImageDrawable(appIconDrawable)
+
+        binding.imgTaskbarSearchIcon.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_SEARCH, 0xCC9AA0A6.toInt()))
         binding.btnNotifications.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BELL, Color.WHITE))
         binding.imgTrayVolume.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_VOLUME, 0xFFCCCCCC.toInt()))
         binding.imgTrayNetwork.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_WIFI, 0xFFCCCCCC.toInt()))
@@ -164,6 +180,18 @@ class PcLauncherFragment : Fragment() {
         binding.btnSearch.setOnClickListener {
             closeAllFlyouts()
             openSearchDialog()
+        }
+
+        // File Manager Direct Taskbar Shortcut
+        binding.btnTaskbarFiles.setOnClickListener {
+            closeAllFlyouts()
+            openFileManagerWindow()
+        }
+
+        // Web Browser Direct Taskbar Shortcut
+        binding.btnTaskbarBrowser.setOnClickListener {
+            closeAllFlyouts()
+            openWebAppWindow()
         }
 
         // Notifications Button
@@ -198,8 +226,8 @@ class PcLauncherFragment : Fragment() {
             binding.recyclerDesktopGrid.smoothScrollToPosition(0)
         }
 
-        // Corner Line Trigger: tap to hide taskbar and reveal floating tab
-        binding.btnTaskbarCornerLine.setOnClickListener {
+        // Right Corner Launcher Icon: Dual launcher icon for toggling taskbar / quick controls
+        binding.btnTaskbarCornerLauncher.setOnClickListener {
             toggleTaskbarVisibility()
         }
 
@@ -214,6 +242,9 @@ class PcLauncherFragment : Fragment() {
             windowContainer = binding.containerFloatingWindows,
             taskbarChipsRecycler = binding.recyclerTaskbarWindowChips
         )
+        floatingWindowManager?.onTaskbarChanged = { hasWindows ->
+            binding.viewSepActive.visibility = if (hasWindows) View.VISIBLE else View.GONE
+        }
         binding.recyclerTaskbarWindowChips.layoutManager = LinearLayoutManager(
             requireContext(),
             LinearLayoutManager.HORIZONTAL,
@@ -643,8 +674,8 @@ class PcLauncherFragment : Fragment() {
         binding.layoutTaskbarApps.layoutParams = appsLp
 
         // Adjust Taskbar button sizes proportionally to prevent oversized elements
-        val btnSizePx = (taskbarHeightPx - (8 * density)).toInt().coerceIn((28 * density).toInt(), (42 * density).toInt())
-        val btnPadPx = (btnSizePx * 0.16f).toInt().coerceAtLeast((2 * density).toInt())
+        val btnSizePx = (taskbarHeightPx - (6 * density)).toInt().coerceIn((30 * density).toInt(), (44 * density).toInt())
+        val btnPadPx = (1.5f * density).toInt()
 
         val startLp = binding.btnStart.layoutParams
         startLp.width = btnSizePx
@@ -652,11 +683,32 @@ class PcLauncherFragment : Fragment() {
         binding.btnStart.layoutParams = startLp
         binding.btnStart.setPadding(btnPadPx, btnPadPx, btnPadPx, btnPadPx)
 
-        // Adjust Taskbar search bar size
+        // Core app shortcuts (Files and Browser)
+        val filesLp = binding.btnTaskbarFiles.layoutParams
+        filesLp.width = btnSizePx
+        filesLp.height = btnSizePx
+        binding.btnTaskbarFiles.layoutParams = filesLp
+        binding.btnTaskbarFiles.setPadding(btnPadPx, btnPadPx, btnPadPx, btnPadPx)
+
+        val browserLp = binding.btnTaskbarBrowser.layoutParams
+        browserLp.width = btnSizePx
+        browserLp.height = btnSizePx
+        binding.btnTaskbarBrowser.layoutParams = browserLp
+        binding.btnTaskbarBrowser.setPadding(btnPadPx, btnPadPx, btnPadPx, btnPadPx)
+
+        // Corner launcher button
+        val cornerLp = binding.btnTaskbarCornerLauncher.layoutParams
+        cornerLp.width = btnSizePx
+        cornerLp.height = btnSizePx
+        binding.btnTaskbarCornerLauncher.layoutParams = cornerLp
+
+        // Adjust Taskbar search bar size - takes ~20-25% space with Launcher Icon
         val searchLp = binding.btnSearch.layoutParams
-        searchLp.height = (btnSizePx * 0.90f).toInt()
-        val searchWidthDp = (145 * scale).coerceIn(110f, 180f)
-        searchLp.width = (searchWidthDp * density).toInt()
+        searchLp.height = (btnSizePx * 0.88f).toInt()
+        val screenWidthPx = resources.displayMetrics.widthPixels
+        val searchSectionWidthPx = (screenWidthPx * 0.22f).coerceIn(160f * density, 300f * density).toInt()
+        val searchWidthPx = (searchSectionWidthPx - btnSizePx - (12 * density)).toInt().coerceAtLeast((120 * density).toInt())
+        searchLp.width = searchWidthPx
         binding.btnSearch.layoutParams = searchLp
 
         // Adjust tray buttons and cluster height
@@ -681,7 +733,7 @@ class PcLauncherFragment : Fragment() {
 
         // Update pinned adapter sizes to fit taskbar perfectly with square curve icons
         val pinnedItemSizePx = btnSizePx
-        val pinnedIconSizePx = (btnSizePx * 0.72f).toInt()
+        val pinnedIconSizePx = (btnSizePx * 0.82f).toInt()
         pinnedAdapter?.updateSizes(pinnedItemSizePx, pinnedIconSizePx)
     }
 

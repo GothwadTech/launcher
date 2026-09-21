@@ -176,8 +176,10 @@ class FloatingTaskbarService : Service() {
         }
 
         val displayMetrics = resources.displayMetrics
-        val initialX = (displayMetrics.widthPixels - (70 * density)).toInt()
-        val initialY = (displayMetrics.heightPixels - (120 * density)).toInt()
+        val screenW = displayMetrics.widthPixels
+        val screenH = displayMetrics.heightPixels
+        val initialX = (screenW - (56 * density)).toInt()
+        val initialY = (screenH - (56 * density)).toInt()
 
         triggerParams = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -192,7 +194,7 @@ class FloatingTaskbarService : Service() {
             y = initialY
         }
 
-        // Draggable touch listener with smooth click detection
+        // Draggable touch listener with smooth docking and extraction
         var initialTouchX = 0f
         var initialTouchY = 0f
         var initialParamX = 0
@@ -215,19 +217,32 @@ class FloatingTaskbarService : Service() {
                 MotionEvent.ACTION_MOVE -> {
                     val dx = (event.rawX - initialTouchX).toInt()
                     val dy = (event.rawY - initialTouchY).toInt()
-                    if (abs(dx) > 10 || abs(dy) > 10) {
+                    if (abs(dx) > 8 || abs(dy) > 8) {
                         isMoving = true
-                        params.x = initialParamX + dx
-                        params.y = initialParamY + dy
+                        params.x = (initialParamX + dx).coerceIn(0, screenW - (44 * density).toInt())
+                        params.y = (initialParamY + dy).coerceIn(0, screenH - (44 * density).toInt())
                         runCatching { windowManager.updateViewLayout(triggerView, params) }
                     }
                     true
                 }
                 MotionEvent.ACTION_UP -> {
                     binding.btnFloatingBubble.animate().scaleX(1f).scaleY(1f).setDuration(120).start()
-                    if (!isMoving) {
-                        // It was a tap! Open Quick Control Menu
-                        toggleMenu()
+                    if (isMoving) {
+                        // If dropped near the bottom edge, combine/dock into taskbar corner
+                        val isNearBottom = params.y > screenH - (72 * density).toInt()
+                        if (isNearBottom) {
+                            params.x = (screenW - (56 * density)).toInt()
+                            params.y = (screenH - (56 * density)).toInt()
+                            runCatching { windowManager.updateViewLayout(triggerView, params) }
+                            showTaskbar(true)
+                        }
+                    } else {
+                        // It was a tap!
+                        if (isTaskbarVisible) {
+                            showTaskbar(false)
+                        } else {
+                            toggleMenu()
+                        }
                     }
                     true
                 }
@@ -282,14 +297,36 @@ class FloatingTaskbarService : Service() {
 
         // Taskbar Controls
         val density = resources.displayMetrics.density
-        binding.btnOverlayStart.outlineProvider = SmoothOutlineProvider(7.5f * density, 0.6f)
+        val squircleRadius = 7.5f * density
+        binding.btnOverlayStart.outlineProvider = SmoothOutlineProvider(squircleRadius, 0.6f)
         binding.btnOverlayStart.clipToOutline = true
         binding.btnOverlayStart.setImageDrawable(appIconDrawable)
-        binding.imgOverlaySearchIcon.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_SEARCH, 0xCCFFFFFF.toInt()))
+
+        binding.btnOverlayFiles.outlineProvider = SmoothOutlineProvider(squircleRadius, 0.6f)
+        binding.btnOverlayFiles.clipToOutline = true
+        binding.btnOverlayFiles.setOnClickListener {
+            showTaskbar(false)
+            openAppOrLauncher("com.gothwad.launcher.files")
+        }
+
+        binding.btnOverlayBrowser.outlineProvider = SmoothOutlineProvider(squircleRadius, 0.6f)
+        binding.btnOverlayBrowser.clipToOutline = true
+        binding.btnOverlayBrowser.setOnClickListener {
+            showTaskbar(false)
+            openAppOrLauncher("com.gothwad.launcher.webapp")
+        }
+
+        binding.btnHideOverlayTaskbar.outlineProvider = SmoothOutlineProvider(squircleRadius, 0.6f)
+        binding.btnHideOverlayTaskbar.clipToOutline = true
+        binding.imgHideTaskbarIcon.setImageDrawable(appIconDrawable)
+        binding.btnHideOverlayTaskbar.setOnClickListener {
+            dockTaskbarIntoBubble()
+        }
+
+        binding.imgOverlaySearchIcon.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_SEARCH, 0xCC9AA0A6.toInt()))
         binding.btnOverlayNotifications.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BELL, Color.WHITE))
         binding.imgOverlayTrayVolume.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_VOLUME, 0xFFCCCCCC.toInt()))
         binding.imgOverlayTrayNetwork.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_WIFI, 0xFFCCCCCC.toInt()))
-        binding.imgHideTaskbarIcon.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_DOWN, 0xFFCCCCCC.toInt()))
 
         // Scrim barrier dismisses menu
         binding.viewOverlayScrim.setOnClickListener {
@@ -463,6 +500,19 @@ class FloatingTaskbarService : Service() {
     fun showTaskbar(show: Boolean) {
         isTaskbarVisible = show
         updateOverlayState()
+    }
+
+    private fun dockTaskbarIntoBubble() {
+        showTaskbar(false)
+        val displayMetrics = resources.displayMetrics
+        val density = displayMetrics.density
+        val screenW = displayMetrics.widthPixels
+        val screenH = displayMetrics.heightPixels
+        triggerParams?.let { params ->
+            params.x = (screenW - (56 * density)).toInt()
+            params.y = (screenH - (56 * density)).toInt()
+            runCatching { windowManager.updateViewLayout(triggerView, params) }
+        }
     }
 
     private fun updatePinnedApps() {

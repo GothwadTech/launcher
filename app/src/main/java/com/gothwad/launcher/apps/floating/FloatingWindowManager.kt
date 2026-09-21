@@ -104,6 +104,7 @@ class FloatingWindowManager(
     private val activeWindows = mutableListOf<FloatingWindow>()
     private var focusedWindowId: String? = null
     private val chipAdapter: TaskbarWindowAdapter
+    var onTaskbarChanged: ((hasWindows: Boolean) -> Unit)? = null
 
     init {
         chipAdapter = TaskbarWindowAdapter(
@@ -382,6 +383,8 @@ class FloatingWindowManager(
 
     private fun updateTaskbar() {
         chipAdapter.setWindows(activeWindows, focusedWindowId)
-        taskbarChipsRecycler?.visibility = if (activeWindows.isNotEmpty()) View.VISIBLE else View.GONE
+        val hasWindows = activeWindows.isNotEmpty()
+        taskbarChipsRecycler?.visibility = if (hasWindows) View.VISIBLE else View.GONE
+        onTaskbarChanged?.invoke(hasWindows)
     }
 }

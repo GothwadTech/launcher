@@ -83,7 +83,7 @@
         android:background="@drawable/bg_pc_taskbar_solid"
         android:paddingHorizontal="8dp">
 
-        <!-- Left / Center Navigation Section (Start + Search + Pinned Apps) -->
+        <!-- Left / Center Navigation Section (Start + Search + Core Apps + Pinned Apps + Active Apps) -->
         <LinearLayout
             android:id="@+id/layout_taskbar_apps"
             android:layout_width="wrap_content"
@@ -94,19 +94,19 @@
 
             <ImageButton
                 android:id="@+id/btn_start"
-                android:layout_width="34dp"
-                android:layout_height="34dp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 android:background="@drawable/bg_pc_start_btn"
                 android:contentDescription="Start Menu"
-                android:padding="5dp"
+                android:padding="2dp"
                 android:scaleType="fitCenter" />
 
-            <!-- Windows / Linux style Taskbar Search Bar (Square Curve) -->
+            <!-- Seamless Taskbar Search Bar (No top/bottom line boundaries) -->
             <LinearLayout
                 android:id="@+id/btn_search"
-                android:layout_width="140dp"
-                android:layout_height="30dp"
-                android:layout_marginStart="6dp"
+                android:layout_width="160dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="8dp"
                 android:background="@drawable/bg_pc_taskbar_search_bar"
                 android:clickable="true"
                 android:focusable="true"
@@ -116,45 +116,83 @@
 
                 <ImageView
                     android:id="@+id/img_taskbar_search_icon"
-                    android:layout_width="13dp"
-                    android:layout_height="13dp"
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
                     android:contentDescription="@null" />
 
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="7dp"
+                    android:layout_marginStart="8dp"
                     android:layout_weight="1"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:text="Type here to search"
-                    android:textColor="#A0B3CC"
-                    android:textSize="11sp" />
+                    android:text="Search apps, web..."
+                    android:textColor="@color/pc_taskbar_search_text"
+                    android:textSize="11.5sp" />
             </LinearLayout>
 
-            <!-- Pinned Apps List on Taskbar -->
+            <!-- Subtle Vertical Separator -->
+            <View
+                android:id="@+id/view_sep_apps"
+                android:layout_width="1dp"
+                android:layout_height="20dp"
+                android:layout_marginHorizontal="6dp"
+                android:background="@color/pc_taskbar_separator" />
+
+            <!-- Core Quick Apps (File Manager & Browser - Android Squircle) -->
+            <ImageButton
+                android:id="@+id/btn_taskbar_files"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="3dp"
+                android:background="@drawable/bg_pc_start_btn"
+                android:contentDescription="Files"
+                android:padding="2dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_taskbar_files" />
+
+            <ImageButton
+                android:id="@+id/btn_taskbar_browser"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="4dp"
+                android:background="@drawable/bg_pc_start_btn"
+                android:contentDescription="Browser"
+                android:padding="2dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_taskbar_browser" />
+
+            <!-- Pinned Apps List on Taskbar (Cardless, pure Android icons) -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recycler_taskbar_pinned"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
-                android:layout_marginStart="4dp"
                 android:clipToPadding="false"
                 android:orientation="horizontal"
                 android:overScrollMode="never" />
+
+            <!-- Subtle Separator between Pinned and Active Apps -->
+            <View
+                android:id="@+id/view_sep_active"
+                android:layout_width="1dp"
+                android:layout_height="20dp"
+                android:layout_marginHorizontal="6dp"
+                android:background="@color/pc_taskbar_separator"
+                android:visibility="gone" />
 
             <!-- Active Window Chips (Running/Minimized Floating Windows) -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recycler_taskbar_window_chips"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
-                android:layout_marginStart="6dp"
                 android:clipToPadding="false"
                 android:orientation="horizontal"
                 android:overScrollMode="never"
                 android:visibility="gone" />
         </LinearLayout>
 
-        <!-- Right Side: Tray (Volume, WiFi, Battery, Notifications, Clock, Peek) -->
+        <!-- Right Side: Tray (Volume, WiFi, Battery, Notifications, Clock, Dual Corner Launcher Icon) -->
         <LinearLayout
             android:id="@+id/layout_taskbar_tray"
             android:layout_width="wrap_content"
@@ -257,7 +295,7 @@
                     android:id="@+id/tv_taskbar_time"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="#FFFFFF"
+                    android:textColor="@color/pc_taskbar_text"
                     android:textSize="11sp"
                     android:textStyle="bold"
                     tools:text="12:00 PM" />
@@ -266,7 +304,7 @@
                     android:id="@+id/tv_taskbar_date"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="#99FFFFFF"
+                    android:textColor="@color/pc_taskbar_text_secondary"
                     android:textSize="8.5sp"
                     tools:text="09/15/2026" />
             </LinearLayout>
@@ -274,52 +312,55 @@
             <!-- Show Desktop Peek Button (Windows style edge strip) -->
             <View
                 android:id="@+id/btn_show_desktop"
-                android:layout_width="5dp"
+                android:layout_width="4dp"
                 android:layout_height="match_parent"
                 android:layout_marginStart="4dp"
-                android:background="#26FFFFFF" />
+                android:background="#14FFFFFF" />
 
-            <!-- Corner Toggle Line / Button -->
+            <!-- Right Corner Launcher Icon Button (Dual Launcher Icons: Left Start & Right Quick Control) -->
             <FrameLayout
-                android:id="@+id/btn_taskbar_corner_line"
-                android:layout_width="16dp"
-                android:layout_height="match_parent"
+                android:id="@+id/btn_taskbar_corner_launcher"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 android:layout_marginStart="2dp"
-                android:background="@drawable/bg_pc_taskbar_btn"
+                android:background="@drawable/bg_pc_start_btn"
                 android:clickable="true"
                 android:focusable="true"
-                android:contentDescription="Toggle Taskbar">
+                android:contentDescription="Launcher Quick Control">
 
-                <View
-                    android:id="@+id/view_corner_indicator"
-                    android:layout_width="3dp"
-                    android:layout_height="22dp"
-                    android:layout_gravity="center"
-                    android:background="#804FA7FA" />
+                <ImageView
+                    android:id="@+id/img_corner_launcher_icon"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:padding="2dp"
+                    android:scaleType="fitCenter"
+                    android:contentDescription="@null" />
             </FrameLayout>
         </LinearLayout>
 
     </RelativeLayout>
 
-    <!-- Corner Floating Trigger Strip (Visible when Taskbar is Hidden) -->
+    <!-- Corner Floating Trigger Button (Visible when Taskbar is Hidden) -->
     <FrameLayout
         android:id="@+id/btn_floating_corner_tab"
-        android:layout_width="24dp"
-        android:layout_height="44dp"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
         android:layout_gravity="bottom|end"
-        android:layout_marginEnd="4dp"
+        android:layout_marginEnd="6dp"
         android:layout_marginBottom="6dp"
-        android:background="@drawable/bg_pc_taskbar_btn"
+        android:background="@drawable/bg_pc_start_btn"
         android:clickable="true"
         android:focusable="true"
         android:contentDescription="Reveal Taskbar"
         android:visibility="gone">
 
-        <View
-            android:layout_width="4dp"
-            android:layout_height="26dp"
-            android:layout_gravity="center"
-            android:background="#CC4FA7FA" />
+        <ImageView
+            android:id="@+id/img_floating_corner_icon"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="2dp"
+            android:scaleType="fitCenter"
+            android:contentDescription="@null" />
     </FrameLayout>
 
 </FrameLayout>

@@ -49,27 +49,25 @@ class PcTaskbarPinnedAdapter(
             if (itemSizePx > 0) {
                 val rootLp = binding.rootTaskbarPinned.layoutParams
                 rootLp.width = itemSizePx
-                rootLp.height = itemSizePx
                 binding.rootTaskbarPinned.layoutParams = rootLp
             }
-            if (iconSizePx > 0) {
-                val containerLp = binding.containerTaskbarIcon.layoutParams
-                containerLp.width = iconSizePx
-                containerLp.height = iconSizePx
-                binding.containerTaskbarIcon.layoutParams = containerLp
+            val targetIconPx = if (iconSizePx > 0) iconSizePx else (32 * density).toInt()
+            val iconLp = binding.imgTaskbarPinnedIcon.layoutParams
+            iconLp.width = targetIconPx
+            iconLp.height = targetIconPx
+            binding.imgTaskbarPinnedIcon.layoutParams = iconLp
 
-                val radius = iconSizePx * 0.22f
-                binding.containerTaskbarIcon.outlineProvider = SmoothOutlineProvider(radius, 0.6f)
-                binding.containerTaskbarIcon.clipToOutline = true
-                binding.imgTaskbarPinnedIcon.outlineProvider = SmoothOutlineProvider(radius, 0.6f)
-                binding.imgTaskbarPinnedIcon.clipToOutline = true
-            } else {
-                val radius = 6.5f * density
-                binding.containerTaskbarIcon.outlineProvider = SmoothOutlineProvider(radius, 0.6f)
-                binding.containerTaskbarIcon.clipToOutline = true
-                binding.imgTaskbarPinnedIcon.outlineProvider = SmoothOutlineProvider(radius, 0.6f)
-                binding.imgTaskbarPinnedIcon.clipToOutline = true
-            }
+            val fallbackLp = binding.tvTaskbarPinnedFallback.layoutParams
+            fallbackLp.width = targetIconPx
+            fallbackLp.height = targetIconPx
+            binding.tvTaskbarPinnedFallback.layoutParams = fallbackLp
+
+            // Android squircle (square with subtle curve)
+            val radius = targetIconPx * 0.18f
+            binding.imgTaskbarPinnedIcon.outlineProvider = SmoothOutlineProvider(radius, 0.6f)
+            binding.imgTaskbarPinnedIcon.clipToOutline = true
+            binding.tvTaskbarPinnedFallback.outlineProvider = SmoothOutlineProvider(radius, 0.6f)
+            binding.tvTaskbarPinnedFallback.clipToOutline = true
 
             val bitmap = app.icon
             if (bitmap != null) {
