@@ -11,6 +11,12 @@ on:
   workflow_dispatch:
     inputs:
       version_name:
+        description: 'Version Name (e.g. 1.0.6 - leave empty for auto 1.0.X)'
+        required: false
+        default: ''
+      version_code:
+        description: 'Version Code (Integer, e.g. 12 - leave blank for auto increment)'
+        required: false
         default: ''
 
 permissions:
@@ -22,6 +28,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java 17 (JDK)
+        uses: actions/setup-java@v4
+        with:
           java-version: '17'
           distribution: 'temurin'
 
@@ -41,6 +55,23 @@ jobs:
           chmod +x ./gradlew
 
       - name: Determine Version Code and Name
+        id: versioning
+        run: |
+          if [ -n "${{ inputs.version_code }}" ]; then
+            V_CODE="${{ inputs.version_code }}"
+          else
+            V_CODE=$(( 10 + ${{ github.run_number }} ))
+          fi
+
+          if [ -n "${{ inputs.version_name }}" ]; then
+            V_NAME="${{ inputs.version_name }}"
+          else
+            # Auto-incrementing version name based on version code
+            V_NAME="1.0.${V_CODE}"
+          fi
+
+          echo "Determined Version Code: $V_CODE"
+          echo "Determined Version Name: $V_NAME"
           echo "v_code=$V_CODE" >> $GITHUB_OUTPUT
           echo "v_name=$V_NAME" >> $GITHUB_OUTPUT
 
@@ -50,6 +81,11 @@ jobs:
       - name: Build Release APK, Debug APK and AAB Bundle with Gradle
         run: |
           mkdir -p ~/.android
+          if [ ! -f ~/.android/debug.keystore ]; then
+            keytool -genkey -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" || true
+          fi
+          ./gradlew assembleRelease assembleDebug bundleRelease \
+            -PversionCode=${{ steps.versioning.outputs.v_code }} \
             -PversionName=${{ steps.versioning.outputs.v_name }} \
             --no-daemon
 
@@ -57,6 +93,11 @@ jobs:
         env:
           KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 || secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.KEY_PASSWORD }}
+          V_NAME: ${{ steps.versioning.outputs.v_name }}
+        run: |
+          echo "Locating generated Release APK, Debug APK, and AAB..."
           UNSIGNED_APK=$(find app/build/outputs/apk/release/ -name "*.apk" | head -n 1)
           DEBUG_APK=$(find app/build/outputs/apk/debug/ -name "*.apk" | head -n 1)
           UNSIGNED_AAB=$(find app/build/outputs/bundle/release/ -name "*.aab" | head -n 1)
@@ -78,6 +119,8 @@ jobs:
           fi
 
           KS_PATH="/tmp/gothwad_release_key.jks"
+          echo "Decoding permanent release keystore from GitHub Secrets..."
+          echo "$KEYSTORE_BASE64" | base64 -d > "$KS_PATH"
 
           # Dynamically detect exact Alias name from the keystore
           DETECTED_ALIAS=$(keytool -list -v -keystore "$KS_PATH" -storepass "$KEYSTORE_PASS" 2>/dev/null | grep -i "Alias name:" | head -n 1 | sed 's/.*Alias name: //I' | tr -d '\r' | xargs)
@@ -85,6 +128,7 @@ jobs:
           if [ -n "$KEY_ALIAS" ]; then
             ACTUAL_ALIAS="$KEY_ALIAS"
           elif [ -n "$DETECTED_ALIAS" ]; then
+            ACTUAL_ALIAS="$DETECTED_ALIAS"
           else
             ACTUAL_ALIAS="gothwad_launcher_key"
           fi
@@ -97,6 +141,7 @@ jobs:
           if [ -n "$UNSIGNED_APK" ]; then
             UNALIGNED_TEMP="/tmp/unaligned_temp.apk"
             if [ -n "$ZIPALIGN" ]; then
+              $ZIPALIGN -v -p 4 "$UNSIGNED_APK" "$UNALIGNED_TEMP" || cp "$UNSIGNED_APK" "$UNALIGNED_TEMP"
             else
               cp "$UNSIGNED_APK" "$UNALIGNED_TEMP"
             fi
@@ -104,6 +149,7 @@ jobs:
             $APKSIGNER sign \
               --ks "$KS_PATH" \
               --ks-key-alias "$ACTUAL_ALIAS" \
+              --ks-pass "pass:$KEYSTORE_PASS" \
               --key-pass "pass:$KEY_PASS" \
               --out output_release/GothwadLauncher-v${V_NAME}-Release.apk \
               "$UNALIGNED_TEMP"
@@ -115,6 +161,7 @@ jobs:
           if [ -n "$UNSIGNED_AAB" ]; then
             cp "$UNSIGNED_AAB" output_release/GothwadLauncher-v${V_NAME}-PlayStore.aab
             jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
+              -keystore "$KS_PATH" \
               -storepass "$KEYSTORE_PASS" -keypass "$KEY_PASS" \
               output_release/GothwadLauncher-v${V_NAME}-PlayStore.aab \
               "$ACTUAL_ALIAS"
@@ -128,5 +175,3 @@ jobs:
         with:
           name: Gothwad-Launcher-v${{ steps.versioning.outputs.v_name }}-Build${{ steps.versioning.outputs.v_code }}
           path: output_release/
-
-
