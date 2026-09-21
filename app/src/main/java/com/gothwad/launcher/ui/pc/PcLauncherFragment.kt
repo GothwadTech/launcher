@@ -47,6 +47,9 @@ import com.gothwad.launcher.databinding.LayoutPcContextMenuBinding
 import com.gothwad.launcher.service.NotificationManagerBridge
 import com.gothwad.launcher.ui.AppIcons
 import com.gothwad.launcher.ui.WALLPAPERS
+import com.gothwad.launcher.ui.PC_WALLPAPERS
+import com.gothwad.launcher.ui.pc.settings.PcSettingsDialogFragment
+import com.gothwad.launcher.ui.pc.settings.PcSettingsConstants
 import com.gothwad.launcher.ui.dialogs.NotificationBottomSheetFragment
 import com.gothwad.launcher.ui.dialogs.PinEntryDialogFragment
 import com.gothwad.launcher.ui.dialogs.SearchDialogFragment
@@ -893,7 +896,7 @@ class PcLauncherFragment : Fragment() {
         // 8. Wallpaper / Personalize Option
         menuBinding.itemPersonalize.setOnClickListener {
             popup.dismiss()
-            openFullSettingsDialog()
+            openFullSettingsDialog(PcSettingsConstants.TAB_PERSONALISATION)
         }
 
         // 9. Full Settings Option
@@ -1324,17 +1327,14 @@ class PcLauncherFragment : Fragment() {
         ).show(parentFragmentManager, SearchDialogFragment.TAG)
     }
 
-    private fun openFullSettingsDialog() {
+    private fun openFullSettingsDialog(initialTab: Int = PcSettingsConstants.TAB_SYSTEM) {
         if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
             return
         }
-        SettingsBottomSheetFragment.newInstance(
-            config = currentConfig,
-            apps = allApps,
-            onWallpaperChanged = { applyWallpaper() },
-            onRerunWizard = { showSetupWizard() },
-            onModeSelected = { /* handled by ConfigStore */ }
-        ).show(parentFragmentManager, SettingsBottomSheetFragment.TAG)
+        PcSettingsDialogFragment.newInstance(
+            initialTab = initialTab,
+            onWallpaperChanged = { applyWallpaper() }
+        ).show(parentFragmentManager, PcSettingsDialogFragment.TAG)
     }
 
     private fun showSetupWizard() {
@@ -1403,25 +1403,26 @@ class PcLauncherFragment : Fragment() {
 
     private fun applyWallpaper() {
         lifecycleScope.launch {
-            if (currentConfig.useCustomWallpaper) {
-                val file = File(requireContext().filesDir, "wallpaper.jpg")
-                if (file.exists()) {
+            if (currentConfig.pcUseCustomWallpaper) {
+                val file = File(requireContext().filesDir, "wallpaper_pc.jpg")
+                val fallbackFile = File(requireContext().filesDir, "wallpaper.jpg")
+                val target = if (file.exists()) file else fallbackFile
+                if (target.exists()) {
                     val bmp = withContext(Dispatchers.IO) {
-                        BitmapFactory.decodeFile(file.absolutePath)
+                        BitmapFactory.decodeFile(target.absolutePath)
                     }
                     if (bmp != null) {
                         binding.imgWallpaper.setImageBitmap(bmp)
                         binding.imgWallpaper.visibility = View.VISIBLE
+                        return@launch
                     }
                 }
-            } else {
-                val preset = WALLPAPERS.getOrElse(currentConfig.wallpaper.coerceIn(0, WALLPAPERS.size - 1)) { WALLPAPERS[0] }
-                val colors = preset.colors.toIntArray()
-
-                val gradient = GradientDrawable(GradientDrawable.Orientation.TL_BR, colors)
-                binding.imgWallpaper.setImageDrawable(gradient)
-                binding.imgWallpaper.visibility = View.VISIBLE
             }
+
+            val idx = currentConfig.pcWallpaper.coerceIn(0, PC_WALLPAPERS.size - 1)
+            val preset = PC_WALLPAPERS[idx]
+            binding.imgWallpaper.setImageResource(preset.resId)
+            binding.imgWallpaper.visibility = View.VISIBLE
         }
     }
 

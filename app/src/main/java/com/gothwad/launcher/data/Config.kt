@@ -93,6 +93,8 @@ data class LauncherConfig(
     /** launcher mode: 0 = TV, 1 = PC Desktop */
     val launcherMode: Int = MODE_TV,
     // ----- PC Desktop settings -----
+    val pcWallpaper: Int = 0,
+    val pcUseCustomWallpaper: Boolean = false,
     val pcUiScale: Float = 0.85f,
     val pcIconSize: Int = 44,
     val pcShowLabels: Boolean = true,

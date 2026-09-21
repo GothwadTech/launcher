@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#1B1E26"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="24dp"
+        android:paddingTop="20dp"
+        android:paddingEnd="24dp"
+        android:paddingBottom="40dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="System"
+            android:textColor="#FFFFFF"
+            android:textSize="26sp"
+            android:textStyle="bold" />
+
+        <!-- PC Device Header Banner matching Screenshot 14 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/bg_win11_card"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="16dp">
+
+            <ImageView
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_win_system"
+                android:tint="#0078D4" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tv_system_pc_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Gothwad-PC"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_system_model"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="Desktop Mode • Android 14"
+                    android:textColor="#8E95A5"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_switch_tv_mode"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="Switch to TV Mode"
+                android:textSize="11sp"
+                app:cornerRadius="6dp" />
+        </LinearLayout>
+
+        <!-- System Cards Container -->
+        <LinearLayout
+            android:id="@+id/card_sys_display"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <include layout="@layout/item_pc_setting_card" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/card_sys_sound"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <include layout="@layout/item_pc_setting_card" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/card_sys_notifications"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <include layout="@layout/item_pc_setting_card" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/card_sys_focus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <include layout="@layout/item_pc_setting_card" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/card_sys_power"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <include layout="@layout/item_pc_setting_card" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/card_sys_storage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <include layout="@layout/item_pc_setting_card" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/card_sys_nearby"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <include layout="@layout/item_pc_setting_card" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/card_sys_multitasking"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <include layout="@layout/item_pc_setting_card" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/card_sys_activation"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <include layout="@layout/item_pc_setting_card" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/card_sys_troubleshoot"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <include layout="@layout/item_pc_setting_card" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/card_sys_recovery"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <include layout="@layout/item_pc_setting_card" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/card_sys_projecting"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <include layout="@layout/item_pc_setting_card" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/card_sys_remote"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <include layout="@layout/item_pc_setting_card" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/card_sys_clipboard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <include layout="@layout/item_pc_setting_card" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/card_sys_about"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <include layout="@layout/item_pc_setting_card" />
+        </LinearLayout>
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>
