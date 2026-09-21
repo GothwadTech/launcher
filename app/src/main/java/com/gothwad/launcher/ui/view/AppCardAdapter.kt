@@ -100,7 +100,7 @@ class AppCardAdapter(
         if (!hoverSupportResolved) {
             hoverSupportResolved = true
             val pm = recyclerView.context.packageManager
-            hoverSupport =
+            hoverSupported =
                 pm.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN) ||
                     pm.hasSystemFeature("android.hardware.type.pc")
         }

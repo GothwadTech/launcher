@@ -35,8 +35,8 @@ class LockSecurityTest {
 
     @Test
     fun `same secret hashes differently every time (salted)`() {
-        val first = LockSecurity.createCredential("password", LockCredentialType.PASSWORD, 0)
-        val second = LockSecurity.createCredential("password", LockCredentialType.PASSWORD, 0)
+        val first = LockSecurity.createCredential("password", LockCredentialType.ALPHANUMERIC, 0)
+        val second = LockSecurity.createCredential("password", LockCredentialType.ALPHANUMERIC, 0)
 
         assertNotEquals(first.credentialSalt, second.credentialSalt)
         assertNotEquals(first.credentialHash, second.credentialHash)

@@ -19,15 +19,12 @@ android {
     // Release signing key, supplied by CI via environment variables (from GitHub
     // secrets). Absent locally and on F-Droid, so this config stays inert there.
     val ciKeystore = System.getenv("KEYSTORE_FILE")
-    val rootKeystore = file("${rootDir}/debug.keystore")
     signingConfigs {
-        if (rootKeystore.exists()) {
-            create("debugConfig") {
-                storeFile = rootKeystore
-                storePassword = "android"
-                keyAlias = "androiddebugkey"
-                keyPassword = "android"
-            }
+        create("debugConfig") {
+            storeFile = file("${rootDir}/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
         }
         if (ciKeystore != null) {
             create("ci") {
@@ -41,9 +38,7 @@ android {
 
     buildTypes {
         debug {
-            if (rootKeystore.exists()) {
-                signingConfig = signingConfigs.getByName("debugConfig")
-            }
+            signingConfig = signingConfigs.getByName("debugConfig")
         }
         release {
             isMinifyEnabled = true

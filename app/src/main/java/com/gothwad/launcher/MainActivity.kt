@@ -29,6 +29,7 @@ import com.gothwad.launcher.data.NetStatus
 import com.gothwad.launcher.data.bluetoothStatusFlow
 import com.gothwad.launcher.data.networkStatusFlow
 import com.gothwad.launcher.databinding.ActivityMainBinding
+import com.gothwad.launcher.service.LauncherAccessibilityService
 import com.gothwad.launcher.service.NotificationManagerBridge
 import com.gothwad.launcher.ui.dialogs.BackgroundMediaDialogFragment
 import com.gothwad.launcher.ui.dialogs.NotificationBottomSheetFragment

@@ -1,0 +1,6 @@
+{
+  "name": "Gothwad Launcher",
+  "description": "A lightweight, customizable Android TV launcher with categories, remote shortcuts, and status bar.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

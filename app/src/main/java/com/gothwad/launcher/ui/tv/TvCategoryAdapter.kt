@@ -214,7 +214,8 @@ class TvCategoryAdapter(
 
             childAdapter?.submitList(item.apps)
         }
-    
+    }
+
     companion object {
         private const val TAG = "TvCategoryAdapter"
         private const val FOCUS_HEADROOM_DP = 8f
