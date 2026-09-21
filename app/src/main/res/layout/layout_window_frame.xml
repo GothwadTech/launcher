@@ -61,45 +61,42 @@
             android:paddingEnd="4dp">
 
             <!-- Minimize Button -->
-            <TextView
+            <ImageView
                 android:id="@+id/btn_win_minimize"
                 android:layout_width="32dp"
                 android:layout_height="28dp"
                 android:background="@drawable/bg_win_btn"
-                android:gravity="center"
-                android:text="🗕"
-                android:textColor="#FFFFFF"
-                android:textSize="13sp"
+                android:padding="7dp"
+                android:scaleType="fitCenter"
                 android:clickable="true"
-                android:focusable="true" />
+                android:focusable="true"
+                android:contentDescription="Minimize" />
 
             <!-- Maximize / Restore Button -->
-            <TextView
+            <ImageView
                 android:id="@+id/btn_win_maximize"
                 android:layout_width="32dp"
                 android:layout_height="28dp"
                 android:layout_marginStart="2dp"
                 android:background="@drawable/bg_win_btn"
-                android:gravity="center"
-                android:text="🗖"
-                android:textColor="#FFFFFF"
-                android:textSize="13sp"
+                android:padding="7dp"
+                android:scaleType="fitCenter"
                 android:clickable="true"
-                android:focusable="true" />
+                android:focusable="true"
+                android:contentDescription="Maximize or Restore" />
 
             <!-- Close Button -->
-            <TextView
+            <ImageView
                 android:id="@+id/btn_win_close"
                 android:layout_width="32dp"
                 android:layout_height="28dp"
                 android:layout_marginStart="2dp"
                 android:background="@drawable/bg_win_close_btn"
-                android:gravity="center"
-                android:text="✕"
-                android:textColor="#FFFFFF"
-                android:textSize="13sp"
+                android:padding="7dp"
+                android:scaleType="fitCenter"
                 android:clickable="true"
-                android:focusable="true" />
+                android:focusable="true"
+                android:contentDescription="Close" />
         </LinearLayout>
     </RelativeLayout>
 

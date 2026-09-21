@@ -23,6 +23,7 @@ import android.widget.FrameLayout
 import android.widget.PopupWindow
 import android.widget.RelativeLayout
 import android.widget.SeekBar
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -702,12 +703,11 @@ class PcLauncherFragment : Fragment() {
         cornerLp.height = btnSizePx
         binding.btnTaskbarCornerLauncher.layoutParams = cornerLp
 
-        // Adjust Taskbar search bar size - takes ~20-25% space with Launcher Icon
+        // Adjust Taskbar search bar size - wider and spacious desktop feel
         val searchLp = binding.btnSearch.layoutParams
-        searchLp.height = (btnSizePx * 0.88f).toInt()
+        searchLp.height = (btnSizePx * 0.92f).toInt()
         val screenWidthPx = resources.displayMetrics.widthPixels
-        val searchSectionWidthPx = (screenWidthPx * 0.22f).coerceIn(160f * density, 300f * density).toInt()
-        val searchWidthPx = (searchSectionWidthPx - btnSizePx - (12 * density)).toInt().coerceAtLeast((120 * density).toInt())
+        val searchWidthPx = (screenWidthPx * 0.26f).coerceIn(200f * density, 360f * density).toInt()
         searchLp.width = searchWidthPx
         binding.btnSearch.layoutParams = searchLp
 
@@ -939,6 +939,10 @@ class PcLauncherFragment : Fragment() {
 
         menuBinding.itemAppPinTaskbar.setOnClickListener {
             popup.dismiss()
+            if (!isPinned && !canPinMoreApps()) {
+                Toast.makeText(context, "Taskbar is full on this screen. Cannot pin more apps.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             viewLifecycleOwner.lifecycleScope.launch {
                 ConfigStore(context).update { cfg ->
                     val newPinned = if (isPinned) {
@@ -1490,6 +1494,34 @@ class PcLauncherFragment : Fragment() {
         }
 
         desktopAdapter?.updateData(sorted, currentConfig)
+    }
+
+    private fun getAvailableTaskbarPinnedWidth(): Int {
+        val recycler = binding.recyclerTaskbarPinned
+        if (recycler.width > 0) return recycler.width
+        val screenW = resources.displayMetrics.widthPixels
+        val density = resources.displayMetrics.density
+        val trayWidth = if (binding.layoutTaskbarTray.width > 0) binding.layoutTaskbarTray.width else (220 * density).toInt()
+        val leftNavWidth = if (binding.btnStart.width > 0 && binding.btnSearch.width > 0) {
+            binding.btnStart.width + binding.btnSearch.width + (90 * density).toInt()
+        } else {
+            (330 * density).toInt()
+        }
+        return (screenW - leftNavWidth - trayWidth).coerceAtLeast(0)
+    }
+
+    private fun canPinMoreApps(): Boolean {
+        val availableW = getAvailableTaskbarPinnedWidth()
+        val density = resources.displayMetrics.density
+        // Each pinned app button is 36dp with ~4dp margin = 40dp
+        val itemWidthPx = (40 * density).toInt().coerceAtLeast(1)
+        val maxFit = (availableW / itemWidthPx).coerceAtLeast(1)
+        val currentPinnedCount = if (currentConfig.pcPinnedApps.isNotEmpty()) {
+            currentConfig.pcPinnedApps.size
+        } else {
+            4
+        }
+        return currentPinnedCount < maxFit
     }
 
     private fun updatePinnedApps() {

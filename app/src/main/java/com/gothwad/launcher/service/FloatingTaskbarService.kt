@@ -2,31 +2,21 @@ package com.gothwad.launcher.service
 
 import android.annotation.SuppressLint
 import android.app.Service
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.graphics.Color
 import android.graphics.PixelFormat
-import android.media.AudioManager
 import android.net.Uri
-import android.os.BatteryManager
 import android.os.Build
-import android.os.Handler
 import android.os.IBinder
-import android.os.Looper
 import android.provider.Settings
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
-import androidx.recyclerview.widget.LinearLayoutManager
-import com.gothwad.launcher.R
-import com.gothwad.launcher.Actions
 import com.gothwad.launcher.MainActivity
-import com.gothwad.launcher.data.AppEntry
-import com.gothwad.launcher.data.AppRepository
+import com.gothwad.launcher.R
 import com.gothwad.launcher.data.ConfigStore
 import com.gothwad.launcher.data.LauncherConfig
 import com.gothwad.launcher.data.MODE_PC
@@ -34,30 +24,25 @@ import com.gothwad.launcher.data.MODE_TV
 import com.gothwad.launcher.databinding.LayoutFloatingTaskbarOverlayBinding
 import com.gothwad.launcher.databinding.LayoutFloatingTaskbarTriggerBinding
 import com.gothwad.launcher.ui.AppIcons
-import com.gothwad.launcher.ui.pc.PcTaskbarPinnedAdapter
 import com.gothwad.launcher.ui.view.SmoothCornerDrawable
-import com.gothwad.launcher.ui.view.SmoothOutlineProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import kotlin.math.abs
 
 /**
- * System Alert Window Service that provides a floating launcher icon across all apps in PC mode.
- * - Shows an iOS/Windows-style squircle floating bubble that can be dragged or tapped.
- * - When tapped, displays a rich quick-action panel (similar to the desktop right-click menu)
- *   and allows toggling the full bottom taskbar on/off over any active application.
+ * System Alert Window Service providing the floating launcher icon across other apps in PC mode.
+ * - Shows an Android squircle floating bubble that can be dragged anywhere on screen.
+ * - Tapping the bubble opens a quick assist menu (or directly restores a minimized window).
+ * - Opens File Manager and Web Browser directly on top of Chrome or any active app in a floating window.
+ * - Single unified taskbar lives on the desktop; no redundant floating taskbar.
  */
 class FloatingTaskbarService : Service() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-    private val mainHandler = Handler(Looper.getMainLooper())
     private lateinit var windowManager: WindowManager
 
     // Views & Bindings
@@ -70,49 +55,25 @@ class FloatingTaskbarService : Service() {
     private var overlayParams: WindowManager.LayoutParams? = null
 
     // State
-    private var isTaskbarVisible = false
     private var isMenuVisible = false
     private var isTriggerAttached = false
     private var isOverlayAttached = false
 
-    private var cachedConfig = LauncherConfig()
-    private var allApps: List<AppEntry> = emptyList()
-    private var pinnedAdapter: PcTaskbarPinnedAdapter? = null
-
-    // Battery Broadcast Receiver
-    private val batteryReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            updateBatteryStatus(intent)
-        }
-    }
-
-    // Time ticker for overlay clock
-    private val timeTicker = object : Runnable {
-        override fun run() {
-            updateClock()
-            mainHandler.postDelayed(this, 1000)
-        }
-    }
+    private lateinit var overlayWindowManager: FloatingOverlayWindowManager
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        overlayWindowManager = FloatingOverlayWindowManager(this)
 
         setupTriggerView()
         setupOverlayView()
 
-        // Register battery receiver
-        val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
-        registerReceiver(batteryReceiver, filter)
-        mainHandler.post(timeTicker)
-
-        // Observe config and load apps
+        // Observe config
         serviceScope.launch {
-            allApps = AppRepository.scan(applicationContext)
             ConfigStore(applicationContext).flow.collectLatest { config ->
-                cachedConfig = config
                 handleConfigChange(config)
             }
         }
@@ -120,9 +81,6 @@ class FloatingTaskbarService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
-            ACTION_SHOW_TASKBAR -> showTaskbar(true)
-            ACTION_HIDE_TASKBAR -> showTaskbar(false)
-            ACTION_TOGGLE_TASKBAR -> toggleTaskbar()
             ACTION_TOGGLE_MENU -> toggleMenu()
             ACTION_STOP_SERVICE -> stopSelf()
         }
@@ -136,9 +94,7 @@ class FloatingTaskbarService : Service() {
             return
         }
 
-        // In PC mode with permission, show floating trigger button
         showTrigger()
-        updatePinnedApps()
     }
 
     // =========================================================================
@@ -151,7 +107,6 @@ class FloatingTaskbarService : Service() {
         triggerBinding = binding
         triggerView = binding.root
 
-        // Continuous Smooth Squircle Background for the floating icon
         val density = resources.displayMetrics.density
         val smoothBubbleDrawable = SmoothCornerDrawable(
             cornerRadiusPx = 14f * density,
@@ -194,7 +149,6 @@ class FloatingTaskbarService : Service() {
             y = initialY
         }
 
-        // Draggable touch listener with smooth docking and extraction
         var initialTouchX = 0f
         var initialTouchY = 0f
         var initialParamX = 0
@@ -210,7 +164,6 @@ class FloatingTaskbarService : Service() {
                     initialParamX = params.x
                     initialParamY = params.y
                     isMoving = false
-                    // Slightly scale down on touch for tactile feedback
                     binding.btnFloatingBubble.animate().scaleX(0.92f).scaleY(0.92f).setDuration(80).start()
                     true
                 }
@@ -227,19 +180,11 @@ class FloatingTaskbarService : Service() {
                 }
                 MotionEvent.ACTION_UP -> {
                     binding.btnFloatingBubble.animate().scaleX(1f).scaleY(1f).setDuration(120).start()
-                    if (isMoving) {
-                        // If dropped near the bottom edge, combine/dock into taskbar corner
-                        val isNearBottom = params.y > screenH - (72 * density).toInt()
-                        if (isNearBottom) {
-                            params.x = (screenW - (56 * density)).toInt()
-                            params.y = (screenH - (56 * density)).toInt()
-                            runCatching { windowManager.updateViewLayout(triggerView, params) }
-                            showTaskbar(true)
-                        }
-                    } else {
-                        // It was a tap!
-                        if (isTaskbarVisible) {
-                            showTaskbar(false)
+                    if (!isMoving) {
+                        // Tapped: If a window was minimized, restore it; otherwise toggle quick assist menu
+                        val minId = overlayWindowManager.getMinimizedWindowId()
+                        if (minId != null) {
+                            overlayWindowManager.restoreWindow(minId)
                         } else {
                             toggleMenu()
                         }
@@ -270,7 +215,7 @@ class FloatingTaskbarService : Service() {
     }
 
     // =========================================================================
-    // 2. FULL OVERLAY (Quick Assist Menu + Persistent Bottom Taskbar)
+    // 2. QUICK ASSIST MENU
     // =========================================================================
 
     private fun setupOverlayView() {
@@ -278,14 +223,12 @@ class FloatingTaskbarService : Service() {
         overlayBinding = binding
         overlayView = binding.root
 
-        // Icons
         val appIconDrawable = runCatching {
             packageManager.getApplicationIcon(packageName)
         }.getOrNull() ?: androidx.core.content.ContextCompat.getDrawable(this, R.mipmap.ic_launcher)
 
         binding.imgPanelHeaderIcon.setImageDrawable(appIconDrawable)
         binding.btnCloseMenu.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_CLOSE, Color.WHITE))
-        binding.imgIconToggleTaskbar.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_DESKTOP, 0xFF4FA7FA.toInt()))
         binding.imgIconHome.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_HOME, 0xFF60A5FA.toInt()))
         binding.imgIconFileMgr.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_FOLDER, 0xFF4FA7FA.toInt()))
         binding.imgIconWebApp.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_GLOBE, 0xFF60A5FA.toInt()))
@@ -295,39 +238,6 @@ class FloatingTaskbarService : Service() {
         binding.imgIconTv.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_TV, 0xFF60A5FA.toInt()))
         binding.imgIconSettings.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_GEAR, Color.WHITE))
 
-        // Taskbar Controls
-        val density = resources.displayMetrics.density
-        val squircleRadius = 7.5f * density
-        binding.btnOverlayStart.outlineProvider = SmoothOutlineProvider(squircleRadius, 0.6f)
-        binding.btnOverlayStart.clipToOutline = true
-        binding.btnOverlayStart.setImageDrawable(appIconDrawable)
-
-        binding.btnOverlayFiles.outlineProvider = SmoothOutlineProvider(squircleRadius, 0.6f)
-        binding.btnOverlayFiles.clipToOutline = true
-        binding.btnOverlayFiles.setOnClickListener {
-            showTaskbar(false)
-            openAppOrLauncher("com.gothwad.launcher.files")
-        }
-
-        binding.btnOverlayBrowser.outlineProvider = SmoothOutlineProvider(squircleRadius, 0.6f)
-        binding.btnOverlayBrowser.clipToOutline = true
-        binding.btnOverlayBrowser.setOnClickListener {
-            showTaskbar(false)
-            openAppOrLauncher("com.gothwad.launcher.webapp")
-        }
-
-        binding.btnHideOverlayTaskbar.outlineProvider = SmoothOutlineProvider(squircleRadius, 0.6f)
-        binding.btnHideOverlayTaskbar.clipToOutline = true
-        binding.imgHideTaskbarIcon.setImageDrawable(appIconDrawable)
-        binding.btnHideOverlayTaskbar.setOnClickListener {
-            dockTaskbarIntoBubble()
-        }
-
-        binding.imgOverlaySearchIcon.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_SEARCH, 0xCC9AA0A6.toInt()))
-        binding.btnOverlayNotifications.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BELL, Color.WHITE))
-        binding.imgOverlayTrayVolume.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_VOLUME, 0xFFCCCCCC.toInt()))
-        binding.imgOverlayTrayNetwork.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_WIFI, 0xFFCCCCCC.toInt()))
-
         // Scrim barrier dismisses menu
         binding.viewOverlayScrim.setOnClickListener {
             closeMenu()
@@ -336,49 +246,43 @@ class FloatingTaskbarService : Service() {
             closeMenu()
         }
 
-        // 1. Toggle Taskbar Visibility Option
-        binding.itemMenuToggleTaskbar.setOnClickListener {
-            closeMenu()
-            toggleTaskbar()
-        }
-
-        // 2. Go to Desktop / Home
+        // 1. Go to Desktop / Home
         binding.itemMenuHome.setOnClickListener {
             closeMenu()
             launchHome()
         }
 
-        // 3. File Manager
+        // 2. File Manager (opens directly on top of Chrome/other apps in floating window!)
         binding.itemMenuFileManager.setOnClickListener {
             closeMenu()
-            openAppOrLauncher("com.gothwad.launcher.files")
+            overlayWindowManager.openFileManager()
         }
 
-        // 4. Web Browser
+        // 3. Web Browser
         binding.itemMenuWebApp.setOnClickListener {
             closeMenu()
-            openAppOrLauncher("com.gothwad.launcher.webapp")
+            overlayWindowManager.openWebApp()
         }
 
-        // 5. Search Apps
+        // 4. Search Apps
         binding.itemMenuSearch.setOnClickListener {
             closeMenu()
             launchHomeWithAction("ACTION_SEARCH")
         }
 
-        // 6. Notifications
+        // 5. Notifications
         binding.itemMenuNotifications.setOnClickListener {
             closeMenu()
             launchHomeWithAction("ACTION_NOTIFICATIONS")
         }
 
-        // 7. Volume / Quick Settings
+        // 6. Volume / Quick Settings
         binding.itemMenuVolume.setOnClickListener {
             closeMenu()
             launchHomeWithAction("ACTION_QUICK_SETTINGS")
         }
 
-        // 8. TV Mode
+        // 7. TV Mode
         binding.itemMenuTvMode.setOnClickListener {
             closeMenu()
             serviceScope.launch {
@@ -387,43 +291,10 @@ class FloatingTaskbarService : Service() {
             launchHome()
         }
 
-        // 9. Settings
+        // 8. Settings
         binding.itemMenuSettings.setOnClickListener {
             closeMenu()
             launchHomeWithAction("ACTION_SETTINGS")
-        }
-
-        // Overlay Taskbar Events
-        binding.btnOverlayStart.setOnClickListener {
-            toggleMenu()
-        }
-        binding.btnOverlaySearch.setOnClickListener {
-            launchHomeWithAction("ACTION_SEARCH")
-        }
-        binding.btnOverlayNotificationsContainer.setOnClickListener {
-            launchHomeWithAction("ACTION_NOTIFICATIONS")
-        }
-        binding.layoutOverlayTrayCluster.setOnClickListener {
-            launchHomeWithAction("ACTION_QUICK_SETTINGS")
-        }
-        binding.layoutOverlayClockCluster.setOnClickListener {
-            launchHomeWithAction("ACTION_QUICK_SETTINGS")
-        }
-        binding.btnHideOverlayTaskbar.setOnClickListener {
-            showTaskbar(false)
-        }
-
-        // Pinned Apps Recycler in Overlay Taskbar
-        pinnedAdapter = PcTaskbarPinnedAdapter(
-            onLaunchApp = { app ->
-                showTaskbar(false)
-                Actions.launchApp(applicationContext, app.pkg)
-            },
-            onUnpinApp = { _, _ -> }
-        )
-        binding.recyclerOverlayPinned.apply {
-            layoutManager = LinearLayoutManager(this@FloatingTaskbarService, LinearLayoutManager.HORIZONTAL, false)
-            adapter = pinnedAdapter
         }
 
         val overlayType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -465,17 +336,13 @@ class FloatingTaskbarService : Service() {
 
     private fun updateOverlayState() {
         val binding = overlayBinding ?: return
-        if (isMenuVisible || isTaskbarVisible) {
+        if (isMenuVisible) {
             if (!isOverlayAttached) showOverlay()
-            binding.viewOverlayScrim.visibility = if (isMenuVisible) View.VISIBLE else View.GONE
-            binding.layoutOverlayMenu.visibility = if (isMenuVisible) View.VISIBLE else View.GONE
-            binding.layoutOverlayTaskbar.visibility = if (isTaskbarVisible) View.VISIBLE else View.GONE
-            binding.tvToggleTaskbarLabel.text = if (isTaskbarVisible) "Hide Taskbar" else "Show Taskbar"
-            binding.tvTaskbarStatusBadge.text = if (isTaskbarVisible) "Visible" else "Hidden"
+            binding.viewOverlayScrim.visibility = View.VISIBLE
+            binding.layoutOverlayMenu.visibility = View.VISIBLE
         } else {
             binding.viewOverlayScrim.visibility = View.GONE
             binding.layoutOverlayMenu.visibility = View.GONE
-            binding.layoutOverlayTaskbar.visibility = View.GONE
             hideOverlay()
         }
     }
@@ -490,63 +357,6 @@ class FloatingTaskbarService : Service() {
             isMenuVisible = false
             updateOverlayState()
         }
-    }
-
-    fun toggleTaskbar() {
-        isTaskbarVisible = !isTaskbarVisible
-        updateOverlayState()
-    }
-
-    fun showTaskbar(show: Boolean) {
-        isTaskbarVisible = show
-        updateOverlayState()
-    }
-
-    private fun dockTaskbarIntoBubble() {
-        showTaskbar(false)
-        val displayMetrics = resources.displayMetrics
-        val density = displayMetrics.density
-        val screenW = displayMetrics.widthPixels
-        val screenH = displayMetrics.heightPixels
-        triggerParams?.let { params ->
-            params.x = (screenW - (56 * density)).toInt()
-            params.y = (screenH - (56 * density)).toInt()
-            runCatching { windowManager.updateViewLayout(triggerView, params) }
-        }
-    }
-
-    private fun updatePinnedApps() {
-        val adapter = pinnedAdapter ?: return
-        val pinnedPkgs = cachedConfig.pcPinnedApps
-        val pinnedEntries = pinnedPkgs.mapNotNull { pkg ->
-            allApps.find { it.pkg == pkg }
-        }
-        adapter.submitList(pinnedEntries)
-    }
-
-    private fun updateBatteryStatus(intent: Intent?) {
-        val binding = overlayBinding ?: return
-        if (intent == null) return
-        val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
-        val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
-        val pct = if (level >= 0 && scale > 0) (level * 100 / scale) else 100
-        val status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
-        val isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
-            status == BatteryManager.BATTERY_STATUS_FULL
-
-        val text = if (isCharging) "$pct% ⚡" else "$pct%"
-        binding.tvOverlayTrayBatteryPct.text = text
-        val iconColor = if (pct <= 15) 0xFFFF5252.toInt() else 0xFFCCCCCC.toInt()
-        binding.imgOverlayTrayBattery.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BATTERY, iconColor))
-    }
-
-    private fun updateClock() {
-        val binding = overlayBinding ?: return
-        val now = Date()
-        val timeFmt = SimpleDateFormat("h:mm a", Locale.getDefault())
-        val dateFmt = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
-        binding.tvOverlayTaskbarTime.text = timeFmt.format(now)
-        binding.tvOverlayTaskbarDate.text = dateFmt.format(now)
     }
 
     private fun launchHome() {
@@ -569,28 +379,15 @@ class FloatingTaskbarService : Service() {
         }
     }
 
-    private fun openAppOrLauncher(pkg: String) {
-        val intent = Intent(this, MainActivity::class.java).apply {
-            action = "OPEN_APP"
-            putExtra("EXTRA_PKG", pkg)
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
-        }
-        startActivity(intent)
-    }
-
     override fun onDestroy() {
         super.onDestroy()
+        overlayWindowManager.closeAll()
         hideTrigger()
         hideOverlay()
-        mainHandler.removeCallbacks(timeTicker)
-        runCatching { unregisterReceiver(batteryReceiver) }
         serviceScope.cancel()
     }
 
     companion object {
-        const val ACTION_SHOW_TASKBAR = "com.gothwad.launcher.SHOW_TASKBAR"
-        const val ACTION_HIDE_TASKBAR = "com.gothwad.launcher.HIDE_TASKBAR"
-        const val ACTION_TOGGLE_TASKBAR = "com.gothwad.launcher.TOGGLE_TASKBAR"
         const val ACTION_TOGGLE_MENU = "com.gothwad.launcher.TOGGLE_MENU"
         const val ACTION_STOP_SERVICE = "com.gothwad.launcher.STOP_SERVICE"
 

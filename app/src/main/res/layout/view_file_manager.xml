@@ -3,14 +3,14 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#181B20"
+    android:background="#202124"
     android:orientation="vertical">
 
-    <!-- Top Toolbar: Navigation (Back/Up) + Breadcrumbs + New Folder + Refresh -->
+    <!-- Top Toolbar: Desktop / Linux Window Header (Nav + Breadcrumbs + Search + View/Sort + Actions) -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="40dp"
-        android:background="#23272F"
+        android:layout_height="44dp"
+        android:background="#292A2D"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingHorizontal="8dp">
@@ -24,6 +24,15 @@
             android:padding="6dp" />
 
         <ImageButton
+            android:id="@+id/btn_nav_forward"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="2dp"
+            android:background="@drawable/bg_win_btn"
+            android:contentDescription="Forward"
+            android:padding="6dp" />
+
+        <ImageButton
             android:id="@+id/btn_nav_up"
             android:layout_width="32dp"
             android:layout_height="32dp"
@@ -32,47 +41,115 @@
             android:contentDescription="Up"
             android:padding="6dp" />
 
-        <!-- Breadcrumb Path Bar -->
+        <!-- Breadcrumb & Path Bar -->
         <LinearLayout
-            android:id="@+id/layout_breadcrumbs"
+            android:id="@+id/layout_breadcrumbs_container"
             android:layout_width="0dp"
-            android:layout_height="28dp"
+            android:layout_height="32dp"
             android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp"
+            android:layout_marginEnd="6dp"
             android:layout_weight="1"
+            android:background="@drawable/bg_pc_taskbar_search_bar"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="6dp">
+
+            <ImageView
+                android:id="@+id/img_path_icon"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:contentDescription="@null" />
+
+            <HorizontalScrollView
+                android:id="@+id/scroll_breadcrumbs"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="4dp"
+                android:layout_weight="1"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:id="@+id/layout_breadcrumbs_list"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal" />
+            </HorizontalScrollView>
+
+            <TextView
+                android:id="@+id/tv_current_path"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <!-- Search Bar in Folder -->
+        <LinearLayout
+            android:id="@+id/layout_folder_search"
+            android:layout_width="190dp"
+            android:layout_height="34dp"
+            android:layout_marginEnd="6dp"
             android:background="@drawable/bg_pc_taskbar_search_bar"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingHorizontal="8dp">
 
             <ImageView
-                android:id="@+id/img_path_icon"
-                android:layout_width="14dp"
-                android:layout_height="14dp"
+                android:id="@+id/img_search_icon"
+                android:layout_width="15dp"
+                android:layout_height="15dp"
                 android:contentDescription="@null" />
 
-            <HorizontalScrollView
-                android:layout_width="match_parent"
+            <EditText
+                android:id="@+id/et_search_filter"
+                android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_marginStart="6dp"
-                android:scrollbars="none">
+                android:layout_weight="1"
+                android:background="@null"
+                android:hint="Search / filter files..."
+                android:imeOptions="actionDone"
+                android:inputType="text"
+                android:singleLine="true"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#809AA0A6"
+                android:textSize="12sp" />
 
-                <TextView
-                    android:id="@+id/tv_current_path"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_vertical"
-                    android:textColor="#FFFFFF"
-                    android:textSize="11sp"
-                    tools:text="/storage/emulated/0/Download" />
-            </HorizontalScrollView>
+            <ImageButton
+                android:id="@+id/btn_clear_search"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:background="@null"
+                android:contentDescription="Clear"
+                android:scaleType="centerInside"
+                android:visibility="gone" />
         </LinearLayout>
+
+        <!-- View Mode (Grid vs List) -->
+        <ImageButton
+            android:id="@+id/btn_view_mode"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@drawable/bg_win_btn"
+            android:contentDescription="Toggle View Mode"
+            android:padding="6dp" />
+
+        <!-- Sort Menu -->
+        <ImageButton
+            android:id="@+id/btn_sort"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="2dp"
+            android:background="@drawable/bg_win_btn"
+            android:contentDescription="Sort Options"
+            android:padding="6dp" />
 
         <!-- Action: New Folder -->
         <ImageButton
             android:id="@+id/btn_new_folder"
             android:layout_width="32dp"
             android:layout_height="32dp"
+            android:layout_marginStart="2dp"
             android:background="@drawable/bg_win_btn"
             android:contentDescription="New Folder"
             android:padding="6dp" />
@@ -95,180 +172,316 @@
         android:layout_weight="1"
         android:orientation="horizontal">
 
-        <!-- Places Sidebar -->
+        <!-- Places Sidebar (Linux / Desktop style) -->
         <LinearLayout
-            android:layout_width="140dp"
+            android:layout_width="155dp"
             android:layout_height="match_parent"
-            android:background="#1E2229"
-            android:orientation="vertical"
-            android:paddingVertical="8dp">
+            android:background="#202124"
+            android:orientation="vertical">
 
-            <TextView
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingVertical="8dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingHorizontal="14dp"
+                        android:paddingBottom="4dp"
+                        android:text="Places"
+                        android:textAllCaps="true"
+                        android:textColor="#66FFFFFF"
+                        android:textSize="9.5sp"
+                        android:textStyle="bold" />
+
+                    <!-- Quick Places (Each accepts drag-drop) -->
+                    <LinearLayout
+                        android:id="@+id/place_internal"
+                        android:layout_width="match_parent"
+                        android:layout_height="34dp"
+                        android:layout_marginHorizontal="6dp"
+                        android:background="@drawable/bg_win_btn"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="10dp">
+
+                        <ImageView
+                            android:id="@+id/img_place_internal"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:contentDescription="@null" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:text="Home Storage"
+                            android:textColor="#E8EAED"
+                            android:textSize="11.5sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/place_downloads"
+                        android:layout_width="match_parent"
+                        android:layout_height="34dp"
+                        android:layout_marginHorizontal="6dp"
+                        android:layout_marginTop="1dp"
+                        android:background="@drawable/bg_win_btn"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="10dp">
+
+                        <ImageView
+                            android:id="@+id/img_place_downloads"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:contentDescription="@null" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:text="Downloads"
+                            android:textColor="#E8EAED"
+                            android:textSize="11.5sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/place_documents"
+                        android:layout_width="match_parent"
+                        android:layout_height="34dp"
+                        android:layout_marginHorizontal="6dp"
+                        android:layout_marginTop="1dp"
+                        android:background="@drawable/bg_win_btn"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="10dp">
+
+                        <ImageView
+                            android:id="@+id/img_place_documents"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:contentDescription="@null" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:text="Documents"
+                            android:textColor="#E8EAED"
+                            android:textSize="11.5sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/place_pictures"
+                        android:layout_width="match_parent"
+                        android:layout_height="34dp"
+                        android:layout_marginHorizontal="6dp"
+                        android:layout_marginTop="1dp"
+                        android:background="@drawable/bg_win_btn"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="10dp">
+
+                        <ImageView
+                            android:id="@+id/img_place_pictures"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:contentDescription="@null" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:text="Pictures"
+                            android:textColor="#E8EAED"
+                            android:textSize="11.5sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/place_music"
+                        android:layout_width="match_parent"
+                        android:layout_height="34dp"
+                        android:layout_marginHorizontal="6dp"
+                        android:layout_marginTop="1dp"
+                        android:background="@drawable/bg_win_btn"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="10dp">
+
+                        <ImageView
+                            android:id="@+id/img_place_music"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:contentDescription="@null" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:text="Music"
+                            android:textColor="#E8EAED"
+                            android:textSize="11.5sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/place_movies"
+                        android:layout_width="match_parent"
+                        android:layout_height="34dp"
+                        android:layout_marginHorizontal="6dp"
+                        android:layout_marginTop="1dp"
+                        android:background="@drawable/bg_win_btn"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="10dp">
+
+                        <ImageView
+                            android:id="@+id/img_place_movies"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:contentDescription="@null" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:text="Videos"
+                            android:textColor="#E8EAED"
+                            android:textSize="11.5sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/place_dcim"
+                        android:layout_width="match_parent"
+                        android:layout_height="34dp"
+                        android:layout_marginHorizontal="6dp"
+                        android:layout_marginTop="1dp"
+                        android:background="@drawable/bg_win_btn"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="10dp">
+
+                        <ImageView
+                            android:id="@+id/img_place_dcim"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:contentDescription="@null" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:text="DCIM / Camera"
+                            android:textColor="#E8EAED"
+                            android:textSize="11.5sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/place_app_storage"
+                        android:layout_width="match_parent"
+                        android:layout_height="34dp"
+                        android:layout_marginHorizontal="6dp"
+                        android:layout_marginTop="1dp"
+                        android:background="@drawable/bg_win_btn"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="10dp">
+
+                        <ImageView
+                            android:id="@+id/img_place_app_storage"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:contentDescription="@null" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:text="App Data"
+                            android:textColor="#E8EAED"
+                            android:textSize="11.5sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/place_root"
+                        android:layout_width="match_parent"
+                        android:layout_height="34dp"
+                        android:layout_marginHorizontal="6dp"
+                        android:layout_marginTop="1dp"
+                        android:background="@drawable/bg_win_btn"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="10dp">
+
+                        <ImageView
+                            android:id="@+id/img_place_root"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:contentDescription="@null" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:text="Root System"
+                            android:textColor="#E8EAED"
+                            android:textSize="11.5sp" />
+                    </LinearLayout>
+
+                </LinearLayout>
+            </ScrollView>
+
+            <!-- Sidebar Footer: Storage Meter (Linux style) -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingHorizontal="12dp"
-                android:paddingBottom="4dp"
-                android:text="Places"
-                android:textAllCaps="true"
-                android:textColor="#66FFFFFF"
-                android:textSize="9.5sp"
-                android:textStyle="bold" />
+                android:background="#292A2D"
+                android:orientation="vertical"
+                android:padding="10dp">
 
-            <!-- Quick Places -->
-            <LinearLayout
-                android:id="@+id/place_internal"
-                android:layout_width="match_parent"
-                android:layout_height="32dp"
-                android:background="@drawable/bg_win_btn"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="12dp">
-
-                <ImageView
-                    android:id="@+id/img_place_internal"
-                    android:layout_width="16dp"
-                    android:layout_height="16dp"
-                    android:contentDescription="@null" />
+                <ProgressBar
+                    android:id="@+id/progress_storage_meter"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="5dp"
+                    android:max="100"
+                    android:progress="50"
+                    android:progressTint="#4FA7FA" />
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:id="@+id/tv_storage_capacity"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:text="Internal"
-                    android:textColor="#E0E0E0"
-                    android:textSize="11.5sp" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/place_downloads"
-                android:layout_width="match_parent"
-                android:layout_height="32dp"
-                android:background="@drawable/bg_win_btn"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="12dp">
-
-                <ImageView
-                    android:id="@+id/img_place_downloads"
-                    android:layout_width="16dp"
-                    android:layout_height="16dp"
-                    android:contentDescription="@null" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:text="Downloads"
-                    android:textColor="#E0E0E0"
-                    android:textSize="11.5sp" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/place_documents"
-                android:layout_width="match_parent"
-                android:layout_height="32dp"
-                android:background="@drawable/bg_win_btn"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="12dp">
-
-                <ImageView
-                    android:id="@+id/img_place_documents"
-                    android:layout_width="16dp"
-                    android:layout_height="16dp"
-                    android:contentDescription="@null" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:text="Documents"
-                    android:textColor="#E0E0E0"
-                    android:textSize="11.5sp" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/place_pictures"
-                android:layout_width="match_parent"
-                android:layout_height="32dp"
-                android:background="@drawable/bg_win_btn"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="12dp">
-
-                <ImageView
-                    android:id="@+id/img_place_pictures"
-                    android:layout_width="16dp"
-                    android:layout_height="16dp"
-                    android:contentDescription="@null" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:text="Pictures"
-                    android:textColor="#E0E0E0"
-                    android:textSize="11.5sp" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/place_dcim"
-                android:layout_width="match_parent"
-                android:layout_height="32dp"
-                android:background="@drawable/bg_win_btn"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="12dp">
-
-                <ImageView
-                    android:id="@+id/img_place_dcim"
-                    android:layout_width="16dp"
-                    android:layout_height="16dp"
-                    android:contentDescription="@null" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:text="Camera/DCIM"
-                    android:textColor="#E0E0E0"
-                    android:textSize="11.5sp" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/place_app_storage"
-                android:layout_width="match_parent"
-                android:layout_height="32dp"
-                android:background="@drawable/bg_win_btn"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="12dp">
-
-                <ImageView
-                    android:id="@+id/img_place_app_storage"
-                    android:layout_width="16dp"
-                    android:layout_height="16dp"
-                    android:contentDescription="@null" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:text="App Data"
-                    android:textColor="#E0E0E0"
-                    android:textSize="11.5sp" />
+                    android:layout_marginTop="6dp"
+                    android:textColor="#809AA0A6"
+                    android:textSize="9.5sp"
+                    tools:text="Free: 45.2 GB" />
             </LinearLayout>
 
         </LinearLayout>
@@ -277,13 +490,15 @@
         <View
             android:layout_width="1dp"
             android:layout_height="match_parent"
-            android:background="#2E3440" />
+            android:background="#35383F" />
 
         <!-- File List / Grid Container -->
         <FrameLayout
+            android:id="@+id/container_file_content"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="1">
+            android:layout_weight="1"
+            android:background="#1B1C1E">
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recycler_files"
@@ -300,7 +515,21 @@
                 android:layout_gravity="center"
                 android:text="This folder is empty"
                 android:textColor="#66FFFFFF"
-                android:textSize="12sp"
+                android:textSize="13sp"
+                android:visibility="gone" />
+
+            <!-- Drag & Drop Visual Hint Banner -->
+            <TextView
+                android:id="@+id/tv_drag_drop_hint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom"
+                android:background="#DD181A1F"
+                android:gravity="center"
+                android:paddingVertical="4dp"
+                android:text="Drag files to move them into folders or sidebar places"
+                android:textColor="#809AA0A6"
+                android:textSize="10sp"
                 android:visibility="gone" />
         </FrameLayout>
 
@@ -310,18 +539,27 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="24dp"
-        android:background="#1E2229"
+        android:background="#292A2D"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingHorizontal="12dp">
 
         <TextView
             android:id="@+id/tv_status_info"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:textColor="#80FFFFFF"
+            android:layout_weight="1"
+            android:textColor="#809AA0A6"
             android:textSize="10.5sp"
             tools:text="14 items • Free 32.5 GB" />
+
+        <TextView
+            android:id="@+id/tv_view_mode_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#809AA0A6"
+            android:textSize="10sp"
+            android:text="Linux Desktop File Manager" />
     </LinearLayout>
 
 </LinearLayout>

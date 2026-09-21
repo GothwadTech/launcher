@@ -67,48 +67,7 @@
             android:layout_marginVertical="3dp"
             android:background="#20FFFFFF" />
 
-        <!-- 1. Toggle Taskbar Visibility Option -->
-        <LinearLayout
-            android:id="@+id/item_menu_toggle_taskbar"
-            android:layout_width="match_parent"
-            android:layout_height="38dp"
-            android:background="@drawable/bg_pc_menu_item"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingHorizontal="10dp">
-
-            <ImageView
-                android:id="@+id/img_icon_toggle_taskbar"
-                android:layout_width="18dp"
-                android:layout_height="18dp"
-                android:contentDescription="@null" />
-
-            <TextView
-                android:id="@+id/tv_toggle_taskbar_label"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
-                android:layout_weight="1"
-                android:text="Show Taskbar"
-                android:textColor="#FFFFFF"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tv_taskbar_status_badge"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/bg_pc_taskbar_search_bar"
-                android:paddingHorizontal="6dp"
-                android:paddingVertical="2dp"
-                android:text="Toggle"
-                android:textColor="#4FA7FA"
-                android:textSize="10sp" />
-        </LinearLayout>
-
-        <!-- 2. Home / Desktop Option -->
+        <!-- 1. Home / Desktop Option -->
         <LinearLayout
             android:id="@+id/item_menu_home"
             android:layout_width="match_parent"
@@ -136,7 +95,7 @@
                 android:textSize="13sp" />
         </LinearLayout>
 
-        <!-- 3. Open File Manager Window -->
+        <!-- 2. Open File Manager Window -->
         <LinearLayout
             android:id="@+id/item_menu_file_manager"
             android:layout_width="match_parent"
@@ -164,7 +123,7 @@
                 android:textSize="13sp" />
         </LinearLayout>
 
-        <!-- 4. Open Web Browser Window -->
+        <!-- 3. Open Web Browser Window -->
         <LinearLayout
             android:id="@+id/item_menu_web_app"
             android:layout_width="match_parent"
@@ -198,7 +157,7 @@
             android:layout_marginVertical="3dp"
             android:background="#20FFFFFF" />
 
-        <!-- 5. Search Apps Option -->
+        <!-- 4. Search Apps Option -->
         <LinearLayout
             android:id="@+id/item_menu_search"
             android:layout_width="match_parent"
@@ -226,7 +185,7 @@
                 android:textSize="13sp" />
         </LinearLayout>
 
-        <!-- 6. Notifications Option -->
+        <!-- 5. Notifications Option -->
         <LinearLayout
             android:id="@+id/item_menu_notifications"
             android:layout_width="match_parent"
@@ -254,7 +213,7 @@
                 android:textSize="13sp" />
         </LinearLayout>
 
-        <!-- 7. Volume / Quick Settings Option -->
+        <!-- 6. Volume / Quick Settings Option -->
         <LinearLayout
             android:id="@+id/item_menu_volume"
             android:layout_width="match_parent"
@@ -282,7 +241,7 @@
                 android:textSize="13sp" />
         </LinearLayout>
 
-        <!-- 8. Switch to TV Mode -->
+        <!-- 7. Switch to TV Mode -->
         <LinearLayout
             android:id="@+id/item_menu_tv_mode"
             android:layout_width="match_parent"
@@ -310,7 +269,7 @@
                 android:textSize="13sp" />
         </LinearLayout>
 
-        <!-- 9. Settings Option -->
+        <!-- 8. Settings Option -->
         <LinearLayout
             android:id="@+id/item_menu_settings"
             android:layout_width="match_parent"
@@ -338,231 +297,5 @@
                 android:textSize="13sp" />
         </LinearLayout>
     </LinearLayout>
-
-    <!-- Full Bottom Taskbar (System Alert Window Overlay) -->
-    <RelativeLayout
-        android:id="@+id/layout_overlay_taskbar"
-        android:layout_width="match_parent"
-        android:layout_height="44dp"
-        android:layout_gravity="bottom"
-        android:background="@drawable/bg_pc_taskbar_solid"
-        android:elevation="14dp"
-        android:paddingHorizontal="8dp"
-        android:visibility="gone">
-
-        <!-- Left Navigation Section (Start + Search + Apps) -->
-        <LinearLayout
-            android:id="@+id/layout_taskbar_apps"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_alignParentStart="true"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
-            <ImageButton
-                android:id="@+id/btn_overlay_start"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:background="@drawable/bg_pc_start_btn"
-                android:contentDescription="Start Menu"
-                android:padding="2dp"
-                android:scaleType="fitCenter" />
-
-            <!-- Seamless Search Bar (No top/bottom lines) -->
-            <LinearLayout
-                android:id="@+id/btn_overlay_search"
-                android:layout_width="160dp"
-                android:layout_height="32dp"
-                android:layout_marginStart="8dp"
-                android:background="@drawable/bg_pc_taskbar_search_bar"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="10dp">
-
-                <ImageView
-                    android:id="@+id/img_overlay_search_icon"
-                    android:layout_width="14dp"
-                    android:layout_height="14dp"
-                    android:contentDescription="@null" />
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:layout_weight="1"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:text="Search apps, web..."
-                    android:textColor="@color/pc_taskbar_search_text"
-                    android:textSize="11.5sp" />
-            </LinearLayout>
-
-            <!-- Subtle Vertical Separator -->
-            <View
-                android:id="@+id/view_sep_overlay_apps"
-                android:layout_width="1dp"
-                android:layout_height="20dp"
-                android:layout_marginHorizontal="6dp"
-                android:background="@color/pc_taskbar_separator" />
-
-            <!-- Core Quick Apps (File Manager & Browser - Android Squircle) -->
-            <ImageButton
-                android:id="@+id/btn_overlay_files"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_marginEnd="3dp"
-                android:background="@drawable/bg_pc_start_btn"
-                android:contentDescription="Files"
-                android:padding="2dp"
-                android:scaleType="fitCenter"
-                android:src="@drawable/ic_taskbar_files" />
-
-            <ImageButton
-                android:id="@+id/btn_overlay_browser"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_marginEnd="4dp"
-                android:background="@drawable/bg_pc_start_btn"
-                android:contentDescription="Browser"
-                android:padding="2dp"
-                android:scaleType="fitCenter"
-                android:src="@drawable/ic_taskbar_browser" />
-
-            <!-- Pinned Apps List -->
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/recycler_overlay_pinned"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:clipToPadding="false"
-                android:orientation="horizontal"
-                android:overScrollMode="never" />
-        </LinearLayout>
-
-        <!-- Right Side: Tray (Volume, WiFi, Battery, Clock, Hide Taskbar Button) -->
-        <LinearLayout
-            android:id="@+id/layout_overlay_tray"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_alignParentEnd="true"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
-            <!-- Clickable Tray Cluster -->
-            <LinearLayout
-                android:id="@+id/layout_overlay_tray_cluster"
-                android:layout_width="wrap_content"
-                android:layout_height="30dp"
-                android:background="@drawable/bg_pc_taskbar_btn"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="6dp">
-
-                <ImageView
-                    android:id="@+id/img_overlay_tray_network"
-                    android:layout_width="14dp"
-                    android:layout_height="14dp"
-                    android:layout_marginHorizontal="2dp"
-                    android:contentDescription="Network" />
-
-                <ImageView
-                    android:id="@+id/img_overlay_tray_volume"
-                    android:layout_width="14dp"
-                    android:layout_height="14dp"
-                    android:layout_marginHorizontal="2dp"
-                    android:contentDescription="Volume" />
-
-                <ImageView
-                    android:id="@+id/img_overlay_tray_battery"
-                    android:layout_width="14dp"
-                    android:layout_height="14dp"
-                    android:layout_marginHorizontal="2dp"
-                    android:contentDescription="Battery" />
-
-                <TextView
-                    android:id="@+id/tv_overlay_tray_battery_pct"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="2dp"
-                    android:textColor="#CCCCCC"
-                    android:textSize="10sp"
-                    tools:text="100%" />
-            </LinearLayout>
-
-            <!-- Notifications Button -->
-            <FrameLayout
-                android:id="@+id/btn_overlay_notifications_container"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:layout_marginStart="2dp"
-                android:background="@drawable/bg_pc_taskbar_btn"
-                android:clickable="true"
-                android:focusable="true">
-
-                <ImageButton
-                    android:id="@+id/btn_overlay_notifications"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:background="@android:color/transparent"
-                    android:clickable="false"
-                    android:contentDescription="Notifications"
-                    android:padding="6dp" />
-            </FrameLayout>
-
-            <!-- Clock Cluster -->
-            <LinearLayout
-                android:id="@+id/layout_overlay_clock_cluster"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:layout_marginStart="4dp"
-                android:background="@drawable/bg_pc_taskbar_btn"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical|end"
-                android:orientation="vertical"
-                android:paddingHorizontal="6dp">
-
-                <TextView
-                    android:id="@+id/tv_overlay_taskbar_time"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#FFFFFF"
-                    android:textSize="11sp"
-                    android:textStyle="bold"
-                    tools:text="12:00 PM" />
-
-                <TextView
-                    android:id="@+id/tv_overlay_taskbar_date"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#99FFFFFF"
-                    android:textSize="8.5sp"
-                    tools:text="09/15/2026" />
-            </LinearLayout>
-
-            <!-- Dual Launcher Icon Corner Toggle: Tap to hide taskbar back into draggable floating bubble -->
-            <FrameLayout
-                android:id="@+id/btn_hide_overlay_taskbar"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_marginStart="4dp"
-                android:background="@drawable/bg_pc_start_btn"
-                android:clickable="true"
-                android:focusable="true"
-                android:contentDescription="Hide Taskbar to Bubble">
-
-                <ImageView
-                    android:id="@+id/img_hide_taskbar_icon"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:padding="2dp"
-                    android:scaleType="fitCenter"
-                    android:contentDescription="@null" />
-            </FrameLayout>
-        </LinearLayout>
-    </RelativeLayout>
 
 </FrameLayout>

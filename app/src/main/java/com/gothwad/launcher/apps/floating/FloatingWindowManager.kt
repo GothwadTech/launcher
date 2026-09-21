@@ -205,6 +205,16 @@ class FloatingWindowManager(
         )
 
         // Controls
+        frameBinding.btnWinMinimize.setImageDrawable(
+            AppIcons.createDrawable(AppIcons.PATH_MINIMIZE, android.graphics.Color.WHITE)
+        )
+        frameBinding.btnWinMaximize.setImageDrawable(
+            AppIcons.createDrawable(AppIcons.PATH_MAXIMIZE, android.graphics.Color.WHITE)
+        )
+        frameBinding.btnWinClose.setImageDrawable(
+            AppIcons.createDrawable(AppIcons.PATH_CLOSE, android.graphics.Color.WHITE)
+        )
+
         frameBinding.btnWinMinimize.setOnClickListener {
             minimizeWindow(id)
         }
@@ -225,11 +235,12 @@ class FloatingWindowManager(
         // Draggable Title Bar
         setupDragListener(frameBinding.windowTitleBar, window)
 
-        // Layout Params in Window Container
-        val lp = FrameLayout.LayoutParams(initialW, initialH).apply {
-            leftMargin = clampedX
-            topMargin = clampedY
-        }
+        // Layout Params in Window Container - zero margins, position via translation
+        val lp = FrameLayout.LayoutParams(initialW, initialH)
+        frameBinding.root.translationX = clampedX.toFloat()
+        frameBinding.root.translationY = clampedY.toFloat()
+        window.x = clampedX
+        window.y = clampedY
         windowContainer.addView(frameBinding.root, lp)
 
         activeWindows.add(window)
@@ -249,8 +260,8 @@ class FloatingWindowManager(
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     bringToFront(window.id)
-                    dX = frame.x - event.rawX
-                    dY = frame.y - event.rawY
+                    dX = frame.translationX - event.rawX
+                    dY = frame.translationY - event.rawY
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
@@ -258,14 +269,14 @@ class FloatingWindowManager(
                         // Dragging a maximized window restores it to normal size anchored to cursor
                         toggleMaximize(window.id)
                     }
-                    val containerW = windowContainer.width
-                    val containerH = windowContainer.height
+                    val containerW = if (windowContainer.width > 0) windowContainer.width else windowContainer.resources.displayMetrics.widthPixels
+                    val containerH = if (windowContainer.height > 0) windowContainer.height else (windowContainer.resources.displayMetrics.heightPixels - (44 * windowContainer.resources.displayMetrics.density).toInt())
 
                     val newX = (event.rawX + dX).coerceIn(0f, (containerW - 80).toFloat())
                     val newY = (event.rawY + dY).coerceIn(0f, (containerH - 40).toFloat())
 
-                    frame.x = newX
-                    frame.y = newY
+                    frame.translationX = newX
+                    frame.translationY = newY
                     window.x = newX.toInt()
                     window.y = newY.toInt()
                     true
@@ -306,41 +317,45 @@ class FloatingWindowManager(
         val window = activeWindows.find { it.id == id } ?: return
         val frame = window.frameBinding?.root ?: return
 
+        val containerW = if (windowContainer.width > 0) windowContainer.width else windowContainer.resources.displayMetrics.widthPixels
+        val containerH = if (windowContainer.height > 0) windowContainer.height else (windowContainer.resources.displayMetrics.heightPixels - (44 * windowContainer.resources.displayMetrics.density).toInt())
+
         if (!window.isMaximized) {
             // Save restore dimensions
-            window.prevX = frame.x.toInt()
-            window.prevY = frame.y.toInt()
-            window.prevWidth = frame.width
-            window.prevHeight = frame.height
+            window.prevX = window.x
+            window.prevY = window.y
+            window.prevWidth = frame.width.coerceAtLeast(300)
+            window.prevHeight = frame.height.coerceAtLeast(200)
 
-            // Maximize to container boundaries
-            val containerW = windowContainer.width
-            val containerH = windowContainer.height
-
+            // Maximize to container boundaries (strictly stays inside desktop, taskbar stays visible)
             val lp = frame.layoutParams as FrameLayout.LayoutParams
             lp.width = containerW
             lp.height = containerH
             lp.leftMargin = 0
             lp.topMargin = 0
             frame.layoutParams = lp
-            frame.x = 0f
-            frame.y = 0f
+            frame.translationX = 0f
+            frame.translationY = 0f
 
             window.isMaximized = true
-            window.frameBinding?.btnWinMaximize?.text = "🗗"
+            window.frameBinding?.btnWinMaximize?.setImageDrawable(
+                AppIcons.createDrawable(AppIcons.PATH_RESTORE, android.graphics.Color.WHITE)
+            )
         } else {
-            // Restore
+            // Restore to floating window position and size
             val lp = frame.layoutParams as FrameLayout.LayoutParams
             lp.width = window.prevWidth
             lp.height = window.prevHeight
-            lp.leftMargin = window.prevX
-            lp.topMargin = window.prevY
+            lp.leftMargin = 0
+            lp.topMargin = 0
             frame.layoutParams = lp
-            frame.x = window.prevX.toFloat()
-            frame.y = window.prevY.toFloat()
+            frame.translationX = window.prevX.toFloat()
+            frame.translationY = window.prevY.toFloat()
 
             window.isMaximized = false
-            window.frameBinding?.btnWinMaximize?.text = "🗖"
+            window.frameBinding?.btnWinMaximize?.setImageDrawable(
+                AppIcons.createDrawable(AppIcons.PATH_MAXIMIZE, android.graphics.Color.WHITE)
+            )
         }
     }
 

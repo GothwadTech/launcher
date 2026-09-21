@@ -86,9 +86,11 @@
         <!-- Left / Center Navigation Section (Start + Search + Core Apps + Pinned Apps + Active Apps) -->
         <LinearLayout
             android:id="@+id/layout_taskbar_apps"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_alignParentStart="true"
+            android:layout_toStartOf="@+id/layout_taskbar_tray"
+            android:layout_marginEnd="6dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
@@ -104,8 +106,8 @@
             <!-- Seamless Taskbar Search Bar (No top/bottom line boundaries) -->
             <LinearLayout
                 android:id="@+id/btn_search"
-                android:layout_width="160dp"
-                android:layout_height="32dp"
+                android:layout_width="210dp"
+                android:layout_height="34dp"
                 android:layout_marginStart="8dp"
                 android:background="@drawable/bg_pc_taskbar_search_bar"
                 android:clickable="true"
@@ -116,8 +118,8 @@
 
                 <ImageView
                     android:id="@+id/img_taskbar_search_icon"
-                    android:layout_width="14dp"
-                    android:layout_height="14dp"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
                     android:contentDescription="@null" />
 
                 <TextView
@@ -129,7 +131,7 @@
                     android:maxLines="1"
                     android:text="Search apps, web..."
                     android:textColor="@color/pc_taskbar_search_text"
-                    android:textSize="11.5sp" />
+                    android:textSize="12sp" />
             </LinearLayout>
 
             <!-- Subtle Vertical Separator -->
@@ -166,8 +168,9 @@
             <!-- Pinned Apps List on Taskbar (Cardless, pure Android icons) -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recycler_taskbar_pinned"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="match_parent"
+                android:layout_weight="1"
                 android:clipToPadding="false"
                 android:orientation="horizontal"
                 android:overScrollMode="never" />
