@@ -58,7 +58,7 @@ jobs:
           if [ -n "${{ inputs.version_code }}" ]; then
             V_CODE="${{ inputs.version_code }}"
           else
-            V_CODE=$(( 10 + ${{ github.run_number }} ))
+            V_CODE="${{ github.run_number }}"
           fi
 
           if [ -n "${{ inputs.version_name }}" ]; then
