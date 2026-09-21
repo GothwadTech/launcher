@@ -17,13 +17,22 @@ import android.os.Process
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 // ==========================================
-// 1. USAGE STATS (MOST FREQUENTLY USED APPS)
+// 1. USAGE-ACCESS PERMISSION CHECK
 // ==========================================
+/**
+ * `PACKAGE_USAGE_STATS` is a *special* access, not a runtime permission: it can only be
+ * granted by the user in Settings > Apps > Special access. It is used for foreground-app
+ * detection (boot-ad shield) and nothing else - the "most used apps" list this object
+ * used to build was dead code and has been removed along with the unused strings.
+ */
 object UsageTracker {
     fun hasPermission(context: Context): Boolean {
         return runCatching {
@@ -38,23 +47,6 @@ object UsageTracker {
         }.getOrDefault(false)
     }
 
-    fun getMostUsedPackageNames(context: Context, limit: Int = 12): List<String> {
-        if (!hasPermission(context)) return emptyList()
-        return runCatching {
-            val usm = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager ?: return emptyList()
-            val end = System.currentTimeMillis()
-            val start = end - (1000L * 60 * 60 * 24 * 7) // Last 7 days
-            val stats = usm.queryUsageStats(UsageStatsManager.INTERVAL_BEST, start, end) ?: return emptyList()
-
-            stats.filter { it.totalTimeInForeground > 0 && it.packageName != context.packageName }
-                .groupBy { it.packageName }
-                .mapValues { entry -> entry.value.sumOf { it.totalTimeInForeground } }
-                .entries
-                .sortedByDescending { it.value }
-                .take(limit)
-                .map { it.key }
-        }.getOrDefault(emptyList())
-    }
 }
 
 // ==========================================
@@ -68,61 +60,76 @@ data class BluetoothDeviceStatus(
 )
 
 fun bluetoothStatusFlow(context: Context): Flow<BluetoothDeviceStatus> = callbackFlow {
+    // Addresses we have seen an ACL_CONNECTED broadcast for, while this flow is alive.
+    // Bluetooth has no public "is this device connected?" query, so the connection state
+    // is derived from those broadcasts instead of being assumed.
+    val connectedAddresses = java.util.Collections.synchronizedSet(mutableSetOf<String>())
+
     fun queryStatus(): BluetoothDeviceStatus {
         return runCatching {
             val bm = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
             val adapter = bm?.adapter ?: BluetoothAdapter.getDefaultAdapter()
 
-            var connectedRemote: BluetoothDevice? = null
-            var bestBattery = -1
-
-            if (adapter != null && adapter.isEnabled) {
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
-                    ContextCompat.checkSelfPermission(context, android.Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
-                ) {
-                    val bonded = runCatching { adapter.bondedDevices }.getOrNull().orEmpty()
-                    for (dev in bonded) {
-                        // Check battery level via reflection or extra
-                        val battery = runCatching {
-                            val method = dev.javaClass.getMethod("getBatteryLevel")
-                            method.invoke(dev) as? Int ?: -1
-                        }.getOrDefault(-1)
-
-                        if (battery in 0..100) {
-                            connectedRemote = dev
-                            bestBattery = battery
-                            break
-                        }
-                    }
-                    if (connectedRemote == null && bonded.isNotEmpty()) {
-                        connectedRemote = bonded.firstOrNull()
-                    }
-                }
+            if (adapter == null || !adapter.isEnabled) {
+                // Bluetooth is off - there is no remote to report. (This used to claim a
+                // connected "TV Remote" with a made-up 85% battery level.)
+                return BluetoothDeviceStatus(connected = false, name = "", batteryLevel = -1, isRemote = true)
             }
 
-            if (connectedRemote != null) {
-                BluetoothDeviceStatus(
-                    connected = true,
-                    name = runCatching { connectedRemote.name }.getOrNull() ?: "Remote",
-                    batteryLevel = if (bestBattery >= 0) bestBattery else 85, // estimate for connected TV remote
-                    isRemote = true,
-                )
-            } else {
-                // Default TV remote active state
-                BluetoothDeviceStatus(
-                    connected = true,
-                    name = "TV Remote",
-                    batteryLevel = -1,
-                    isRemote = true,
-                )
+            val canReadDevices = Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+                ContextCompat.checkSelfPermission(
+                    context,
+                    android.Manifest.permission.BLUETOOTH_CONNECT
+                ) == PackageManager.PERMISSION_GRANTED
+
+            if (!canReadDevices) {
+                // Android 12+ without BLUETOOTH_CONNECT: we genuinely do not know, so
+                // report "unknown" instead of inventing a connected remote.
+                return BluetoothDeviceStatus(connected = false, name = "", batteryLevel = -1, isRemote = false)
             }
-        }.getOrDefault(BluetoothDeviceStatus(connected = true, name = "TV Remote", batteryLevel = -1))
+
+            val bonded = runCatching { adapter.bondedDevices }.getOrNull().orEmpty()
+            val connected = bonded.filter { connectedAddresses.contains(it.address) }
+
+            if (connected.isEmpty()) {
+                // Nothing has connected since we started watching: unknown, not fake.
+                return BluetoothDeviceStatus(connected = false, name = "", batteryLevel = -1, isRemote = false)
+            }
+
+            val device = connected.first()
+            val name = runCatching { device.name }.getOrNull().orEmpty().ifBlank { "Bluetooth device" }
+
+            // Battery level is only available on some devices/remotes (hidden API).
+            val battery = runCatching {
+                device.javaClass.getMethod("getBatteryLevel").invoke(device) as? Int ?: -1
+            }.getOrDefault(-1)
+
+            BluetoothDeviceStatus(
+                connected = true,
+                name = name,
+                batteryLevel = if (battery in 0..100) battery else -1,
+                isRemote = true,
+            )
+        }.getOrDefault(BluetoothDeviceStatus(connected = false, name = "", batteryLevel = -1))
     }
 
     trySend(queryStatus())
 
     val receiver = object : BroadcastReceiver() {
         override fun onReceive(c: Context?, intent: Intent?) {
+            val address = runCatching {
+                @Suppress("DEPRECATION")
+                intent?.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)?.address
+            }.getOrNull()
+
+            when (intent?.action) {
+                BluetoothDevice.ACTION_ACL_CONNECTED -> if (!address.isNullOrEmpty()) {
+                    connectedAddresses.add(address)
+                }
+                BluetoothDevice.ACTION_ACL_DISCONNECTED -> if (!address.isNullOrEmpty()) {
+                    connectedAddresses.remove(address)
+                }
+            }
             trySend(queryStatus())
         }
     }
@@ -136,7 +143,18 @@ fun bluetoothStatusFlow(context: Context): Flow<BluetoothDeviceStatus> = callbac
     }
 
     runCatching { context.registerReceiver(receiver, filter) }
+
+    // Slow poll so a freshly granted BLUETOOTH_CONNECT permission (or a battery level
+    // that is only reported on demand) shows up without waiting for a broadcast.
+    val ticker = launch {
+        while (isActive) {
+            delay(20_000L)
+            trySend(queryStatus())
+        }
+    }
+
     awaitClose {
+        ticker.cancel()
         runCatching { context.unregisterReceiver(receiver) }
     }
 }

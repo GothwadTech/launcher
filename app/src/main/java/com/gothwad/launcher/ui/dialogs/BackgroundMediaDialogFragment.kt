@@ -36,6 +36,12 @@ class BackgroundMediaDialogFragment : DialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Recreated without its state (process death) - meaningless dialog, close it.
+        if (mediaState == BackgroundMediaState()) {
+            dismiss()
+            return
+        }
+
         val isAd = mediaState.isStockAdCandidate
         val iconColor = if (isAd) 0xFFFF5252.toInt() else 0xFF8AB4F8.toInt()
         val iconPath = if (isAd) AppIcons.PATH_SHIELD else AppIcons.PATH_EQUALIZER

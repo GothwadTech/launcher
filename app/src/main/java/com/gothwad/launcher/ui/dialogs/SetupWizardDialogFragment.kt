@@ -11,11 +11,14 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.DialogFragment
+import androidx.lifecycle.lifecycleScope
 import com.gothwad.launcher.Actions
 import com.gothwad.launcher.R
+import com.gothwad.launcher.data.ConfigStore
 import com.gothwad.launcher.databinding.DialogSetupWizardBinding
 import com.gothwad.launcher.service.LauncherAccessibilityService
 import com.gothwad.launcher.service.NotificationManagerBridge
+import kotlinx.coroutines.launch
 
 class SetupWizardDialogFragment : DialogFragment() {
 
@@ -62,8 +65,14 @@ class SetupWizardDialogFragment : DialogFragment() {
                 currentStep++
                 updateStepUi()
             } else {
-                onDone?.invoke()
-                dismiss()
+                // Persist here instead of relying on the host callback: a wizard that was
+                // recreated after a process death would otherwise never mark setup as done
+                // and would pop up on every launch.
+                viewLifecycleOwner.lifecycleScope.launch {
+                    runCatching { ConfigStore(requireContext()).update { it.copy(setupDone = true) } }
+                    onDone?.invoke()
+                    dismiss()
+                }
             }
         }
 

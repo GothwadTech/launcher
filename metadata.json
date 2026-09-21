@@ -1,6 +1,0 @@
-{
-  "name": "Gothwad Launcher",
-  "description": "A high-performance launcher for Android TV with instant loading, remote navigation, and secret vault security.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}

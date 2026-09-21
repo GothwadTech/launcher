@@ -58,7 +58,19 @@ object AppLaunchTracker {
      *                   If false (e.g. TRIM_MEMORY_RUNNING_LOW), preserves the single most recent app
      *                   and protected packages.
      */
+    /**
+     * Set from the config flow (MainActivity). OFF by default: the trim used to kill the
+     * user's other background apps on every `onTrimMemory(RUNNING_LOW)`, which on a TV
+     * means their music or a paused stream dies for a few MB of headroom (issue #34).
+     */
+    @Volatile
+    var aggressiveTrimEnabled: Boolean = false
+
     fun performMemoryTrim(context: Context, isCritical: Boolean) {
+        if (!aggressiveTrimEnabled) {
+            Log.d(TAG, "Memory trim skipped (aggressive trim disabled in settings)")
+            return
+        }
         scope.launch {
             try {
                 val myPkg = context.packageName

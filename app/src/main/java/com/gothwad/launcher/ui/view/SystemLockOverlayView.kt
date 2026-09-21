@@ -14,6 +14,7 @@ import android.widget.LinearLayout
 import com.gothwad.launcher.R
 import com.gothwad.launcher.data.LockCredential
 import com.gothwad.launcher.data.LockCredentialType
+import com.gothwad.launcher.data.LockSecurity
 import com.gothwad.launcher.databinding.DialogPinEntryBinding
 import com.gothwad.launcher.ui.AppIcons
 
@@ -28,7 +29,8 @@ class SystemLockOverlayView(
     private val title: String,
     private val subtitle: String,
     private val onSuccess: () -> Unit,
-    private val onDismissOrBack: () -> Unit
+    private val onDismissOrBack: () -> Unit,
+    private val lockScope: String = LockSecurity.SCOPE_APP
 ) {
 
     private val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
@@ -203,20 +205,42 @@ class SystemLockOverlayView(
         updateDotsUi()
     }
 
+    /** Verifies against the stored hash and applies the shared brute-force throttle. */
+    private fun verifyCandidate(candidate: String): Boolean {
+        val remaining = LockSecurity.lockoutRemainingMs(context, lockScope)
+        if (remaining > 0L) {
+            showError("Too many attempts. Try again in ${(remaining / 1000) + 1}s.")
+            return false
+        }
+        return if (LockSecurity.verify(credential, candidate)) {
+            LockSecurity.recordSuccess(context, lockScope)
+            true
+        } else {
+            LockSecurity.recordFailure(context, lockScope)
+            false
+        }
+    }
+
+    private fun showError(message: String) {
+        binding.tvPinSubtitle.text = message
+        binding.tvPinSubtitle.setTextColor(0xFFFF5252.toInt())
+        root.postDelayed({
+            binding.tvPinSubtitle.text = subtitle
+            binding.tvPinSubtitle.setTextColor(0x99FFFFFF.toInt())
+        }, 1_200)
+    }
+
     private fun checkNumericPin() {
         val candidate = enteredDigits.toString()
-        if (candidate == credential.value) {
+        if (verifyCandidate(candidate)) {
             dismiss()
             onSuccess()
         } else {
             updateDotsUi(error = true)
-            binding.tvPinSubtitle.text = "Incorrect PIN. Try again."
-            binding.tvPinSubtitle.setTextColor(0xFFFF5252.toInt())
+            showError("Incorrect PIN. Try again.")
 
             root.postDelayed({
                 clearDigits()
-                binding.tvPinSubtitle.text = subtitle
-                binding.tvPinSubtitle.setTextColor(0x99FFFFFF.toInt())
             }, 800)
         }
     }
@@ -308,23 +332,21 @@ class SystemLockOverlayView(
 
     private fun checkPassword() {
         val candidate = binding.etPassword.text.toString()
-        if (candidate == credential.value) {
+        if (verifyCandidate(candidate)) {
             dismiss()
             onSuccess()
         } else {
-            binding.tvPinSubtitle.text = "Incorrect password. Try again."
-            binding.tvPinSubtitle.setTextColor(0xFFFF5252.toInt())
+            showError("Incorrect password. Try again.")
 
             root.postDelayed({
                 binding.etPassword.setText("")
-                binding.tvPinSubtitle.text = subtitle
-                binding.tvPinSubtitle.setTextColor(0x99FFFFFF.toInt())
             }, 800)
         }
     }
 
-    fun show() {
-        if (isAttached) return
+    /** @return true when the overlay window was actually attached. */
+    fun show(): Boolean {
+        if (isAttached) return true
 
         val overlayType = if (context is android.accessibilityservice.AccessibilityService) {
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
@@ -346,12 +368,14 @@ class SystemLockOverlayView(
             gravity = Gravity.CENTER
         }
 
-        runCatching {
+        return runCatching {
             windowManager.addView(root, params)
             isAttached = true
             root.requestFocus()
-        }.onFailure { e ->
+            true
+        }.getOrElse { e ->
             android.util.Log.e("SystemLockOverlay", "Failed to addWindow of type $overlayType: ${e.message}", e)
+            false
         }
     }
 

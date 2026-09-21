@@ -11,6 +11,7 @@ import androidx.fragment.app.DialogFragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.gothwad.launcher.data.AppEntry
 import com.gothwad.launcher.data.LauncherConfig
+import com.gothwad.launcher.data.LockSecurity
 import com.gothwad.launcher.databinding.DialogSearchBinding
 import com.gothwad.launcher.ui.AppIcons
 
@@ -44,6 +45,13 @@ class SearchDialogFragment : DialogFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // Process death / low-memory recreation: the host callbacks are gone, so a
+        // recreated instance cannot launch anything. Close instead of showing a dead UI.
+        if (onLaunchApp == null) {
+            dismiss()
+            return
+        }
 
         binding.imgSearchStatusIcon.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_SEARCH, 0xB3FFFFFF.toInt()))
         binding.btnClearSearch.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_CLOSE, Color.WHITE))
@@ -89,7 +97,7 @@ class SearchDialogFragment : DialogFragment() {
 
         if (isSecretMatch) {
             // Phase 5: Distinct second-layer confirmation before hidden apps actually render and launch
-            if (config.hiddenAppsLock.enabled && config.hiddenAppsLock.value.isNotEmpty() && !isVaultUnlockedThisSession) {
+            if (config.hiddenAppsLock.enabled && config.hiddenAppsLock.ready && !isVaultUnlockedThisSession) {
                 promptHiddenAppsConfirmation()
                 return
             }
@@ -123,30 +131,28 @@ class SearchDialogFragment : DialogFragment() {
         binding.bannerSecretVault.visibility = View.GONE
         binding.tvEmptyState.visibility = View.GONE
 
+        // No executePendingTransactions()/dialog?.setOnDismissListener() trickery here:
+        // that could run inside the FragmentManager's own transaction execution
+        // ("already executing transactions") and was only needed because the cancel path
+        // had no callback. PinEntryDialogFragment reports cancellation directly.
         PinEntryDialogFragment.newInstance(
             title = "Hidden Apps Vault",
             subtitle = "Enter second-layer credential to access hidden apps",
             credential = config.hiddenAppsLock,
             isCancelable = true,
+            lockScope = LockSecurity.SCOPE_VAULT,
             onSuccess = {
                 isVaultUnlockedThisSession = true
                 isPromptingVaultLock = false
                 renderHiddenAppsVault()
+            },
+            onCancelled = {
+                isPromptingVaultLock = false
+                if (!isVaultUnlockedThisSession && _binding != null) {
+                    binding.etSearch.setText("")
+                }
             }
-        ).apply {
-            // If user cancels or backs out, reset search query
-            isCancelable = true
-        }.show(parentFragmentManager, "HiddenAppsVaultConfirm")
-
-        // Reset prompt guard on dismissal
-        parentFragmentManager.executePendingTransactions()
-        val dialog = parentFragmentManager.findFragmentByTag("HiddenAppsVaultConfirm") as? DialogFragment
-        dialog?.dialog?.setOnDismissListener {
-            isPromptingVaultLock = false
-            if (!isVaultUnlockedThisSession && isResumed) {
-                binding.etSearch.setText("")
-            }
-        }
+        ).show(parentFragmentManager, "HiddenAppsVaultConfirm")
     }
 
     private fun renderHiddenAppsVault() {

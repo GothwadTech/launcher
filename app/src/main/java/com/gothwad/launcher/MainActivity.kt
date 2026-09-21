@@ -20,7 +20,11 @@ import com.gothwad.launcher.data.BackgroundMediaState
 import com.gothwad.launcher.data.BackgroundMediaTracker
 import com.gothwad.launcher.data.BluetoothDeviceStatus
 import com.gothwad.launcher.data.ConfigStore
+import com.gothwad.launcher.ui.AppLockGate
 import com.gothwad.launcher.data.LauncherConfig
+import com.gothwad.launcher.data.LockSecurity
+import com.gothwad.launcher.data.ProcessHeartbeat
+import com.gothwad.launcher.data.SelfHealGuard
 import com.gothwad.launcher.data.NetStatus
 import com.gothwad.launcher.data.bluetoothStatusFlow
 import com.gothwad.launcher.data.networkStatusFlow
@@ -28,7 +32,6 @@ import com.gothwad.launcher.databinding.ActivityMainBinding
 import com.gothwad.launcher.service.NotificationManagerBridge
 import com.gothwad.launcher.ui.dialogs.BackgroundMediaDialogFragment
 import com.gothwad.launcher.ui.dialogs.NotificationBottomSheetFragment
-import com.gothwad.launcher.ui.dialogs.PinEntryDialogFragment
 import com.gothwad.launcher.ui.dialogs.QuickDashboardDialogFragment
 import com.gothwad.launcher.ui.dialogs.SearchDialogFragment
 import com.gothwad.launcher.ui.dialogs.SettingsBottomSheetFragment
@@ -38,6 +41,7 @@ import com.gothwad.launcher.ui.tv.TvLauncherFragment
 import com.gothwad.launcher.ui.view.DeviceLockViewController
 import android.view.KeyEvent
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
@@ -57,9 +61,21 @@ class MainActivity : AppCompatActivity() {
         private set
 
     private var currentConfig: LauncherConfig = LauncherConfig()
+
+    // Clock formatters are cached: this loop runs once per second, 24x7 on a TV, and used
+    // to allocate two SimpleDateFormat + Date objects every tick (issue #32).
+    private var clockFormatter: SimpleDateFormat? = null
+    private var clockPatternInUse: String? = null
+
+    /** Debounce for package add/remove bursts (issue #33). */
+    private var rescanJob: Job? = null
+
     private var currentNetStatus: NetStatus = NetStatus()
     private var currentBtStatus: BluetoothDeviceStatus = BluetoothDeviceStatus()
     private var currentMediaState: BackgroundMediaState = BackgroundMediaState()
+
+    /** Written from an IO coroutine, read from the UI thread - keep it volatile. */
+    @Volatile
     private var allApps: List<AppEntry> = emptyList()
 
     private val packageReceiver = object : BroadcastReceiver() {
@@ -71,8 +87,7 @@ class MainActivity : AppCompatActivity() {
                 )
             if (intent.action == Intent.ACTION_PACKAGE_REMOVED || launchable) {
                 rescanTick++
-                notifyFragmentRescan()
-                refreshAppsList()
+                scheduleAppsRescan()
             }
         }
     }
@@ -80,6 +95,20 @@ class MainActivity : AppCompatActivity() {
     private val a11yAlertReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             checkAccessibilityState()
+        }
+    }
+
+    /**
+     * Debounces install/uninstall bursts (a batch update fires dozens of broadcasts) and
+     * keeps the rescan off the broadcast thread. The fragment callback runs on the main
+     * dispatcher, and the scan itself reuses cached entries via `AppRepository`.
+     */
+    private fun scheduleAppsRescan() {
+        rescanJob?.cancel()
+        rescanJob = lifecycleScope.launch {
+            delay(RESCAN_DEBOUNCE_MS)
+            refreshAppsList()
+            notifyFragmentRescan()
         }
     }
 
@@ -94,18 +123,49 @@ class MainActivity : AppCompatActivity() {
 
     private fun refreshAppsList() {
         lifecycleScope.launch(Dispatchers.IO) {
-            allApps = AppRepository.scan(this@MainActivity)
+            val apps = AppRepository.scan(this@MainActivity)
+            allApps = apps
             val store = ConfigStore(this@MainActivity)
-            val installedPackages = allApps.map { it.pkg }.toSet()
+            val installedPackages = apps.map { it.pkg }.toSet()
             com.gothwad.launcher.data.ButtonMappingManager.seedDefaultMappings(store, installedPackages)
+
+            // Newly installed apps: drop them into their real auto-category instead of
+            // always into the first section. `knownApps` (previously a dead config field)
+            // is what makes "new since the last scan" detectable.
+            val config = runCatching { store.flow.first() }.getOrNull() ?: return@launch
+            val newPackages = installedPackages - config.knownApps
+            if (newPackages.isEmpty()) {
+                if (config.knownApps != installedPackages) {
+                    store.update { it.copy(knownApps = installedPackages) }
+                }
+                return@launch
+            }
+
+            store.update { cfg ->
+                val updatedSections = cfg.sections.toMutableMap()
+                if (cfg.autoCategoryOnInstall) {
+                    val fallbackId = cfg.categories.firstOrNull()?.id
+                    for (pkg in newPackages) {
+                        if (updatedSections.containsKey(pkg)) continue
+                        val auto = apps.firstOrNull { it.pkg == pkg }?.autoCategory
+                        val target = when {
+                            auto != null && cfg.categories.any { it.id == auto } -> auto
+                            else -> fallbackId
+                        }
+                        if (target != null) updatedSections[pkg] = setOf(target)
+                    }
+                }
+                cfg.copy(sections = updatedSections, knownApps = installedPackages)
+            }
         }
     }
 
     override fun attachBaseContext(newBase: Context) {
-        val lang = newBase.getSharedPreferences(LOCALE_PREFS, MODE_PRIVATE)
-            .getString(LOCALE_KEY, "").orEmpty()
-        val localized = if (lang.isEmpty()) newBase else applyLocale(newBase, lang)
-        super.attachBaseContext(com.gothwad.launcher.ui.DensityAdapter.wrapContext(localized))
+        // NOTE: there is no locale override here any more. The old code read a
+        // "locale"/"lang" SharedPreferences entry that nothing ever wrote, so it was dead
+        // code pretending to be an i18n feature. Real localization needs translated
+        // string resources first (see ISSUE-REPORT.md, issue #19).
+        super.attachBaseContext(com.gothwad.launcher.ui.DensityAdapter.wrapContext(newBase))
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -132,6 +192,22 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Migrate any legacy plain-text PIN/password to salted PBKDF2 hashes.
+        lifecycleScope.launch {
+            runCatching { LockSecurity.migrateLegacyCredentials(ConfigStore(this@MainActivity)) }
+        }
+
+        // Crash-loop guard: if the launcher just came back from repeated crashes, say so
+        // instead of silently restarting forever; and once we have been stable for a
+        // while, clear the relaunch budget again.
+        lifecycleScope.launch {
+            if (SelfHealGuard.isInSafeMode(this@MainActivity)) {
+                Actions.toast(this@MainActivity, getString(R.string.safe_mode_active))
+            }
+            delay(SelfHealGuard.healthyDelayMs())
+            SelfHealGuard.markHealthy(this@MainActivity)
+        }
+
         // Phase 4: Device Lock on cold launcher process start
         checkDeviceLockOnColdStart()
 
@@ -141,6 +217,9 @@ class MainActivity : AppCompatActivity() {
         observeStatusBarData()
         refreshAppsList()
     }
+
+    private val bluetoothPermissionLauncher =
+        registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { /* status is refreshed by the BT flow */ }
 
     private var deviceLockController: DeviceLockViewController? = null
 
@@ -158,7 +237,7 @@ class MainActivity : AppCompatActivity() {
             val store = ConfigStore(this@MainActivity)
             val config = store.flow.first()
             currentConfig = config
-            if (config.deviceLock.enabled && config.deviceLock.value.isNotEmpty()) {
+            if (config.deviceLock.enabled && config.deviceLock.ready) {
                 deviceLockController = DeviceLockViewController(
                     container = binding.deviceLockContainer,
                     credential = config.deviceLock,
@@ -212,6 +291,7 @@ class MainActivity : AppCompatActivity() {
     private fun setupStatusBar() {
         binding.mainStatusBar.apply {
             onDashboardClick = {
+                ensureBluetoothPermission()
                 QuickDashboardDialogFragment.newInstance(
                     net = currentNetStatus,
                     bt = currentBtStatus,
@@ -229,7 +309,12 @@ class MainActivity : AppCompatActivity() {
 
             onVoiceSearchClick = {
                 VoiceSearchDialogFragment.newInstance(
-                    apps = allApps,
+                    // The vault stays closed for voice search too: hidden apps are only
+                    // listed once they were deliberately opened in this session.
+                    apps = allApps.filter { app ->
+                        app.pkg !in currentConfig.hidden ||
+                            LauncherAccessibilityService.unlockedPackagesSession.contains(app.pkg)
+                    },
                     onLaunch = { app -> handleAppLaunch(app) }
                 ).show(supportFragmentManager, VoiceSearchDialogFragment.TAG)
             }
@@ -252,6 +337,16 @@ class MainActivity : AppCompatActivity() {
                 Actions.openNetworkSettings(this@MainActivity)
             }
 
+            onVpnClick = {
+                // Opens the user's chosen VPN app when configured, else system VPN settings.
+                val pkg = currentConfig.vpnApp
+                if (pkg.isNotEmpty() && Actions.isInstalled(this@MainActivity, pkg)) {
+                    Actions.launchApp(this@MainActivity, pkg)
+                } else {
+                    Actions.openVpnSettings(this@MainActivity)
+                }
+            }
+
             onNotificationsClick = {
                 NotificationBottomSheetFragment.newInstance()
                     .show(supportFragmentManager, NotificationBottomSheetFragment.TAG)
@@ -261,6 +356,21 @@ class MainActivity : AppCompatActivity() {
                 openSettingsDialog()
             }
         }
+    }
+
+    /**
+     * BLUETOOTH_CONNECT is a runtime permission on Android 12+. Without it the remote
+     * battery / device name can never be read, so ask for it the first time the user opens
+     * a screen that shows Bluetooth information (previously it was only *checked*).
+     */
+    private fun ensureBluetoothPermission() {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S) return
+        val granted = ContextCompat.checkSelfPermission(
+            this,
+            android.Manifest.permission.BLUETOOTH_CONNECT
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (granted) return
+        runCatching { bluetoothPermissionLauncher.launch(android.Manifest.permission.BLUETOOTH_CONNECT) }
     }
 
     private fun openSettingsDialog() {
@@ -290,28 +400,20 @@ class MainActivity : AppCompatActivity() {
         }.show(supportFragmentManager, SetupWizardDialogFragment.TAG)
     }
 
-    private fun handleAppLaunch(app: AppEntry, skipLock: Boolean = false) {
-        if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
-            return
-        }
-        // UX-only in-launcher check to avoid overlay flicker on first click.
-        // The authoritative, unbypassable security enforcement layer is in LauncherAccessibilityService.
-        if (!skipLock && currentConfig.appLock.enabled && currentConfig.appLock.value.isNotEmpty() && app.pkg in currentConfig.lockedApps) {
-            PinEntryDialogFragment.newInstance(
-                title = "App Locked",
-                subtitle = "Enter PIN/Password to launch ${app.label}",
-                credential = currentConfig.appLock,
-                isCancelable = true,
-                onSuccess = {
-                    // Mark package as unlocked in the session so Accessibility Service won't re-prompt immediately
-                    com.gothwad.launcher.service.LauncherAccessibilityService.unlockedPackagesSession.add(app.pkg)
-                    handleAppLaunch(app, skipLock = true)
-                }
-            ).show(supportFragmentManager, PinEntryDialogFragment.TAG)
-        } else {
+    private fun handleAppLaunch(app: AppEntry) {
+        // All lock decisions (device lock, app lock, hidden vault) go through one place -
+        // see AppLockGate. The unbypassable enforcement still lives in the accessibility
+        // service; this only keeps the prompt UX consistent and avoids double-prompting.
+        AppLockGate.evaluate(
+            fragmentManager = supportFragmentManager,
+            app = app,
+            config = currentConfig,
+            deviceUnlockedThisProcess = GothwadApplication.hasUnlockedDeviceThisProcess,
+        ) {
             Actions.launchApp(this, app.pkg)
         }
     }
+
 
     private fun observeStatusBarData() {
         val configStore = ConfigStore(this)
@@ -322,9 +424,21 @@ class MainActivity : AppCompatActivity() {
                 launch {
                     configStore.flow.collectLatest { config ->
                         currentConfig = config
+
+                        // Keep the memory guardian and the density adapter in sync with
+                        // the user's preferences (both default to the safe/off choice).
+                        com.gothwad.launcher.data.AppLaunchTracker.aggressiveTrimEnabled =
+                            config.aggressiveMemoryTrim
+                        if (com.gothwad.launcher.ui.DensityAdapter.respectSystemFontScale != config.respectSystemFontScale) {
+                            com.gothwad.launcher.ui.DensityAdapter.respectSystemFontScale =
+                                config.respectSystemFontScale
+                            runCatching { com.gothwad.launcher.ui.DensityAdapter.apply(this@MainActivity) }
+                        }
+
                         binding.mainStatusBar.applyConfig(config)
                         binding.mainStatusBar.visibility =
                             if (!config.showStatusBar) View.GONE else View.VISIBLE
+                        binding.mainStatusBar.setVpnStatus(currentNetStatus.vpn, config.showVpnButton)
                     }
                 }
 
@@ -333,6 +447,7 @@ class MainActivity : AppCompatActivity() {
                     networkStatusFlow(this@MainActivity).collectLatest { net ->
                         currentNetStatus = net
                         binding.mainStatusBar.setNetStatus(net)
+                        binding.mainStatusBar.setVpnStatus(net.vpn, currentConfig.showVpnButton)
                     }
                 }
 
@@ -362,11 +477,21 @@ class MainActivity : AppCompatActivity() {
 
                 // 6. Clock & Date loop (Format: 16 Sep • Wed • 01:26 AM)
                 launch {
+                    var heartbeatTick = 0
                     while (isActive) {
+                        // Publish a foreground heartbeat every ~5s (cheap, tiny file) so the
+                        // watchdog can tell "process alive" from "process dead/hung".
+                        if (heartbeatTick++ % 5 == 0) {
+                            ProcessHeartbeat.touch(this@MainActivity, foreground = true)
+                        }
                         val now = Date()
-                        val timePattern = if (currentConfig.h24) "HH:mm" else "hh:mm a"
-                        val dateFormatted = SimpleDateFormat("d MMM • EEE", Locale.ENGLISH).format(now)
-                        val timeFormatted = SimpleDateFormat(timePattern, Locale.ENGLISH).format(now)
+                        val timePattern = if (currentConfig.h24) PATTERN_24H else PATTERN_12H
+                        if (clockPatternInUse != timePattern || clockFormatter == null) {
+                            clockFormatter = SimpleDateFormat(timePattern, Locale.ENGLISH)
+                            clockPatternInUse = timePattern
+                        }
+                        val dateFormatted = dateFormatter.format(now)
+                        val timeFormatted = clockFormatter!!.format(now)
                         val fullDateTime = "$dateFormatted • $timeFormatted"
                         binding.mainStatusBar.setClockTime(fullDateTime)
                         delay(1000)
@@ -400,18 +525,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     companion object {
-        private const val LOCALE_PREFS = "locale"
-        private const val LOCALE_KEY = "lang"
+        private const val RESCAN_DEBOUNCE_MS = 600L
+        private const val PATTERN_24H = "HH:mm"
+        private const val PATTERN_12H = "hh:mm a"
 
-        fun persistLocale(context: Context, lang: String) {
-            context.getSharedPreferences(LOCALE_PREFS, MODE_PRIVATE)
-                .edit().putString(LOCALE_KEY, lang).apply()
-        }
+        /** Main-thread only (see the status bar clock loop). */
+        private val dateFormatter = SimpleDateFormat("d MMM • EEE", Locale.ENGLISH)
 
-        fun currentLocalePref(context: Context): String =
-            context.getSharedPreferences(LOCALE_PREFS, MODE_PRIVATE)
-                .getString(LOCALE_KEY, "").orEmpty()
-
+        /**
+         * Applies a locale for the current context. Kept as the single entry point for a
+         * future language picker, but NOT driven by a phantom preference any more.
+         */
         fun applyLocale(context: Context, lang: String): Context {
             val locale = if (lang.contains('-')) {
                 val parts = lang.split('-')

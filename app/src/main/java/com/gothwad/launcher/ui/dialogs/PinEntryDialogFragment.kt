@@ -13,6 +13,7 @@ import android.widget.LinearLayout
 import androidx.fragment.app.DialogFragment
 import com.gothwad.launcher.data.LockCredential
 import com.gothwad.launcher.data.LockCredentialType
+import com.gothwad.launcher.data.LockSecurity
 import com.gothwad.launcher.databinding.DialogPinEntryBinding
 import com.gothwad.launcher.ui.AppIcons
 
@@ -25,6 +26,9 @@ class PinEntryDialogFragment : DialogFragment() {
     var targetSubtitle: String = "Enter your PIN to unlock"
     var credential: LockCredential = LockCredential()
     var isCancelableDialog: Boolean = true
+
+    /** Throttle bucket this dialog reports to: "device", "app" or "vault". */
+    var lockScope: String = LockSecurity.SCOPE_DEFAULT
 
     var onSuccess: (() -> Unit)? = null
     var onCancelled: (() -> Unit)? = null
@@ -51,6 +55,13 @@ class PinEntryDialogFragment : DialogFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // Recreated after process death: without the host callback a correct PIN could not
+        // unlock anything, so close instead of leaving an inert lock screen on the TV.
+        if (onSuccess == null || !credential.ready) {
+            dismiss()
+            return
+        }
 
         binding.imgPinIcon.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_LOCK, 0xFF4C8DFF.toInt()))
         binding.tvPinTitle.text = targetTitle
@@ -204,21 +215,50 @@ class PinEntryDialogFragment : DialogFragment() {
         updateDotsUi()
     }
 
+    /**
+     * Verifies against the stored PBKDF2 hash and applies the brute-force throttle.
+     * Also refuses to verify while the scope is locked out.
+     */
+    private fun verifyCandidate(candidate: String): Boolean {
+        val context = context ?: return false
+        val remaining = LockSecurity.lockoutRemainingMs(context, lockScope)
+        if (remaining > 0L) {
+            showError("Too many attempts. Try again in ${(remaining / 1000) + 1}s.")
+            return false
+        }
+        return if (LockSecurity.verify(credential, candidate)) {
+            LockSecurity.recordSuccess(context, lockScope)
+            true
+        } else {
+            LockSecurity.recordFailure(context, lockScope)
+            false
+        }
+    }
+
+    private fun showError(message: String) {
+        if (_binding == null) return
+        binding.tvPinSubtitle.text = message
+        binding.tvPinSubtitle.setTextColor(0xFFFF5252.toInt())
+        binding.root.postDelayed({
+            if (_binding != null) {
+                binding.tvPinSubtitle.text = targetSubtitle
+                binding.tvPinSubtitle.setTextColor(0x99FFFFFF.toInt())
+            }
+        }, 1_200)
+    }
+
     private fun checkNumericPin() {
         val candidate = enteredDigits.toString()
-        if (candidate == credential.value) {
+        if (verifyCandidate(candidate)) {
             onSuccess?.invoke()
             dismiss()
         } else {
             updateDotsUi(error = true)
-            binding.tvPinSubtitle.text = "Incorrect PIN. Try again."
-            binding.tvPinSubtitle.setTextColor(0xFFFF5252.toInt())
+            showError("Incorrect PIN. Try again.")
 
             binding.root.postDelayed({
                 if (_binding != null) {
                     clearDigits()
-                    binding.tvPinSubtitle.text = targetSubtitle
-                    binding.tvPinSubtitle.setTextColor(0x99FFFFFF.toInt())
                 }
             }, 800)
         }
@@ -315,18 +355,15 @@ class PinEntryDialogFragment : DialogFragment() {
 
     private fun checkPassword() {
         val candidate = binding.etPassword.text.toString()
-        if (candidate == credential.value) {
+        if (verifyCandidate(candidate)) {
             onSuccess?.invoke()
             dismiss()
         } else {
-            binding.tvPinSubtitle.text = "Incorrect password. Try again."
-            binding.tvPinSubtitle.setTextColor(0xFFFF5252.toInt())
+            showError("Incorrect password. Try again.")
 
             binding.root.postDelayed({
                 if (_binding != null) {
                     binding.etPassword.setText("")
-                    binding.tvPinSubtitle.text = targetSubtitle
-                    binding.tvPinSubtitle.setTextColor(0x99FFFFFF.toInt())
                 }
             }, 800)
         }
@@ -350,6 +387,7 @@ class PinEntryDialogFragment : DialogFragment() {
             subtitle: String,
             credential: LockCredential,
             isCancelable: Boolean = true,
+            lockScope: String = LockSecurity.SCOPE_DEFAULT,
             onSuccess: () -> Unit,
             onCancelled: (() -> Unit)? = null
         ): PinEntryDialogFragment {
@@ -358,6 +396,7 @@ class PinEntryDialogFragment : DialogFragment() {
                 this.targetSubtitle = subtitle
                 this.credential = credential
                 this.isCancelableDialog = isCancelable
+                this.lockScope = lockScope
                 this.onSuccess = onSuccess
                 this.onCancelled = onCancelled
             }

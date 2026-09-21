@@ -1,6 +1,8 @@
 package com.gothwad.launcher.ui.view
 
+import android.content.pm.PackageManager
 import android.os.SystemClock
+import android.util.Log
 import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -31,6 +33,15 @@ class AppCardAdapter(
         AppIcons.createDrawable(AppIcons.PATH_LOCK, 0xFFFFD54F.toInt())
     }
 
+    /**
+     * Hover (mouse) support is only wired up on devices that actually have a pointer.
+     * On a plain TV remote `ACTION_HOVER_*` never fires, so attaching the listeners was
+     * pure overhead for every card (issue #36).
+     */
+    private var hoverSupported: Boolean = false // resolved in onAttachedToRecyclerView
+
+    private var hoverSupportResolved = false
+
     fun updateConfig(
         widthPx: Int,
         heightPx: Int,
@@ -51,18 +62,65 @@ class AppCardAdapter(
         isGridMode = gridMode
         lockedPackages = locked
         movingPackage = moving
-        if (sizeChanged || visualChanged) {
-            notifyItemRangeChanged(0, itemCount)
+        if (!sizeChanged && !visualChanged) return
+
+        // Never notify while RecyclerView is mid-layout/scroll: that throws
+        // "Cannot call this method while RecyclerView is computing a layout or scrolling".
+        if (sizeChanged) {
+            safeNotify { notifyItemRangeChanged(0, itemCount) }
+        } else {
+            // visual-only change (accent / corner radius / labels): payload rebind skips
+            // the expensive banner/icon work for every visible card.
+            safeNotify { notifyItemRangeChanged(0, itemCount, PAYLOAD_CONFIG) }
         }
     }
+
+    private inline fun safeNotify(block: () -> Unit) {
+        runCatching { block() }.onFailure { Log.w(TAG, "Adapter notify skipped: ${it.message}") }
+    }
+
+    /**
+     * Bounds-safe item access for click/key listeners.
+     *
+     * `bindingAdapterPosition` can stop pointing at a valid index between the check and
+     * the `getItem()` call (an uninstall, a rescan or a "hide app" flow can shrink the
+     * list in between), and `ListAdapter.getItem()` throws `IndexOutOfBoundsException` -
+     * which, combined with a HOME-role crash handler, used to mean a launcher restart.
+     */
+    private fun itemAt(position: Int): AppEntry? =
+        if (position == RecyclerView.NO_POSITION) null else currentList.getOrNull(position)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AppCardViewHolder {
         val binding = ItemAppCardBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         return AppCardViewHolder(binding)
     }
 
+    override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
+        super.onAttachedToRecyclerView(recyclerView)
+        if (!hoverSupportResolved) {
+            hoverSupportResolved = true
+            val pm = recyclerView.context.packageManager
+            hoverSupport =
+                pm.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN) ||
+                    pm.hasSystemFeature("android.hardware.type.pc")
+        }
+    }
+
     override fun onBindViewHolder(holder: AppCardViewHolder, position: Int) {
-        holder.bind(getItem(position))
+        val app = currentList.getOrNull(position) ?: return
+        holder.bind(app)
+    }
+
+    /**
+     * Config-only rebind: the payload path re-applies geometry/colours without touching
+     * bitmaps or recycled drawables. DiffUtil keeps owning structural updates, so a
+     * settings change no longer tears down the whole grid (issue #28).
+     */
+    override fun onBindViewHolder(holder: AppCardViewHolder, position: Int, payloads: MutableList<Any>) {
+        val app = currentList.getOrNull(position) ?: return
+        if (payloads.isEmpty() || payloads.contains(PAYLOAD_CONFIG)) {
+            if (payloads.isEmpty()) holder.bind(app) else holder.applyConfig()
+        }
     }
 
     inner class AppCardViewHolder(
@@ -84,19 +142,15 @@ class AppCardAdapter(
                 if (SystemClock.uptimeMillis() - longPressTriggeredAt < 600L) {
                     return@setOnClickListener
                 }
-                val pos = bindingAdapterPosition
-                if (pos != RecyclerView.NO_POSITION) {
-                    onLaunchApp(getItem(pos))
-                }
+                val app = itemAt(bindingAdapterPosition) ?: return@setOnClickListener
+                onLaunchApp(app)
             }
 
             itemView.setOnLongClickListener {
                 longPressTriggeredAt = SystemClock.uptimeMillis()
-                val pos = bindingAdapterPosition
-                if (pos != RecyclerView.NO_POSITION) {
-                    onAppMenu(getItem(pos))
-                    true
-                } else false
+                val app = itemAt(bindingAdapterPosition) ?: return@setOnLongClickListener false
+                onAppMenu(app)
+                true
             }
 
             itemView.setOnKeyListener { _, keyCode, event ->
@@ -106,9 +160,9 @@ class AppCardAdapter(
                 val isMenu = keyCode == KeyEvent.KEYCODE_MENU
 
                 if (isMenu && event.action == KeyEvent.ACTION_UP) {
-                    val pos = bindingAdapterPosition
-                    if (pos != RecyclerView.NO_POSITION) {
-                        onAppMenu(getItem(pos))
+                    val app = itemAt(bindingAdapterPosition)
+                    if (app != null) {
+                        onAppMenu(app)
                         return@setOnKeyListener true
                     }
                 }
@@ -119,9 +173,9 @@ class AppCardAdapter(
                             longPressTriggeredAt = 0L
                         } else if (event.repeatCount > 0 && longPressTriggeredAt == 0L) {
                             longPressTriggeredAt = SystemClock.uptimeMillis()
-                            val pos = bindingAdapterPosition
-                            if (pos != RecyclerView.NO_POSITION) {
-                                onAppMenu(getItem(pos))
+                            val app = itemAt(bindingAdapterPosition)
+                            if (app != null) {
+                                onAppMenu(app)
                                 return@setOnKeyListener true
                             }
                         }
@@ -129,10 +183,7 @@ class AppCardAdapter(
                         if (longPressTriggeredAt != 0L && (SystemClock.uptimeMillis() - longPressTriggeredAt < 800L)) {
                             return@setOnKeyListener true
                         }
-                        val pos = bindingAdapterPosition
-                        if (pos != RecyclerView.NO_POSITION) {
-                            onLaunchApp(getItem(pos))
-                        }
+                        itemAt(bindingAdapterPosition)?.let { onLaunchApp(it) }
                         return@setOnKeyListener true
                     }
                 }
@@ -140,25 +191,19 @@ class AppCardAdapter(
             }
 
             itemView.setOnFocusChangeListener { _, hasFocus ->
-                val pos = bindingAdapterPosition
-                val app = if (pos != RecyclerView.NO_POSITION) getItem(pos) else null
-                applyVisualState(hasFocus, isHovered, app)
+                applyVisualState(hasFocus, isHovered, itemAt(bindingAdapterPosition))
             }
 
-            itemView.setOnHoverListener { _, event ->
+            if (hoverSupported) itemView.setOnHoverListener { _, event ->
                 when (event.action) {
                     MotionEvent.ACTION_HOVER_ENTER -> {
                         isHovered = true
-                        val pos = bindingAdapterPosition
-                        val app = if (pos != RecyclerView.NO_POSITION) getItem(pos) else null
-                        applyVisualState(itemView.isFocused, true, app)
+                        applyVisualState(itemView.isFocused, true, itemAt(bindingAdapterPosition))
                         true
                     }
                     MotionEvent.ACTION_HOVER_EXIT -> {
                         isHovered = false
-                        val pos = bindingAdapterPosition
-                        val app = if (pos != RecyclerView.NO_POSITION) getItem(pos) else null
-                        applyVisualState(itemView.isFocused, false, app)
+                        applyVisualState(itemView.isFocused, false, itemAt(bindingAdapterPosition))
                         true
                     }
                     else -> false
@@ -170,9 +215,9 @@ class AppCardAdapter(
                     (event.buttonState and MotionEvent.BUTTON_SECONDARY != 0)
                 ) {
                     longPressTriggeredAt = SystemClock.uptimeMillis()
-                    val pos = bindingAdapterPosition
-                    if (pos != RecyclerView.NO_POSITION) {
-                        onAppMenu(getItem(pos))
+                    val app = itemAt(bindingAdapterPosition)
+                    if (app != null) {
+                        onAppMenu(app)
                         true
                     } else false
                 } else false
@@ -262,8 +307,20 @@ class AppCardAdapter(
             }
         }
 
-        fun bind(app: AppEntry) {
-            // Apply dimensions: MATCH_PARENT in grid mode so 6 columns fit exactly, fixed width in carousel
+        /** Re-applies only what a config change affects (size, radius, accent, labels). */
+        fun applyConfig() {
+            applyDimensions()
+            val app = itemAt(bindingAdapterPosition)
+            updateCardBackground(app, itemView.isFocused, isHovered, app != null && app.pkg == movingPackage)
+            if (app != null && app.banner == null) {
+                binding.txtLabel.visibility = if (showLabels) View.VISIBLE else View.GONE
+                binding.badgeLock.visibility =
+                    if (app.pkg in lockedPackages) View.VISIBLE else View.GONE
+            }
+        }
+
+        private fun applyDimensions() {
+            // MATCH_PARENT in grid mode so the columns fit exactly, fixed width in carousel
             val targetWidth = if (isGridMode) ViewGroup.LayoutParams.MATCH_PARENT else cardWidthPx
             val lp = itemView.layoutParams ?: ViewGroup.LayoutParams(targetWidth, cardHeightPx)
             if (lp.width != targetWidth || lp.height != cardHeightPx) {
@@ -271,6 +328,10 @@ class AppCardAdapter(
                 lp.height = cardHeightPx
                 itemView.layoutParams = lp
             }
+        }
+
+        fun bind(app: AppEntry) {
+            applyDimensions()
 
             val hasFocus = itemView.isFocused
             val isMoving = app.pkg == movingPackage
@@ -302,5 +363,12 @@ class AppCardAdapter(
             val isLocked = app.pkg in lockedPackages
             binding.badgeLock.visibility = if (isLocked) View.VISIBLE else View.GONE
         }
+    }
+
+    companion object {
+        private const val TAG = "AppCardAdapter"
+
+        /** Payload used for a style-only config change (see [updateConfig]). */
+        const val PAYLOAD_CONFIG = 1
     }
 }

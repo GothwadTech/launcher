@@ -11,6 +11,7 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import com.gothwad.launcher.data.LockCredential
 import com.gothwad.launcher.data.LockCredentialType
+import com.gothwad.launcher.data.LockSecurity
 import com.gothwad.launcher.databinding.DialogPinEntryBinding
 import com.gothwad.launcher.ui.AppIcons
 
@@ -23,7 +24,8 @@ import com.gothwad.launcher.ui.AppIcons
 class DeviceLockViewController(
     private val container: FrameLayout,
     private val credential: LockCredential,
-    private val onUnlocked: () -> Unit
+    private val onUnlocked: () -> Unit,
+    private val lockScope: String = LockSecurity.SCOPE_DEVICE
 ) {
     private val context: Context = container.context
     private val binding: DialogPinEntryBinding =
@@ -31,6 +33,33 @@ class DeviceLockViewController(
 
     private val enteredDigits = StringBuilder()
     private val dotViews = mutableListOf<View>()
+
+    private val defaultSubtitle = "Enter credential to access device"
+
+    /** Verifies against the stored hash and applies the shared brute-force throttle. */
+    private fun verifyCandidate(candidate: String): Boolean {
+        val remaining = LockSecurity.lockoutRemainingMs(context, lockScope)
+        if (remaining > 0L) {
+            showError("Too many attempts. Try again in ${(remaining / 1000) + 1}s.")
+            return false
+        }
+        return if (LockSecurity.verify(credential, candidate)) {
+            LockSecurity.recordSuccess(context, lockScope)
+            true
+        } else {
+            LockSecurity.recordFailure(context, lockScope)
+            false
+        }
+    }
+
+    private fun showError(message: String) {
+        binding.tvPinSubtitle.text = message
+        binding.tvPinSubtitle.setTextColor(0xFFFF5252.toInt())
+        binding.root.postDelayed({
+            binding.tvPinSubtitle.text = defaultSubtitle
+            binding.tvPinSubtitle.setTextColor(0x99FFFFFF.toInt())
+        }, 1_200)
+    }
     private var isPasswordVisible: Boolean = false
     private var inputModeTv: Boolean = true
     private var isUnlocked: Boolean = false
@@ -57,7 +86,7 @@ class DeviceLockViewController(
             AppIcons.createDrawable(AppIcons.PATH_LOCK, 0xFF4C8DFF.toInt())
         )
         binding.tvPinTitle.text = "Device Locked"
-        binding.tvPinSubtitle.text = "Enter credential to access device"
+        binding.tvPinSubtitle.text = defaultSubtitle
 
         // Device lock is mandatory on cold boot; cannot be cancelled or escaped
         binding.btnCancel.visibility = View.GONE
@@ -186,7 +215,7 @@ class DeviceLockViewController(
 
     private fun checkNumericPin() {
         val candidate = enteredDigits.toString()
-        if (candidate == credential.value) {
+        if (verifyCandidate(candidate)) {
             unlockSuccess()
         } else {
             updateDotsUi(error = true)
@@ -196,7 +225,7 @@ class DeviceLockViewController(
 
             binding.root.postDelayed({
                 clearDigits()
-                binding.tvPinSubtitle.text = "Enter credential to access device"
+                binding.tvPinSubtitle.text = defaultSubtitle
                 binding.tvPinSubtitle.setTextColor(0x99FFFFFF.toInt())
             }, 800)
         }
@@ -293,7 +322,7 @@ class DeviceLockViewController(
 
     private fun checkPassword() {
         val candidate = binding.etPassword.text.toString()
-        if (candidate == credential.value) {
+        if (verifyCandidate(candidate)) {
             unlockSuccess()
         } else {
             binding.tvPinSubtitle.text = "Incorrect password. Try again."
@@ -302,7 +331,7 @@ class DeviceLockViewController(
 
             binding.root.postDelayed({
                 binding.etPassword.setText("")
-                binding.tvPinSubtitle.text = "Enter credential to access device"
+                binding.tvPinSubtitle.text = defaultSubtitle
                 binding.tvPinSubtitle.setTextColor(0x99FFFFFF.toInt())
             }, 800)
         }

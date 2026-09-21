@@ -21,16 +21,17 @@ import com.gothwad.launcher.GothwadApplication
 import com.gothwad.launcher.data.AppEntry
 import com.gothwad.launcher.data.AppRepository
 import com.gothwad.launcher.data.CORNER_RADII
-import com.gothwad.launcher.data.CategoryCfg
+import com.gothwad.launcher.data.CategoryAssigner
 import com.gothwad.launcher.data.ConfigStore
 import com.gothwad.launcher.data.GAP_SIZES
 import com.gothwad.launcher.data.ICON_SIZES
 import com.gothwad.launcher.data.LAYOUT_GRID
 import com.gothwad.launcher.data.LauncherConfig
+import com.gothwad.launcher.data.UI_SCALES
 import com.gothwad.launcher.databinding.FragmentTvLauncherBinding
 import com.gothwad.launcher.ui.ACCENTS
+import com.gothwad.launcher.ui.AppLockGate
 import com.gothwad.launcher.ui.WALLPAPERS
-import com.gothwad.launcher.ui.dialogs.PinEntryDialogFragment
 import com.gothwad.launcher.ui.dialogs.SetupWizardDialogFragment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
@@ -49,6 +50,9 @@ class TvLauncherFragment : Fragment() {
     private var currentConfig: LauncherConfig = LauncherConfig()
     private var allApps: List<AppEntry> = emptyList()
 
+    /** Guards against re-showing the first-run wizard on every config emission. */
+    private var wizardShownThisView: Boolean = false
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -64,18 +68,39 @@ class TvLauncherFragment : Fragment() {
         observeData()
     }
 
-    private fun calculateCardDimensions(isGrid: Boolean, gapPx: Int, density: Float): Pair<Int, Int> {
+    /** Manual whole-UI scale multiplier from the Display settings (default 1.0x). */
+    private fun uiScaleMultiplier(): Float =
+        UI_SCALES.getOrElse(currentConfig.uiScale.coerceIn(0, UI_SCALES.size - 1)) { 1.0f }
+
+    /**
+     * Grid columns for the current UI scale: a larger scale means fewer (bigger) tiles,
+     * a smaller scale more (smaller) ones. Keeps the 16:9 tile aspect ratio intact -
+     * scaling only the height would have produced stretched tiles.
+     */
+    private fun gridSpanCount(): Int = when (currentConfig.uiScale.coerceIn(0, UI_SCALES.size - 1)) {
+        0 -> 8
+        1 -> 7
+        2 -> 6
+        3 -> 5
+        else -> 4
+    }
+
+    private fun calculateCardDimensions(
+        isGrid: Boolean,
+        gapPx: Int,
+        density: Float,
+        columns: Int = gridSpanCount(),
+    ): Pair<Int, Int> {
         return if (isGrid) {
             val screenWidthPx = resources.displayMetrics.widthPixels
             val horizontalPaddingPx = (48 * 2 * density).toInt() // 48dp on each side
-            val columns = 6
             val availableWidthPx = screenWidthPx - horizontalPaddingPx - ((columns - 1) * gapPx)
-            val cardWidth = (availableWidthPx / columns).coerceAtLeast((100 * density).toInt())
+            val cardWidth = (availableWidthPx / columns).coerceAtLeast((60 * density).toInt())
             val cardHeight = (cardWidth * 9f / 16f).toInt()
             Pair(cardWidth, cardHeight)
         } else {
             val defaultWidthDp = ICON_SIZES.getOrElse(currentConfig.iconScale.coerceIn(0, ICON_SIZES.size - 1)) { ICON_SIZES[2] }
-            val widthPx = (defaultWidthDp * density).toInt()
+            val widthPx = (defaultWidthDp * density * uiScaleMultiplier()).toInt()
             val heightPx = (widthPx * 9f / 16f).toInt()
             Pair(widthPx, heightPx)
         }
@@ -85,7 +110,8 @@ class TvLauncherFragment : Fragment() {
         val density = resources.displayMetrics.density
         val isGrid = currentConfig.layout == LAYOUT_GRID
         val gapPx = (GAP_SIZES.getOrElse(currentConfig.spacing.coerceIn(0, GAP_SIZES.size - 1)) { GAP_SIZES[2] } * density).toInt()
-        val (defaultWidthPx, defaultHeightPx) = calculateCardDimensions(isGrid, gapPx, density)
+        val spanCount = gridSpanCount()
+        val (defaultWidthPx, defaultHeightPx) = calculateCardDimensions(isGrid, gapPx, density, spanCount)
         val defaultRadiusPx = (CORNER_RADII.getOrElse(currentConfig.cornerRadius.coerceIn(0, CORNER_RADII.size - 1)) { CORNER_RADII[2] } * density)
         val accentColor = ACCENTS.getOrElse(currentConfig.accent.coerceIn(0, ACCENTS.size - 1)) { ACCENTS[0] }
         val accentArgb = accentColor
@@ -100,6 +126,7 @@ class TvLauncherFragment : Fragment() {
             showCategoryNames = currentConfig.showCategoryNames,
             showAppLabels = currentConfig.showAppLabels,
             isGridMode = isGrid,
+            gridSpanCount = spanCount,
             lockedPackages = currentConfig.lockedApps,
             movingPackage = null,
             onLaunchApp = { app ->
@@ -118,24 +145,14 @@ class TvLauncherFragment : Fragment() {
         }
     }
 
-    private fun handleAppLaunch(app: AppEntry, skipLock: Boolean = false) {
-        if (!GothwadApplication.hasUnlockedDeviceThisProcess && currentConfig.deviceLock.enabled) {
-            return
-        }
-        // UX-only in-launcher check to avoid overlay flicker on first click.
-        // The authoritative, unbypassable security enforcement layer is in LauncherAccessibilityService.
-        if (!skipLock && currentConfig.appLock.enabled && currentConfig.appLock.value.isNotEmpty() && app.pkg in currentConfig.lockedApps) {
-            PinEntryDialogFragment.newInstance(
-                title = "App Locked",
-                subtitle = "Enter PIN/Password to launch ${app.label}",
-                credential = currentConfig.appLock,
-                isCancelable = true,
-                onSuccess = {
-                    com.gothwad.launcher.service.LauncherAccessibilityService.unlockedPackagesSession.add(app.pkg)
-                    handleAppLaunch(app, skipLock = true)
-                }
-            ).show(parentFragmentManager, PinEntryDialogFragment.TAG)
-        } else {
+    private fun handleAppLaunch(app: AppEntry) {
+        // One shared gate for device lock / app lock / hidden vault (issue #31).
+        AppLockGate.evaluate(
+            fragmentManager = parentFragmentManager,
+            app = app,
+            config = currentConfig,
+            deviceUnlockedThisProcess = GothwadApplication.hasUnlockedDeviceThisProcess,
+        ) {
             Actions.launchApp(requireContext(), app.pkg)
         }
     }
@@ -157,13 +174,17 @@ class TvLauncherFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
                     configStore.flow.collectLatest { config ->
-                        val firstRun = !config.setupDone && currentConfig.setupDone
                         currentConfig = config
                         updateDimensionsAndStyling()
                         applyWallpaper()
                         rebuildCategorizedList()
 
-                        if (firstRun) {
+                        // Show the first-run wizard when setup has never been completed.
+                        // (Previously this compared against the *previous* config - and
+                        // setupDone defaulted to true - so the wizard never appeared on a
+                        // fresh install.)
+                        if (!config.setupDone && !wizardShownThisView && isResumed) {
+                            wizardShownThisView = true
                             showSetupWizard()
                         }
                     }
@@ -184,8 +205,16 @@ class TvLauncherFragment : Fragment() {
         }.show(parentFragmentManager, SetupWizardDialogFragment.TAG)
     }
 
+    /**
+     * Applies the configured wallpaper. Called from the config flow *and* from
+     * MainActivity, so it must be safe when the view is already gone: it no-ops without a
+     * binding and follows the view lifecycle (this used to NPE after the config flow
+     * re-emitted post-destroy - issue #23).
+     */
     fun applyWallpaper() {
-        lifecycleScope.launch {
+        val viewBinding = _binding ?: return
+        if (!isAdded) return
+        viewLifecycleOwner.lifecycleScope.launch {
             if (currentConfig.useCustomWallpaper) {
                 val file = File(requireContext().filesDir, "wallpaper.jpg")
                 if (file.exists()) {
@@ -193,8 +222,8 @@ class TvLauncherFragment : Fragment() {
                         BitmapFactory.decodeFile(file.absolutePath)
                     }
                     if (bmp != null) {
-                        binding.imgWallpaper.setImageBitmap(bmp)
-                        binding.imgWallpaper.visibility = View.VISIBLE
+                        viewBinding.imgWallpaper.setImageBitmap(bmp)
+                        viewBinding.imgWallpaper.visibility = View.VISIBLE
                     }
                 }
             } else {
@@ -202,37 +231,34 @@ class TvLauncherFragment : Fragment() {
                 val colors = preset.colors.toIntArray()
 
                 val gradient = GradientDrawable(GradientDrawable.Orientation.TL_BR, colors)
-                binding.imgWallpaper.setImageDrawable(gradient)
-                binding.imgWallpaper.visibility = View.VISIBLE
+                viewBinding.imgWallpaper.setImageDrawable(gradient)
+                viewBinding.imgWallpaper.visibility = View.VISIBLE
             }
 
-            // Scrim mode: 0 = top & bottom, 1 = top, 2 = bottom, 3 = full, 4 = off
+            // Scrim mode: 0 = top & bottom, 1 = top, 2 = bottom, 3 = both, 4 = off
             when (currentConfig.scrimMode) {
-                0 -> {
-                    binding.viewScrimTop.visibility = View.VISIBLE
-                    binding.viewScrimBottom.visibility = View.VISIBLE
+                0, 3 -> {
+                    viewBinding.viewScrimTop.visibility = View.VISIBLE
+                    viewBinding.viewScrimBottom.visibility = View.VISIBLE
                 }
                 1 -> {
-                    binding.viewScrimTop.visibility = View.VISIBLE
-                    binding.viewScrimBottom.visibility = View.GONE
+                    viewBinding.viewScrimTop.visibility = View.VISIBLE
+                    viewBinding.viewScrimBottom.visibility = View.GONE
                 }
                 2 -> {
-                    binding.viewScrimTop.visibility = View.GONE
-                    binding.viewScrimBottom.visibility = View.VISIBLE
-                }
-                3 -> {
-                    binding.viewScrimTop.visibility = View.VISIBLE
-                    binding.viewScrimBottom.visibility = View.VISIBLE
+                    viewBinding.viewScrimTop.visibility = View.GONE
+                    viewBinding.viewScrimBottom.visibility = View.VISIBLE
                 }
                 else -> {
-                    binding.viewScrimTop.visibility = View.GONE
-                    binding.viewScrimBottom.visibility = View.GONE
+                    viewBinding.viewScrimTop.visibility = View.GONE
+                    viewBinding.viewScrimBottom.visibility = View.GONE
                 }
             }
         }
     }
 
     fun onRescanRequested() {
+        if (_binding == null || !isAdded) return
         viewLifecycleOwner.lifecycleScope.launch {
             loadApps()
         }
@@ -247,7 +273,8 @@ class TvLauncherFragment : Fragment() {
         val density = resources.displayMetrics.density
         val isGrid = currentConfig.layout == LAYOUT_GRID
         val gapPx = (GAP_SIZES.getOrElse(currentConfig.spacing.coerceIn(0, GAP_SIZES.size - 1)) { GAP_SIZES[2] } * density).toInt()
-        val (widthPx, heightPx) = calculateCardDimensions(isGrid, gapPx, density)
+        val spanCount = gridSpanCount()
+        val (widthPx, heightPx) = calculateCardDimensions(isGrid, gapPx, density, spanCount)
         val radiusPx = (CORNER_RADII.getOrElse(currentConfig.cornerRadius.coerceIn(0, CORNER_RADII.size - 1)) { CORNER_RADII[2] } * density)
         val accentColor = ACCENTS.getOrElse(currentConfig.accent.coerceIn(0, ACCENTS.size - 1)) { ACCENTS[0] }
         val accentArgb = accentColor
@@ -261,6 +288,7 @@ class TvLauncherFragment : Fragment() {
             categoryNames = currentConfig.showCategoryNames,
             appLabels = currentConfig.showAppLabels,
             gridMode = isGrid,
+            spanCount = spanCount,
             locked = currentConfig.lockedApps,
             moving = null
         )
@@ -269,30 +297,13 @@ class TvLauncherFragment : Fragment() {
     private fun rebuildCategorizedList() {
         if (allApps.isEmpty()) return
 
-        val nonHidden = allApps.filter { it.pkg !in currentConfig.hidden }
-        val categories = currentConfig.categories.ifEmpty {
-            listOf(CategoryCfg("apps", "Apps"))
+        // All visibility + section rules live in the (unit-tested) CategoryAssigner:
+        // unassigned apps go to their real auto-category when enabled, hidden/vault apps
+        // follow the "show hidden" setting, and "__all__" always shows everything (#15).
+        val rows = CategoryAssigner.rows(allApps, currentConfig).map { (category, apps) ->
+            CategoryRowItem(category = category, apps = apps)
         }
-
-        val items = categories.mapNotNull { cat ->
-            val inCat = nonHidden.filter { app ->
-                val assigned = currentConfig.sections[app.pkg] ?: setOf(categories.first().id)
-                cat.id in assigned
-            }
-            val explicit = currentConfig.order[cat.id]
-            val ordered = if (explicit == null) inCat else {
-                val byPkg = inCat.associateBy { it.pkg }
-                val fromOrder = explicit.mapNotNull { byPkg[it] }
-                val remaining = inCat.filter { it.pkg !in explicit.toSet() }
-                fromOrder + remaining
-            }
-
-            if (ordered.isNotEmpty()) {
-                CategoryRowItem(category = cat, apps = ordered)
-            } else null
-        }
-
-        categoryAdapter?.submitList(items)
+        categoryAdapter?.submitList(rows)
     }
 
     override fun onDestroyView() {

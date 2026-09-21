@@ -22,7 +22,8 @@ class NotificationAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(getItem(position))
+        val item = currentList.getOrNull(position) ?: return
+        holder.bind(item)
     }
 
     inner class ViewHolder(private val binding: ItemNotificationBinding) : RecyclerView.ViewHolder(binding.root) {
@@ -31,13 +32,13 @@ class NotificationAdapter(
             binding.root.setOnClickListener {
                 val pos = bindingAdapterPosition
                 if (pos != RecyclerView.NO_POSITION) {
-                    onClick(getItem(pos))
+                    currentList.getOrNull(pos)?.let { onClick(it) }
                 }
             }
             binding.btnDismissNotif.setOnClickListener {
                 val pos = bindingAdapterPosition
                 if (pos != RecyclerView.NO_POSITION) {
-                    onDismiss(getItem(pos))
+                    currentList.getOrNull(pos)?.let { onDismiss(it) }
                 }
             }
         }

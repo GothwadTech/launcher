@@ -32,6 +32,7 @@ class StatusBarView @JvmOverloads constructor(
     var onBluetoothClick: (() -> Unit)? = null
     var onBackgroundMediaClick: (() -> Unit)? = null
     var onNetworkClick: (() -> Unit)? = null
+    var onVpnClick: (() -> Unit)? = null
     var onNotificationsClick: (() -> Unit)? = null
     var onSettingsClick: (() -> Unit)? = null
 
@@ -48,6 +49,7 @@ class StatusBarView @JvmOverloads constructor(
         binding.btnVoiceSearch.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_MIC, Color.WHITE))
         binding.imgBluetooth.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BLUETOOTH, 0xFF64B5F6.toInt()))
         binding.btnNetwork.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_WIFI, Color.WHITE))
+        binding.btnVpn.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_KEY, 0xFF81C995.toInt()))
         binding.btnNotifications.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BELL, Color.WHITE))
         binding.btnSettings.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_GEAR, Color.WHITE))
     }
@@ -59,6 +61,7 @@ class StatusBarView @JvmOverloads constructor(
         binding.layoutBluetoothPill.setOnClickListener { onBluetoothClick?.invoke() }
         binding.btnBgMedia.setOnClickListener { onBackgroundMediaClick?.invoke() }
         binding.btnNetwork.setOnClickListener { onNetworkClick?.invoke() }
+        binding.btnVpn.setOnClickListener { onVpnClick?.invoke() }
         binding.btnNotifications.setOnClickListener { onNotificationsClick?.invoke() }
         binding.btnSettings.setOnClickListener { onSettingsClick?.invoke() }
     }
@@ -83,22 +86,30 @@ class StatusBarView @JvmOverloads constructor(
     }
 
     fun setBluetoothStatus(bt: BluetoothDeviceStatus) {
-        if (bt.connected || bt.batteryLevel >= 0) {
-            binding.layoutBluetoothPill.visibility = View.VISIBLE
-            val alphaColor = if (bt.connected) 0xFF64B5F6.toInt() else 0x8064B5F6.toInt()
-            binding.imgBluetooth.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BLUETOOTH, alphaColor))
-
-            if (bt.batteryLevel >= 0) {
-                binding.tvBtBattery.visibility = View.VISIBLE
-                binding.tvBtBattery.text = "${bt.batteryLevel}%"
-                val batteryColor = if (bt.batteryLevel in 0..20) 0xFFE57373.toInt() else 0xD9FFFFFF.toInt()
-                binding.tvBtBattery.setTextColor(batteryColor)
-            } else {
-                binding.tvBtBattery.visibility = View.GONE
-            }
-        } else {
+        // The pill is only shown for a *reported* connection. There is no more fake
+        // "TV Remote 85%" fallback: unknown battery renders as an em dash.
+        if (!bt.connected) {
             binding.layoutBluetoothPill.visibility = View.GONE
+            return
         }
+
+        binding.layoutBluetoothPill.visibility = View.VISIBLE
+        binding.imgBluetooth.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BLUETOOTH, 0xFF64B5F6.toInt()))
+
+        binding.tvBtBattery.visibility = View.VISIBLE
+        if (bt.batteryLevel >= 0) {
+            binding.tvBtBattery.text = "${bt.batteryLevel}%"
+            val batteryColor = if (bt.batteryLevel in 0..20) 0xFFE57373.toInt() else 0xD9FFFFFF.toInt()
+            binding.tvBtBattery.setTextColor(batteryColor)
+        } else {
+            binding.tvBtBattery.text = "—"
+            binding.tvBtBattery.setTextColor(0x80FFFFFF.toInt())
+        }
+    }
+
+    /** Shows/hides the VPN shortcut (only while a VPN transport is actually up). */
+    fun setVpnStatus(vpnActive: Boolean, buttonEnabled: Boolean) {
+        binding.btnVpn.visibility = if (vpnActive && buttonEnabled) View.VISIBLE else View.GONE
     }
 
     fun setBackgroundMedia(media: BackgroundMediaState) {

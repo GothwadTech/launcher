@@ -41,6 +41,11 @@ class QuickDashboardDialogFragment : DialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        if (onOpenSettings == null) { // recreated after process death
+            dismiss()
+            return
+        }
+
         binding.imgDashboardIcon.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_DASHBOARD, Color.WHITE))
         binding.btnClose.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_CLOSE, Color.WHITE))
 

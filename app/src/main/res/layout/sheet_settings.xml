@@ -950,6 +950,8 @@
                             android:textColor="#FFFFFF"
                             android:textSize="13sp" />
 
+                        <!-- Dock was never implemented (it behaved exactly like Carousel),
+                             so the option is hidden until it actually exists. -->
                         <Button
                             android:id="@+id/btn_layout_dock"
                             android:layout_width="0dp"
@@ -960,7 +962,8 @@
                             android:background="@drawable/bg_settings_row"
                             android:text="Dock"
                             android:textColor="#FFFFFF"
-                            android:textSize="13sp" />
+                            android:textSize="13sp"
+                            android:visibility="gone" />
                     </LinearLayout>
 
                     <TextView
@@ -1111,6 +1114,126 @@
                             android:text="Pill"
                             android:textColor="#FFFFFF"
                             android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingStart="24dp"
+                        android:paddingEnd="24dp"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="UI Scale"
+                        android:textAllCaps="true"
+                        android:textColor="#4DD0E1"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:orientation="horizontal">
+
+                        <Button
+                            android:id="@+id/btn_uiscale_0"
+                            android:layout_width="0dp"
+                            android:layout_height="44dp"
+                            android:layout_marginEnd="2dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_settings_row"
+                            android:text="0.75x"
+                            android:textColor="#FFFFFF"
+                            android:textSize="11sp" />
+
+                        <Button
+                            android:id="@+id/btn_uiscale_1"
+                            android:layout_width="0dp"
+                            android:layout_height="44dp"
+                            android:layout_marginHorizontal="2dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_settings_row"
+                            android:text="0.9x"
+                            android:textColor="#FFFFFF"
+                            android:textSize="11sp" />
+
+                        <Button
+                            android:id="@+id/btn_uiscale_2"
+                            android:layout_width="0dp"
+                            android:layout_height="44dp"
+                            android:layout_marginHorizontal="2dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_settings_row"
+                            android:text="1.0x"
+                            android:textColor="#FFFFFF"
+                            android:textSize="11sp" />
+
+                        <Button
+                            android:id="@+id/btn_uiscale_3"
+                            android:layout_width="0dp"
+                            android:layout_height="44dp"
+                            android:layout_marginHorizontal="2dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_settings_row"
+                            android:text="1.15x"
+                            android:textColor="#FFFFFF"
+                            android:textSize="11sp" />
+
+                        <Button
+                            android:id="@+id/btn_uiscale_4"
+                            android:layout_width="0dp"
+                            android:layout_height="44dp"
+                            android:layout_marginStart="2dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_settings_row"
+                            android:text="1.3x"
+                            android:textColor="#FFFFFF"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/row_toggle_system_font"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:layout_marginBottom="12dp"
+                        android:background="@drawable/bg_settings_row"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="24dp">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Use System Font Size"
+                                android:textColor="#FFFFFF"
+                                android:textSize="14sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="Respect the TV's font-size / accessibility setting (off = fixed 1.0x)"
+                                android:textColor="#94A3B8"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            app:thumbTint="@color/switch_thumb_tint"
+                            app:trackTint="@color/switch_track_tint"
+                            app:useMaterialThemeColors="false"
+                            android:id="@+id/switch_system_font"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:clickable="false"
+                            android:focusable="false" />
                     </LinearLayout>
 
                     <TextView
@@ -1419,6 +1542,114 @@
                             android:clickable="false"
                             android:focusable="false" />
                     </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/row_toggle_show_hidden"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:layout_marginBottom="0dp"
+                        android:background="@drawable/bg_settings_row"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="24dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Show Hidden (Vault) Apps in the Grid"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp" />
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            app:thumbTint="@color/switch_thumb_tint"
+                            app:trackTint="@color/switch_track_tint"
+                            app:useMaterialThemeColors="false"
+                            android:id="@+id/switch_show_hidden"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:clickable="false"
+                            android:focusable="false" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/row_toggle_launch_on_boot"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:layout_marginBottom="16dp"
+                        android:background="@drawable/bg_settings_row"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="24dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Launch at Boot / Block Boot Ads"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp" />
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            app:thumbTint="@color/switch_thumb_tint"
+                            app:trackTint="@color/switch_track_tint"
+                            app:useMaterialThemeColors="false"
+                            android:id="@+id/switch_launch_on_boot"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:clickable="false"
+                            android:focusable="false" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/row_toggle_aggressive_trim"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:layout_marginBottom="16dp"
+                        android:background="@drawable/bg_settings_row"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="24dp">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Aggressive Memory Trim"
+                                android:textColor="#FFFFFF"
+                                android:textSize="14sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="Closes other background apps when memory runs low (off = safer for music/streams)"
+                                android:textColor="#94A3B8"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            app:thumbTint="@color/switch_thumb_tint"
+                            app:trackTint="@color/switch_track_tint"
+                            app:useMaterialThemeColors="false"
+                            android:id="@+id/switch_aggressive_trim"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:clickable="false"
+                            android:focusable="false" />
+                    </LinearLayout>
+
                 </LinearLayout>
 
                 <!-- ========================================================= -->
@@ -1689,6 +1920,81 @@
                         android:textColor="#4DD0E1"
                         android:textSize="12sp"
                         android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:id="@+id/row_toggle_vpn_button"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:layout_marginBottom="0dp"
+                        android:background="@drawable/bg_settings_row"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="24dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Show VPN Shortcut in Status Bar"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp" />
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            app:thumbTint="@color/switch_thumb_tint"
+                            app:trackTint="@color/switch_track_tint"
+                            app:useMaterialThemeColors="false"
+                            android:id="@+id/switch_vpn_button"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:clickable="false"
+                            android:focusable="false" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/row_pick_vpn_app"
+                        android:layout_width="match_parent"
+                        android:layout_height="54dp"
+                        android:layout_marginBottom="8dp"
+                        android:background="@drawable/bg_settings_row"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="24dp">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="VPN Shortcut App"
+                                android:textColor="#FFFFFF"
+                                android:textSize="14sp" />
+
+                            <TextView
+                                android:id="@+id/txt_vpn_app_value"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="System VPN settings"
+                                android:textColor="#94A3B8"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="CHOOSE"
+                            android:textColor="#4DD0E1"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
 
                     <!-- Date and time -->
                     <LinearLayout
