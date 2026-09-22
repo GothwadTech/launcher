@@ -98,7 +98,26 @@
                     android:id="@+id/img_hero_app_icon"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:src="@mipmap/app_icon"
+                    android:src="@mipmap/ic_launcher"
+                    android:scaleType="centerCrop"
+                    android:contentDescription="@string/app_name" />
+            </androidx.cardview.widget.CardView>
+
+            <!-- 16:9 TV Banner Live Corner Preview (Used in Display & Corner Settings) -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/card_hero_banner"
+                android:layout_width="260dp"
+                android:layout_height="146dp"
+                android:visibility="gone"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="8dp"
+                app:cardBackgroundColor="#181B22">
+
+                <ImageView
+                    android:id="@+id/img_hero_banner"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/tv_banner"
                     android:scaleType="centerCrop"
                     android:contentDescription="@string/app_name" />
             </androidx.cardview.widget.CardView>
@@ -159,39 +178,37 @@
                     <LinearLayout
                         android:id="@+id/row_wallpaper"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
+                        android:layout_height="48dp"
                         android:layout_marginBottom="8dp"
                         android:background="@drawable/bg_settings_row"
                         android:clickable="true"
                         android:focusable="true"
                         android:gravity="center_vertical"
-                        android:minHeight="54dp"
                         android:orientation="horizontal"
-                        android:paddingHorizontal="24dp"
-                        android:paddingVertical="10dp">
+                        android:paddingHorizontal="20dp">
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:duplicateParentState="true"
                             android:text="Wallpaper &amp; Theme"
                             android:textColor="@color/color_settings_text"
-                            android:textSize="16sp"
+                            android:textSize="15sp"
                             android:textStyle="bold" />
 
                         <TextView
                             android:id="@+id/txt_wallpaper_subtitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginEnd="12dp"
-                            android:text="Deep Space • Full Scrim"
-                            android:textColor="@color/color_settings_subtitle"
-                            android:textSize="13sp" />
+                            android:visibility="gone"
+                            android:text="Deep Space • Full Scrim" />
 
                         <ImageView
                             android:id="@+id/chevron_wallpaper"
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:duplicateParentState="true"
                             android:src="@drawable/ic_settings_chevron"
                             android:contentDescription="Next" />
                     </LinearLayout>
@@ -200,39 +217,37 @@
                     <LinearLayout
                         android:id="@+id/row_display"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
+                        android:layout_height="48dp"
                         android:layout_marginBottom="8dp"
                         android:background="@drawable/bg_settings_row"
                         android:clickable="true"
                         android:focusable="true"
                         android:gravity="center_vertical"
-                        android:minHeight="54dp"
                         android:orientation="horizontal"
-                        android:paddingHorizontal="24dp"
-                        android:paddingVertical="10dp">
+                        android:paddingHorizontal="20dp">
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:duplicateParentState="true"
                             android:text="Display &amp; Layout"
                             android:textColor="@color/color_settings_text"
-                            android:textSize="16sp"
+                            android:textSize="15sp"
                             android:textStyle="bold" />
 
                         <TextView
                             android:id="@+id/txt_display_subtitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginEnd="12dp"
-                            android:text="Grid layout • Normal (190dp)"
-                            android:textColor="@color/color_settings_subtitle"
-                            android:textSize="13sp" />
+                            android:visibility="gone"
+                            android:text="Grid layout • Normal (190dp)" />
 
                         <ImageView
                             android:id="@+id/chevron_display"
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:duplicateParentState="true"
                             android:src="@drawable/ic_settings_chevron"
                             android:contentDescription="Next" />
                     </LinearLayout>
@@ -241,39 +256,37 @@
                     <LinearLayout
                         android:id="@+id/row_statusbar"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
+                        android:layout_height="48dp"
                         android:layout_marginBottom="8dp"
                         android:background="@drawable/bg_settings_row"
                         android:clickable="true"
                         android:focusable="true"
                         android:gravity="center_vertical"
-                        android:minHeight="54dp"
                         android:orientation="horizontal"
-                        android:paddingHorizontal="24dp"
-                        android:paddingVertical="10dp">
+                        android:paddingHorizontal="20dp">
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:duplicateParentState="true"
                             android:text="Status Bar &amp; Clock"
                             android:textColor="@color/color_settings_text"
-                            android:textSize="16sp"
+                            android:textSize="15sp"
                             android:textStyle="bold" />
 
                         <TextView
                             android:id="@+id/txt_statusbar_subtitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginEnd="12dp"
-                            android:text="Visible • 24h Clock"
-                            android:textColor="@color/color_settings_subtitle"
-                            android:textSize="13sp" />
+                            android:visibility="gone"
+                            android:text="Visible • 24h Clock" />
 
                         <ImageView
                             android:id="@+id/chevron_statusbar"
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:duplicateParentState="true"
                             android:src="@drawable/ic_settings_chevron"
                             android:contentDescription="Next" />
                     </LinearLayout>
@@ -282,39 +295,37 @@
                     <LinearLayout
                         android:id="@+id/row_apps"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
+                        android:layout_height="48dp"
                         android:layout_marginBottom="8dp"
                         android:background="@drawable/bg_settings_row"
                         android:clickable="true"
                         android:focusable="true"
                         android:gravity="center_vertical"
-                        android:minHeight="54dp"
                         android:orientation="horizontal"
-                        android:paddingHorizontal="24dp"
-                        android:paddingVertical="10dp">
+                        android:paddingHorizontal="20dp">
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:duplicateParentState="true"
                             android:text="Apps &amp; Secret Vault"
                             android:textColor="@color/color_settings_text"
-                            android:textSize="16sp"
+                            android:textSize="15sp"
                             android:textStyle="bold" />
 
                         <TextView
                             android:id="@+id/txt_apps_subtitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginEnd="12dp"
-                            android:text="Recent apps • Hidden apps"
-                            android:textColor="@color/color_settings_subtitle"
-                            android:textSize="13sp" />
+                            android:visibility="gone"
+                            android:text="Recent apps • Hidden apps" />
 
                         <ImageView
                             android:id="@+id/chevron_apps"
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:duplicateParentState="true"
                             android:src="@drawable/ic_settings_chevron"
                             android:contentDescription="Next" />
                     </LinearLayout>
@@ -323,39 +334,37 @@
                     <LinearLayout
                         android:id="@+id/row_security"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
+                        android:layout_height="48dp"
                         android:layout_marginBottom="8dp"
                         android:background="@drawable/bg_settings_row"
                         android:clickable="true"
                         android:focusable="true"
                         android:gravity="center_vertical"
-                        android:minHeight="54dp"
                         android:orientation="horizontal"
-                        android:paddingHorizontal="24dp"
-                        android:paddingVertical="10dp">
+                        android:paddingHorizontal="20dp">
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:duplicateParentState="true"
                             android:text="Security &amp; PIN Lock"
                             android:textColor="@color/color_settings_text"
-                            android:textSize="16sp"
+                            android:textSize="15sp"
                             android:textStyle="bold" />
 
                         <TextView
                             android:id="@+id/txt_security_subtitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginEnd="12dp"
-                            android:text="App Lock &amp; Vault Lock"
-                            android:textColor="@color/color_settings_subtitle"
-                            android:textSize="13sp" />
+                            android:visibility="gone"
+                            android:text="App Lock &amp; Vault Lock" />
 
                         <ImageView
                             android:id="@+id/chevron_security"
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:duplicateParentState="true"
                             android:src="@drawable/ic_settings_chevron"
                             android:contentDescription="Next" />
                     </LinearLayout>
@@ -364,39 +373,37 @@
                     <LinearLayout
                         android:id="@+id/row_button_mapping"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="16dp"
+                        android:layout_height="48dp"
+                        android:layout_marginBottom="14dp"
                         android:background="@drawable/bg_settings_row"
                         android:clickable="true"
                         android:focusable="true"
                         android:gravity="center_vertical"
-                        android:minHeight="54dp"
                         android:orientation="horizontal"
-                        android:paddingHorizontal="24dp"
-                        android:paddingVertical="10dp">
+                        android:paddingHorizontal="20dp">
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:duplicateParentState="true"
                             android:text="@string/button_mapping_title"
                             android:textColor="@color/color_settings_text"
-                            android:textSize="16sp"
+                            android:textSize="15sp"
                             android:textStyle="bold" />
 
                         <TextView
                             android:id="@+id/txt_button_mapping_subtitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginEnd="12dp"
-                            android:text="@string/button_mapping_subtitle"
-                            android:textColor="@color/color_settings_subtitle"
-                            android:textSize="13sp" />
+                            android:visibility="gone"
+                            android:text="@string/button_mapping_subtitle" />
 
                         <ImageView
                             android:id="@+id/chevron_button_mapping"
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:duplicateParentState="true"
                             android:src="@drawable/ic_settings_chevron"
                             android:contentDescription="Next" />
                     </LinearLayout>
@@ -420,39 +427,37 @@
                     <LinearLayout
                         android:id="@+id/row_network"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
+                        android:layout_height="48dp"
                         android:layout_marginBottom="8dp"
                         android:background="@drawable/bg_settings_row"
                         android:clickable="true"
                         android:focusable="true"
                         android:gravity="center_vertical"
-                        android:minHeight="54dp"
                         android:orientation="horizontal"
-                        android:paddingHorizontal="24dp"
-                        android:paddingVertical="10dp">
+                        android:paddingHorizontal="20dp">
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:duplicateParentState="true"
                             android:text="Network and internet"
                             android:textColor="@color/color_settings_text"
-                            android:textSize="16sp"
+                            android:textSize="15sp"
                             android:textStyle="bold" />
 
                         <TextView
                             android:id="@+id/txt_network_subtitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginEnd="12dp"
-                            android:text="Wi-Fi / Ethernet settings"
-                            android:textColor="@color/color_settings_subtitle"
-                            android:textSize="13sp" />
+                            android:visibility="gone"
+                            android:text="Wi-Fi / Ethernet settings" />
 
                         <ImageView
                             android:id="@+id/chevron_network"
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:duplicateParentState="true"
                             android:src="@drawable/ic_settings_chevron"
                             android:contentDescription="Next" />
                     </LinearLayout>
@@ -461,39 +466,37 @@
                     <LinearLayout
                         android:id="@+id/row_device_prefs"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
+                        android:layout_height="48dp"
                         android:layout_marginBottom="8dp"
                         android:background="@drawable/bg_settings_row"
                         android:clickable="true"
                         android:focusable="true"
                         android:gravity="center_vertical"
-                        android:minHeight="54dp"
                         android:orientation="horizontal"
-                        android:paddingHorizontal="24dp"
-                        android:paddingVertical="10dp">
+                        android:paddingHorizontal="20dp">
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:duplicateParentState="true"
                             android:text="Android Settings"
                             android:textColor="@color/color_settings_text"
-                            android:textSize="16sp"
+                            android:textSize="15sp"
                             android:textStyle="bold" />
 
                         <TextView
                             android:id="@+id/txt_device_prefs_subtitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginEnd="12dp"
-                            android:text="Open full device settings"
-                            android:textColor="@color/color_settings_subtitle"
-                            android:textSize="13sp" />
+                            android:visibility="gone"
+                            android:text="Open full device settings" />
 
                         <ImageView
                             android:id="@+id/chevron_device_prefs"
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:duplicateParentState="true"
                             android:src="@drawable/ic_settings_chevron"
                             android:contentDescription="Open" />
                     </LinearLayout>
@@ -502,38 +505,36 @@
                     <LinearLayout
                         android:id="@+id/row_permissions"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
+                        android:layout_height="48dp"
                         android:layout_marginBottom="8dp"
                         android:background="@drawable/bg_settings_row"
                         android:clickable="true"
                         android:focusable="true"
                         android:gravity="center_vertical"
-                        android:minHeight="54dp"
                         android:orientation="horizontal"
-                        android:paddingHorizontal="24dp"
-                        android:paddingVertical="10dp">
+                        android:paddingHorizontal="20dp">
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:duplicateParentState="true"
                             android:text="App permissions"
                             android:textColor="@color/color_settings_text"
-                            android:textSize="16sp"
+                            android:textSize="15sp"
                             android:textStyle="bold" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginEnd="12dp"
-                            android:text="System permissions &amp; access"
-                            android:textColor="@color/color_settings_subtitle"
-                            android:textSize="13sp" />
+                            android:visibility="gone"
+                            android:text="System permissions &amp; access" />
 
                         <ImageView
                             android:id="@+id/chevron_permissions"
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:duplicateParentState="true"
                             android:src="@drawable/ic_settings_chevron"
                             android:contentDescription="Next" />
                     </LinearLayout>
@@ -542,38 +543,37 @@
                     <LinearLayout
                         android:id="@+id/row_wizard"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
+                        android:layout_height="48dp"
                         android:layout_marginBottom="8dp"
                         android:background="@drawable/bg_settings_row"
                         android:clickable="true"
                         android:focusable="true"
                         android:gravity="center_vertical"
-                        android:minHeight="54dp"
                         android:orientation="horizontal"
-                        android:paddingHorizontal="24dp"
-                        android:paddingVertical="10dp">
+                        android:paddingHorizontal="20dp">
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:duplicateParentState="true"
                             android:text="Setup Wizard"
                             android:textColor="@color/color_settings_text"
-                            android:textSize="16sp"
+                            android:textSize="15sp"
                             android:textStyle="bold" />
 
                         <TextView
+                            android:id="@+id/txt_wizard_subtitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginEnd="12dp"
-                            android:text="Rerun first-time setup guide"
-                            android:textColor="@color/color_settings_subtitle"
-                            android:textSize="13sp" />
+                            android:visibility="gone"
+                            android:text="Rerun first-time setup guide" />
 
                         <ImageView
                             android:id="@+id/chevron_wizard"
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:duplicateParentState="true"
                             android:src="@drawable/ic_settings_chevron"
                             android:contentDescription="Next" />
                     </LinearLayout>
@@ -582,38 +582,37 @@
                     <LinearLayout
                         android:id="@+id/row_about"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
+                        android:layout_height="48dp"
                         android:layout_marginBottom="16dp"
                         android:background="@drawable/bg_settings_row"
                         android:clickable="true"
                         android:focusable="true"
                         android:gravity="center_vertical"
-                        android:minHeight="54dp"
                         android:orientation="horizontal"
-                        android:paddingHorizontal="24dp"
-                        android:paddingVertical="10dp">
+                        android:paddingHorizontal="20dp">
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:duplicateParentState="true"
                             android:text="About"
                             android:textColor="@color/color_settings_text"
-                            android:textSize="16sp"
+                            android:textSize="15sp"
                             android:textStyle="bold" />
 
                         <TextView
+                            android:id="@+id/txt_about_subtitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginEnd="12dp"
-                            android:text="Gothwad Launcher v1.0.6 (Build 7)"
-                            android:textColor="@color/color_settings_subtitle"
-                            android:textSize="13sp" />
+                            android:visibility="gone"
+                            android:text="Gothwad Launcher v1.0.6 (Build 7)" />
 
                         <ImageView
                             android:id="@+id/chevron_about"
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:duplicateParentState="true"
                             android:src="@drawable/ic_settings_chevron"
                             android:contentDescription="Next" />
                     </LinearLayout>
@@ -816,6 +815,27 @@
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:visibility="gone">
+
+                    <!-- Live TV Banner Corner Preview -->
+                    <androidx.cardview.widget.CardView
+                        android:id="@+id/card_corner_preview"
+                        android:layout_width="220dp"
+                        android:layout_height="124dp"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginTop="6dp"
+                        android:layout_marginBottom="14dp"
+                        app:cardCornerRadius="10dp"
+                        app:cardElevation="6dp"
+                        app:cardBackgroundColor="#181B22">
+
+                        <ImageView
+                            android:id="@+id/img_corner_preview_banner"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:src="@drawable/tv_banner"
+                            android:scaleType="centerCrop"
+                            android:contentDescription="Live TV Banner Corner Preview" />
+                    </androidx.cardview.widget.CardView>
 
                     <TextView
                         android:layout_width="match_parent"

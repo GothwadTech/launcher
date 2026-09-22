@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.LiteTV" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Brand Colors from Theme.kt -->
+        <item name="colorPrimary">@color/accent_blue</item>
+        <item name="colorPrimaryVariant">@color/accent_blue</item>
+        <item name="colorOnPrimary">@android:color/black</item>
+        
+        <item name="colorSurface">@color/surface_dark</item>
+        <item name="colorOnSurface">@color/on_surface</item>
+        <item name="android:colorBackground">@android:color/black</item>
+
+        <!-- System Bar Colors -->
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+
+        <!-- Splash Screen API (Android 12+) - Eliminates square inside circle artifact on mobile -->
+        <item name="android:windowSplashScreenBackground">#16171A</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">#16171A</item>
+
+        <!-- Bottom Sheet Theme -->
+        <item name="bottomSheetDialogTheme">@style/Theme.LiteTV.BottomSheetDialog</item>
+        <item name="dialogTheme">@style/Theme.LiteTV.Dialog</item>
+
+        <!-- Toggle Switch Blue Color #4FA7FA -->
+        <item name="colorControlActivated">#4FA7FA</item>
+        <item name="switchStyle">@style/Widget.LiteTV.Switch</item>
+    </style>
+</resources>

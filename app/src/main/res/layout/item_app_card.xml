@@ -26,20 +26,19 @@
             android:visibility="gone" />
 
         <!-- Fallback Container (for bannerless apps) -->
-        <LinearLayout
+        <RelativeLayout
             android:id="@+id/layout_fallback"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:paddingHorizontal="6dp"
-            android:paddingVertical="8dp"
             android:visibility="visible">
 
             <FrameLayout
                 android:id="@+id/layout_icon_container"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_centerHorizontal="true"
+                android:layout_alignParentTop="true"
+                android:layout_marginTop="8dp"
                 android:background="@drawable/bg_mobile_app_icon"
                 android:clipToOutline="true">
 
@@ -48,6 +47,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:scaleType="fitCenter"
+                    android:padding="2dp"
                     android:contentDescription="@null" />
             </FrameLayout>
 
@@ -55,14 +55,20 @@
                 android:id="@+id/txt_label"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
+                android:layout_alignParentBottom="true"
+                android:layout_marginBottom="6dp"
+                android:paddingHorizontal="6dp"
                 android:maxLines="1"
                 android:ellipsize="end"
                 android:textColor="#FFFFFF"
-                android:textSize="12sp"
+                android:textSize="11sp"
                 android:textStyle="bold"
+                android:shadowColor="#CC000000"
+                android:shadowDx="0"
+                android:shadowDy="1"
+                android:shadowRadius="3"
                 android:gravity="center" />
-        </LinearLayout>
+        </RelativeLayout>
 
         <!-- Focus / Moving Highlight Overlay Border -->
         <View

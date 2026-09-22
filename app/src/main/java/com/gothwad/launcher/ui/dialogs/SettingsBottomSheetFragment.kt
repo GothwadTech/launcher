@@ -319,6 +319,15 @@ class SettingsBottomSheetFragment : DialogFragment() {
         subPage.visibility = View.VISIBLE
         currentSubPage = subPage
 
+        if (subPage == binding.pageDisplay) {
+            binding.cardHeroIcon.visibility = View.GONE
+            binding.cardHeroBanner.visibility = View.VISIBLE
+            displayDelegate.updateCornerPreview(config.cornerRadius)
+        } else {
+            binding.cardHeroIcon.visibility = View.VISIBLE
+            binding.cardHeroBanner.visibility = View.GONE
+        }
+
         binding.btnBack.visibility = View.VISIBLE
         binding.txtSettingsTitle.text = title
 
@@ -347,6 +356,9 @@ class SettingsBottomSheetFragment : DialogFragment() {
         binding.subpageToggleApps.visibility = View.GONE
         binding.subpageButtonMapping.visibility = View.GONE
         binding.subpagePickApp.visibility = View.GONE
+
+        binding.cardHeroIcon.visibility = View.VISIBLE
+        binding.cardHeroBanner.visibility = View.GONE
 
         binding.layoutRootMenu.visibility = View.VISIBLE
         binding.btnBack.visibility = View.GONE
