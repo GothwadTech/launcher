@@ -28,11 +28,6 @@ class AppCardAdapter(
     private val onAppMenu: (AppEntry) -> Unit,
 ) : ListAdapter<AppEntry, AppCardAdapter.AppCardViewHolder>(AppCardDiffCallback()) {
 
-    // Shared lock badge drawable cached for all holders
-    private val lockDrawable by lazy {
-        AppIcons.createDrawable(AppIcons.PATH_LOCK, 0xFFFFD54F.toInt())
-    }
-
     /**
      * Hover (mouse) support is only wired up on devices that actually have a pointer.
      * On a plain TV remote `ACTION_HOVER_*` never fires, so attaching the listeners was
@@ -222,9 +217,6 @@ class AppCardAdapter(
                     } else false
                 } else false
             }
-
-            // Lock badge icon
-            binding.imgLockBadge.setImageDrawable(lockDrawable)
         }
 
         private fun applyVisualState(hasFocus: Boolean, hovered: Boolean, app: AppEntry?) {
@@ -261,7 +253,7 @@ class AppCardAdapter(
             isMoving: Boolean
         ) {
             val tileColor = if (app != null) {
-                if (app.banner != null) 0xFF141720.toInt() else app.tile
+                if (app.banner != null) 0xFF141720.toInt() else 0xFF181B26.toInt()
             } else 0xFF212638.toInt()
 
             val density = itemView.resources.displayMetrics.density
@@ -313,9 +305,8 @@ class AppCardAdapter(
             val app = itemAt(bindingAdapterPosition)
             updateCardBackground(app, itemView.isFocused, isHovered, app != null && app.pkg == movingPackage)
             if (app != null && app.banner == null) {
-                binding.txtLabel.visibility = if (showLabels) View.VISIBLE else View.GONE
-                binding.badgeLock.visibility =
-                    if (app.pkg in lockedPackages) View.VISIBLE else View.GONE
+                binding.txtLabel.text = app.label
+                binding.txtLabel.visibility = View.VISIBLE
             }
         }
 
@@ -351,17 +342,9 @@ class AppCardAdapter(
                 } else {
                     binding.imgIcon.visibility = View.GONE
                 }
-                if (showLabels) {
-                    binding.txtLabel.text = app.label
-                    binding.txtLabel.visibility = View.VISIBLE
-                } else {
-                    binding.txtLabel.visibility = View.GONE
-                }
+                binding.txtLabel.text = app.label
+                binding.txtLabel.visibility = View.VISIBLE
             }
-
-            // Lock badge
-            val isLocked = app.pkg in lockedPackages
-            binding.badgeLock.visibility = if (isLocked) View.VISIBLE else View.GONE
         }
     }
 

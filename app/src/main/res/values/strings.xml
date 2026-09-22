@@ -54,6 +54,8 @@
     <!-- Search & Secret Vault -->
     <string name="cd_search">Search</string>
     <string name="search_apps_hint">Type app name or enter secret code…</string>
+    <string name="voice_search_listening">Listening…</string>
+    <string name="voice_search_hint">Voice search is not available on this device</string>
 
     <!-- Password & Security / Privacy -->
     <string name="a11y_recovery_banner_title">HOME Key Interception Disabled</string>

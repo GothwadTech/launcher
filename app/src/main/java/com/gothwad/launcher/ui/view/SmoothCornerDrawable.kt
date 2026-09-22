@@ -171,26 +171,8 @@ class SmoothOutlineProvider(
 
         if (r < 1f) {
             outline.setRect(0, 0, w, h)
-            return
+        } else {
+            outline.setRoundRect(0, 0, w, h, r)
         }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            val path = runCatching {
-                RoundedPolygon.rectangle(
-                    width = w.toFloat(),
-                    height = h.toFloat(),
-                    rounding = CornerRounding(r, smoothing),
-                    centerX = w / 2f,
-                    centerY = h / 2f,
-                ).toPath()
-            }.getOrNull()
-
-            if (path != null && path.isConvex) {
-                outline.setPath(path)
-                return
-            }
-        }
-
-        outline.setRoundRect(0, 0, w, h, r)
     }
 }

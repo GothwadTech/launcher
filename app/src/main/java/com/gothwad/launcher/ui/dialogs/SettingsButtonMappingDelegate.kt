@@ -25,14 +25,10 @@ class SettingsButtonMappingDelegate(
     private val updateConfig: (LauncherConfig) -> Unit,
     private val getApps: () -> List<AppEntry>,
     private val updateSubtitles: () -> Unit,
-    private val navigateToSubPage: (View, String) -> Unit,
-    private val onVpnAppPicked: () -> Unit
+    private val navigateToSubPage: (View, String) -> Unit
 ) {
 
     var capturedKeyCodeForMapping: Int? = null
-
-    enum class PickAppMode { BUTTON_MAP, VPN_SHORTCUT }
-    var pickAppMode: PickAppMode = PickAppMode.BUTTON_MAP
 
     fun bind() {
         renderButtonMappingsList()
@@ -84,18 +80,10 @@ class SettingsButtonMappingDelegate(
     }
 
     fun openAppPickerForMapping(keyCode: Int) {
-        pickAppMode = PickAppMode.BUTTON_MAP
         val buttonName = ButtonMappingManager.getKeyName(keyCode)
         binding.txtPickAppHeader.text = "Detected Key: $buttonName (Keycode $keyCode)"
         populateAppPickerList(keyCode)
         navigateToSubPage(binding.subpagePickApp, "Assign App to Button")
-    }
-
-    fun openAppPickerForVpn() {
-        pickAppMode = PickAppMode.VPN_SHORTCUT
-        binding.txtPickAppHeader.text = "Choose the app the VPN shortcut opens"
-        populateAppPickerList(targetKeyCode = -1)
-        navigateToSubPage(binding.subpagePickApp, "VPN Shortcut App")
     }
 
     private fun populateAppPickerList(targetKeyCode: Int) {
@@ -104,24 +92,6 @@ class SettingsButtonMappingDelegate(
 
         val sortedApps = getApps().sortedBy { it.label.lowercase() }
         val inflater = LayoutInflater.from(fragment.requireContext())
-
-        if (pickAppMode == PickAppMode.VPN_SHORTCUT) {
-            val systemDefault = ItemPickAppBinding.inflate(inflater, container, false)
-            systemDefault.txtAppLabel.text = "System VPN settings"
-            systemDefault.txtAppPackage.text = "Default — open Android VPN settings"
-            systemDefault.imgAppIcon.setImageDrawable(
-                AppIcons.createDrawable(AppIcons.PATH_GEAR, Color.WHITE)
-            )
-            systemDefault.root.setOnClickListener {
-                fragment.viewLifecycleOwner.lifecycleScope.launch {
-                    store.update { it.copy(vpnApp = "") }
-                    updateConfig(getConfig().copy(vpnApp = ""))
-                    onVpnAppPicked()
-                    navigateToSubPage(binding.pageStatusbar, "Status Bar & Clock")
-                }
-            }
-            container.addView(systemDefault.root)
-        }
 
         for (app in sortedApps) {
             val itemBinding = ItemPickAppBinding.inflate(inflater, container, false)
@@ -136,17 +106,7 @@ class SettingsButtonMappingDelegate(
             }
 
             itemBinding.root.setOnClickListener {
-                if (pickAppMode == PickAppMode.VPN_SHORTCUT) {
-                    fragment.viewLifecycleOwner.lifecycleScope.launch {
-                        store.update { it.copy(vpnApp = app.pkg) }
-                        updateConfig(getConfig().copy(vpnApp = app.pkg))
-                        onVpnAppPicked()
-                        Actions.toast(fragment.requireContext(), "VPN shortcut set to ${app.label}")
-                        navigateToSubPage(binding.pageStatusbar, "Status Bar & Clock")
-                    }
-                } else {
-                    assignMapping(targetKeyCode, app.pkg, app.label)
-                }
+                assignMapping(targetKeyCode, app.pkg, app.label)
             }
 
             container.addView(itemBinding.root)

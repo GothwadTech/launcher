@@ -46,16 +46,8 @@ object SettingsMenuHelper {
         }
         binding.txtWallpaperSubtitle.text = "$wpName • $scrimName"
 
-        val scaleName = when (config.iconScale) {
-            0 -> "Small (120dp)"
-            1 -> "Medium (150dp)"
-            2 -> "Normal (190dp)"
-            3 -> "Large (230dp)"
-            4 -> "Huge (270dp)"
-            else -> "Normal"
-        }
         val uiScaleName = UI_SCALES.getOrElse(config.uiScale.coerceIn(0, UI_SCALES.size - 1)) { 1.0f }
-        binding.txtDisplaySubtitle.text = "Grid layout • $scaleName • UI ${uiScaleName}x"
+        binding.txtDisplaySubtitle.text = "6-Column Grid • UI ${uiScaleName}x"
 
         val sbVisible = if (config.showStatusBar) "Visible" else "Hidden"
         val clockFormat = if (config.h24) "24h format" else "12h format"

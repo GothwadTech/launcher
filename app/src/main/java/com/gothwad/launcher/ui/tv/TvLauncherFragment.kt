@@ -2,7 +2,7 @@ package com.gothwad.launcher.ui.tv
 
 import android.content.Intent
 import android.graphics.BitmapFactory
-import android.graphics.Color
+import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
@@ -14,36 +14,37 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.gothwad.launcher.Actions
 import com.gothwad.launcher.data.AppEntry
 import com.gothwad.launcher.data.AppRepository
 import com.gothwad.launcher.data.CORNER_RADII
-import com.gothwad.launcher.data.CategoryAssigner
 import com.gothwad.launcher.data.ConfigStore
 import com.gothwad.launcher.data.GAP_SIZES
-import com.gothwad.launcher.data.ICON_SIZES
 import com.gothwad.launcher.data.LauncherConfig
-import com.gothwad.launcher.data.UI_SCALES
 import com.gothwad.launcher.databinding.FragmentTvLauncherBinding
 import com.gothwad.launcher.ui.ACCENTS
 import com.gothwad.launcher.ui.AppLockGate
 import com.gothwad.launcher.ui.WALLPAPERS
 import com.gothwad.launcher.ui.dialogs.SetupWizardDialogFragment
+import com.gothwad.launcher.ui.view.AppCardAdapter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 
+/**
+ * TV Launcher home screen: flat 6-column grid of all installed apps.
+ * Category system has been removed for a unified, streamlined TV experience.
+ */
 class TvLauncherFragment : Fragment() {
 
     private var _binding: FragmentTvLauncherBinding? = null
     val binding get() = _binding!!
 
-    private val sharedRecycledViewPool = RecyclerView.RecycledViewPool()
-    private var categoryAdapter: TvCategoryAdapter? = null
+    private var appCardAdapter: AppCardAdapter? = null
 
     private var currentConfig: LauncherConfig = LauncherConfig()
     private var allApps: List<AppEntry> = emptyList()
@@ -66,27 +67,10 @@ class TvLauncherFragment : Fragment() {
         observeData()
     }
 
-    /** Manual whole-UI scale multiplier from the Display settings (default 1.0x). */
-    private fun uiScaleMultiplier(): Float =
-        UI_SCALES.getOrElse(currentConfig.uiScale.coerceIn(0, UI_SCALES.size - 1)) { 1.0f }
-
-    /**
-     * Grid columns for the current UI scale: a larger scale means fewer (bigger) tiles,
-     * a smaller scale more (smaller) ones. Keeps the 16:9 tile aspect ratio intact -
-     * scaling only the height would have produced stretched tiles.
-     */
-    private fun gridSpanCount(): Int = when (currentConfig.uiScale.coerceIn(0, UI_SCALES.size - 1)) {
-        0 -> 8
-        1 -> 7
-        2 -> 6
-        3 -> 5
-        else -> 4
-    }
-
     private fun calculateCardDimensions(
         gapPx: Int,
         density: Float,
-        columns: Int = gridSpanCount(),
+        columns: Int = 6,
     ): Pair<Int, Int> {
         val screenWidthPx = resources.displayMetrics.widthPixels
         val horizontalPaddingPx = (48 * 2 * density).toInt() // 48dp on each side
@@ -99,22 +83,18 @@ class TvLauncherFragment : Fragment() {
     private fun setupRecyclerView() {
         val density = resources.displayMetrics.density
         val gapPx = (GAP_SIZES.getOrElse(currentConfig.spacing.coerceIn(0, GAP_SIZES.size - 1)) { GAP_SIZES[2] } * density).toInt()
-        val spanCount = gridSpanCount()
+        val spanCount = 6
         val (defaultWidthPx, defaultHeightPx) = calculateCardDimensions(gapPx, density, spanCount)
         val defaultRadiusPx = (CORNER_RADII.getOrElse(currentConfig.cornerRadius.coerceIn(0, CORNER_RADII.size - 1)) { CORNER_RADII[2] } * density)
         val accentColor = ACCENTS.getOrElse(currentConfig.accent.coerceIn(0, ACCENTS.size - 1)) { ACCENTS[0] }
-        val accentArgb = accentColor
 
-        categoryAdapter = TvCategoryAdapter(
-            recycledViewPool = sharedRecycledViewPool,
+        appCardAdapter = AppCardAdapter(
             cardWidthPx = defaultWidthPx,
             cardHeightPx = defaultHeightPx,
             cornerRadiusPx = defaultRadiusPx,
-            gapPx = gapPx,
-            accentColor = accentArgb,
-            showCategoryNames = currentConfig.showCategoryNames,
-            showAppLabels = currentConfig.showAppLabels,
-            gridSpanCount = spanCount,
+            accentColor = accentColor,
+            showLabels = true,
+            isGridMode = true,
             lockedPackages = currentConfig.lockedApps,
             movingPackage = null,
             onLaunchApp = { app ->
@@ -125,11 +105,25 @@ class TvLauncherFragment : Fragment() {
             }
         )
 
+        val gridLayoutManager = GridLayoutManager(requireContext(), spanCount)
         binding.recyclerCategories.apply {
-            layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false)
-            adapter = categoryAdapter
+            layoutManager = gridLayoutManager
+            adapter = appCardAdapter
             setHasFixedSize(true)
-            setItemViewCacheSize(4)
+            setItemViewCacheSize(12)
+            while (itemDecorationCount > 0) {
+                removeItemDecorationAt(0)
+            }
+            addItemDecoration(object : RecyclerView.ItemDecoration() {
+                override fun getItemOffsets(outRect: Rect, view: View, parent: RecyclerView, state: RecyclerView.State) {
+                    val position = parent.getChildAdapterPosition(view)
+                    if (position == RecyclerView.NO_POSITION) return
+                    val column = position % spanCount
+                    outRect.left = column * gapPx / spanCount
+                    outRect.right = gapPx - (column + 1) * gapPx / spanCount
+                    outRect.bottom = gapPx
+                }
+            })
         }
     }
 
@@ -164,12 +158,8 @@ class TvLauncherFragment : Fragment() {
                         currentConfig = config
                         updateDimensionsAndStyling()
                         applyWallpaper()
-                        rebuildCategorizedList()
+                        rebuildAppList()
 
-                        // Show the first-run wizard when setup has never been completed.
-                        // (Previously this compared against the *previous* config - and
-                        // setupDone defaulted to true - so the wizard never appeared on a
-                        // fresh install.)
                         if (!config.setupDone && !wizardShownThisView && isResumed) {
                             wizardShownThisView = true
                             showSetupWizard()
@@ -193,10 +183,7 @@ class TvLauncherFragment : Fragment() {
     }
 
     /**
-     * Applies the configured wallpaper. Called from the config flow *and* from
-     * MainActivity, so it must be safe when the view is already gone: it no-ops without a
-     * binding and follows the view lifecycle (this used to NPE after the config flow
-     * re-emitted post-destroy - issue #23).
+     * Applies the configured wallpaper.
      */
     fun applyWallpaper() {
         val viewBinding = _binding ?: return
@@ -253,42 +240,47 @@ class TvLauncherFragment : Fragment() {
 
     private suspend fun loadApps() {
         allApps = AppRepository.scan(requireContext())
-        rebuildCategorizedList()
+        rebuildAppList()
     }
 
     private fun updateDimensionsAndStyling() {
         val density = resources.displayMetrics.density
         val gapPx = (GAP_SIZES.getOrElse(currentConfig.spacing.coerceIn(0, GAP_SIZES.size - 1)) { GAP_SIZES[2] } * density).toInt()
-        val spanCount = gridSpanCount()
+        val spanCount = 6
         val (widthPx, heightPx) = calculateCardDimensions(gapPx, density, spanCount)
         val radiusPx = (CORNER_RADII.getOrElse(currentConfig.cornerRadius.coerceIn(0, CORNER_RADII.size - 1)) { CORNER_RADII[2] } * density)
         val accentColor = ACCENTS.getOrElse(currentConfig.accent.coerceIn(0, ACCENTS.size - 1)) { ACCENTS[0] }
-        val accentArgb = accentColor
 
-        categoryAdapter?.updateConfig(
+        appCardAdapter?.updateConfig(
             widthPx = widthPx,
             heightPx = heightPx,
             radiusPx = radiusPx,
-            gap = gapPx,
-            accent = accentArgb,
-            categoryNames = currentConfig.showCategoryNames,
-            appLabels = currentConfig.showAppLabels,
-            spanCount = spanCount,
+            accent = accentColor,
+            labels = true,
+            gridMode = true,
             locked = currentConfig.lockedApps,
             moving = null
         )
     }
 
-    private fun rebuildCategorizedList() {
+    private fun rebuildAppList() {
         if (allApps.isEmpty()) return
 
-        // All visibility + section rules live in the (unit-tested) CategoryAssigner:
-        // unassigned apps go to their real auto-category when enabled, hidden/vault apps
-        // follow the "show hidden" setting, and "__all__" always shows everything (#15).
-        val rows = CategoryAssigner.rows(allApps, currentConfig).map { (category, apps) ->
-            CategoryRowItem(category = category, apps = apps)
+        val visible = if (currentConfig.showHidden) allApps else allApps.filter { it.pkg !in currentConfig.hidden }
+        val ordered = if (currentConfig.order.isNotEmpty()) {
+            val explicit = currentConfig.order.values.flatten()
+            if (explicit.isNotEmpty()) {
+                val byPkg = visible.associateBy { it.pkg }
+                val orderedFirst = explicit.mapNotNull { byPkg[it] }
+                val remaining = visible.filter { it.pkg !in explicit.toSet() }
+                orderedFirst + remaining
+            } else {
+                visible
+            }
+        } else {
+            visible
         }
-        categoryAdapter?.submitList(rows)
+        appCardAdapter?.submitList(ordered)
     }
 
     fun scrollToTop() {

@@ -11,8 +11,6 @@ import com.gothwad.launcher.Actions
 import com.gothwad.launcher.MainActivity
 import com.gothwad.launcher.R
 import com.gothwad.launcher.data.AppEntry
-import com.gothwad.launcher.data.BackgroundMediaState
-import com.gothwad.launcher.data.BackgroundMediaTracker
 import com.gothwad.launcher.data.BluetoothDeviceStatus
 import com.gothwad.launcher.data.ConfigStore
 import com.gothwad.launcher.data.LauncherConfig
@@ -22,7 +20,6 @@ import com.gothwad.launcher.data.bluetoothStatusFlow
 import com.gothwad.launcher.data.networkStatusFlow
 import com.gothwad.launcher.databinding.ActivityMainBinding
 import com.gothwad.launcher.service.NotificationManagerBridge
-import com.gothwad.launcher.ui.dialogs.BackgroundMediaDialogFragment
 import com.gothwad.launcher.ui.dialogs.NotificationBottomSheetFragment
 import com.gothwad.launcher.ui.dialogs.SearchDialogFragment
 import com.gothwad.launcher.ui.dialogs.SettingsBottomSheetFragment
@@ -49,7 +46,6 @@ class MainStatusBarController(
 
     private var currentNetStatus: NetStatus = NetStatus()
     private var currentBtStatus: BluetoothDeviceStatus = BluetoothDeviceStatus()
-    private var currentMediaState: BackgroundMediaState = BackgroundMediaState()
 
     private var clockFormatter: SimpleDateFormat? = null
     private var clockPatternInUse: String? = null
@@ -82,23 +78,8 @@ class MainStatusBarController(
                 Actions.openBluetoothSettings(activity)
             }
 
-            onBackgroundMediaClick = {
-                BackgroundMediaDialogFragment.newInstance(
-                    state = currentMediaState
-                ).show(activity.supportFragmentManager, BackgroundMediaDialogFragment.TAG)
-            }
-
             onNetworkClick = {
                 Actions.openNetworkSettings(activity)
-            }
-
-            onVpnClick = {
-                val pkg = getCurrentConfig().vpnApp
-                if (pkg.isNotEmpty() && Actions.isInstalled(activity, pkg)) {
-                    Actions.launchApp(activity, pkg)
-                } else {
-                    Actions.openVpnSettings(activity)
-                }
             }
 
             onNotificationsClick = {
@@ -157,7 +138,6 @@ class MainStatusBarController(
                         binding.mainStatusBar.applyConfig(config)
                         binding.mainStatusBar.visibility =
                             if (!config.showStatusBar) View.GONE else View.VISIBLE
-                        binding.mainStatusBar.setVpnStatus(currentNetStatus.vpn, config.showVpnButton)
                     }
                 }
 
@@ -166,7 +146,6 @@ class MainStatusBarController(
                     networkStatusFlow(activity).collectLatest { net ->
                         currentNetStatus = net
                         binding.mainStatusBar.setNetStatus(net)
-                        binding.mainStatusBar.setVpnStatus(net.vpn, getCurrentConfig().showVpnButton)
                     }
                 }
 
@@ -178,15 +157,7 @@ class MainStatusBarController(
                     }
                 }
 
-                // 4. Background media flow
-                launch {
-                    BackgroundMediaTracker.backgroundMediaFlow(activity).collectLatest { media ->
-                        currentMediaState = media
-                        binding.mainStatusBar.setBackgroundMedia(media)
-                    }
-                }
-
-                // 5. Notifications flow
+                // 4. Notifications flow
                 launch {
                     NotificationManagerBridge.notifications.collectLatest { notifs ->
                         val hasPermission = NotificationManagerBridge.isServiceConnected.value
@@ -194,7 +165,7 @@ class MainStatusBarController(
                     }
                 }
 
-                // 6. Clock & Date loop
+                // 5. Clock & Date loop
                 launch {
                     var heartbeatTick = 0
                     while (isActive) {

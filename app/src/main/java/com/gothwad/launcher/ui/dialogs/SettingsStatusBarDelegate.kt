@@ -14,8 +14,7 @@ class SettingsStatusBarDelegate(
     private val getConfig: () -> LauncherConfig,
     private val updateConfig: (LauncherConfig) -> Unit,
     private val getApps: () -> List<AppEntry>,
-    private val updateSubtitles: () -> Unit,
-    private val openAppPickerForVpn: () -> Unit
+    private val updateSubtitles: () -> Unit
 ) {
 
     fun bind() {
@@ -65,32 +64,5 @@ class SettingsStatusBarDelegate(
                 updateConfig(newConfig)
             }
         }
-
-        binding.switchVpnButton.isChecked = config.showVpnButton
-        binding.rowToggleVpnButton.setOnClickListener {
-            val newVal = !binding.switchVpnButton.isChecked
-            binding.switchVpnButton.isChecked = newVal
-            fragment.viewLifecycleOwner.lifecycleScope.launch {
-                store.update { it.copy(showVpnButton = newVal) }
-                val newConfig = getConfig().copy(showVpnButton = newVal)
-                updateConfig(newConfig)
-                updateVpnSubtitle()
-            }
-        }
-
-        updateVpnSubtitle()
-        binding.rowPickVpnApp.setOnClickListener {
-            openAppPickerForVpn()
-        }
-    }
-
-    fun updateVpnSubtitle() {
-        val pkg = getConfig().vpnApp
-        val label = if (pkg.isEmpty()) {
-            "System VPN settings"
-        } else {
-            getApps().firstOrNull { it.pkg == pkg }?.label ?: pkg
-        }
-        binding.txtVpnAppValue.text = label
     }
 }

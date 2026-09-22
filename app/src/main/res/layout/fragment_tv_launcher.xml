@@ -31,7 +31,7 @@
         android:layout_gravity="bottom"
         android:background="#66000000" />
 
-    <!-- Primary Vertical Categories RecyclerView (scrolls under persistent status bar) -->
+    <!-- Primary 6-Column Grid RecyclerView (scrolls under persistent status bar) -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_categories"
         android:layout_width="match_parent"
@@ -39,7 +39,8 @@
         android:orientation="vertical"
         android:clipChildren="false"
         android:clipToPadding="false"
-        android:paddingTop="80dp"
+        android:paddingHorizontal="48dp"
+        android:paddingTop="84dp"
         android:paddingBottom="48dp"
         android:descendantFocusability="afterDescendants" />
 

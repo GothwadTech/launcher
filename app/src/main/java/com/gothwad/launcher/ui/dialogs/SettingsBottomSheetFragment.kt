@@ -143,8 +143,7 @@ class SettingsBottomSheetFragment : DialogFragment() {
             getConfig = { config },
             updateConfig = { config = it },
             getApps = { apps },
-            updateSubtitles = { updateSubtitles() },
-            openAppPickerForVpn = { buttonMappingDelegate.openAppPickerForVpn() }
+            updateSubtitles = { updateSubtitles() }
         ).also { it.bind() }
 
         appsDelegate = SettingsAppsDelegate(
@@ -176,8 +175,7 @@ class SettingsBottomSheetFragment : DialogFragment() {
             updateConfig = { config = it },
             getApps = { apps },
             updateSubtitles = { updateSubtitles() },
-            navigateToSubPage = { page, title -> navigateToSubPage(page, title) },
-            onVpnAppPicked = { statusBarDelegate.updateVpnSubtitle() }
+            navigateToSubPage = { page, title -> navigateToSubPage(page, title) }
         ).also { it.bind() }
     }
 
@@ -194,11 +192,7 @@ class SettingsBottomSheetFragment : DialogFragment() {
         )
         binding.btnBack.setOnClickListener {
             if (currentSubPage == binding.subpagePickApp) {
-                if (buttonMappingDelegate.pickAppMode == SettingsButtonMappingDelegate.PickAppMode.VPN_SHORTCUT) {
-                    navigateToSubPage(binding.pageStatusbar, "Status Bar & Clock")
-                } else {
-                    navigateToSubPage(binding.subpageButtonMapping, "Remote Button Mapping")
-                }
+                navigateToSubPage(binding.subpageButtonMapping, "Remote Button Mapping")
             } else if (currentSubPage == binding.subpageToggleApps) {
                 navigateToSubPage(binding.pageSecurity, "Security & Locks")
             } else {
@@ -238,10 +232,10 @@ class SettingsBottomSheetFragment : DialogFragment() {
             if (hasFocus) binding.txtHeroSubtitle.text = "Choose dynamic gradient themes, solid colors, or set a personal custom wallpaper."
         }
         binding.rowDisplay.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) binding.txtHeroSubtitle.text = "Adjust app grid columns, banner scaling, and UI layout scale for your TV screen."
+            if (hasFocus) binding.txtHeroSubtitle.text = "Adjust corner rounding and UI layout scale for your TV screen."
         }
         binding.rowStatusbar.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) binding.txtHeroSubtitle.text = "Configure digital clock format, network speed, Bluetooth shortcut, and VPN toggle."
+            if (hasFocus) binding.txtHeroSubtitle.text = "Configure digital clock format, glass styling, and status bar appearance."
         }
         binding.rowApps.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus) binding.txtHeroSubtitle.text = "Manage installed apps, hide sensitive apps into a PIN-protected vault, and set sorting."
@@ -292,11 +286,7 @@ class SettingsBottomSheetFragment : DialogFragment() {
     private fun handleBackPress(): Boolean {
         return when {
             currentSubPage == binding.subpagePickApp -> {
-                if (buttonMappingDelegate.pickAppMode == SettingsButtonMappingDelegate.PickAppMode.VPN_SHORTCUT) {
-                    navigateToSubPage(binding.pageStatusbar, "Status Bar & Clock")
-                } else {
-                    navigateToSubPage(binding.subpageButtonMapping, "Remote Button Mapping")
-                }
+                navigateToSubPage(binding.subpageButtonMapping, "Remote Button Mapping")
                 true
             }
             currentSubPage == binding.subpageToggleApps -> {

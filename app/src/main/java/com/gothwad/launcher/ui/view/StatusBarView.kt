@@ -1,7 +1,5 @@
 package com.gothwad.launcher.ui.view
 
-import android.animation.ObjectAnimator
-import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
@@ -11,7 +9,6 @@ import android.view.View
 import android.widget.FrameLayout
 import androidx.core.content.ContextCompat
 import com.gothwad.launcher.R
-import com.gothwad.launcher.data.BackgroundMediaState
 import com.gothwad.launcher.data.BluetoothDeviceStatus
 import com.gothwad.launcher.data.CORNER_RADII
 import com.gothwad.launcher.data.LauncherConfig
@@ -31,13 +28,9 @@ class StatusBarView @JvmOverloads constructor(
     var onHomeClick: (() -> Unit)? = null
     var onSearchClick: (() -> Unit)? = null
     var onBluetoothClick: (() -> Unit)? = null
-    var onBackgroundMediaClick: (() -> Unit)? = null
     var onNetworkClick: (() -> Unit)? = null
-    var onVpnClick: (() -> Unit)? = null
     var onNotificationsClick: (() -> Unit)? = null
     var onSettingsClick: (() -> Unit)? = null
-
-    private var mediaPulseAnimator: ObjectAnimator? = null
 
     init {
         setupStaticIcons()
@@ -49,7 +42,6 @@ class StatusBarView @JvmOverloads constructor(
         binding.btnSearch.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_SEARCH, Color.WHITE))
         binding.btnBluetooth.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BLUETOOTH, 0xFF64B5F6.toInt()))
         binding.btnNetwork.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_WIFI, Color.WHITE))
-        binding.btnVpn.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_KEY, 0xFF81C995.toInt()))
         binding.btnNotifications.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BELL, Color.WHITE))
         binding.btnSettings.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_GEAR, Color.WHITE))
     }
@@ -58,9 +50,7 @@ class StatusBarView @JvmOverloads constructor(
         binding.btnHome.setOnClickListener { onHomeClick?.invoke() }
         binding.btnSearch.setOnClickListener { onSearchClick?.invoke() }
         binding.btnBluetooth.setOnClickListener { onBluetoothClick?.invoke() }
-        binding.btnBgMedia.setOnClickListener { onBackgroundMediaClick?.invoke() }
         binding.btnNetwork.setOnClickListener { onNetworkClick?.invoke() }
-        binding.btnVpn.setOnClickListener { onVpnClick?.invoke() }
         binding.btnNotifications.setOnClickListener { onNotificationsClick?.invoke() }
         binding.btnSettings.setOnClickListener { onSettingsClick?.invoke() }
     }
@@ -116,34 +106,6 @@ class StatusBarView @JvmOverloads constructor(
         binding.btnBluetooth.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BLUETOOTH, color))
     }
 
-    /** Shows/hides the VPN shortcut (only while a VPN transport is actually up). */
-    fun setVpnStatus(vpnActive: Boolean, buttonEnabled: Boolean) {
-        binding.btnVpn.visibility = if (vpnActive && buttonEnabled) View.VISIBLE else View.GONE
-    }
-
-    fun setBackgroundMedia(media: BackgroundMediaState) {
-        if (media.isPlaying) {
-            binding.btnBgMedia.visibility = View.VISIBLE
-            val path = if (media.isStockAdCandidate) AppIcons.PATH_SHIELD else AppIcons.PATH_EQUALIZER
-            val tint = if (media.isStockAdCandidate) 0xFFFF7043.toInt() else 0xFF81D4FA.toInt()
-            binding.btnBgMedia.setImageDrawable(AppIcons.createDrawable(path, tint))
-
-            if (mediaPulseAnimator == null) {
-                mediaPulseAnimator = ObjectAnimator.ofFloat(binding.btnBgMedia, "alpha", 0.55f, 1f).apply {
-                    duration = 850
-                    repeatMode = ValueAnimator.REVERSE
-                    repeatCount = ValueAnimator.INFINITE
-                    start()
-                }
-            }
-        } else {
-            binding.btnBgMedia.visibility = View.GONE
-            mediaPulseAnimator?.cancel()
-            mediaPulseAnimator = null
-            binding.btnBgMedia.alpha = 1f
-        }
-    }
-
     fun setNotificationCount(count: Int, hasPermission: Boolean) {
         val bellPath = if (count > 0) AppIcons.PATH_BELL_ACTIVE else AppIcons.PATH_BELL
         val bellColor = if (count > 0 || !hasPermission) Color.WHITE else 0x73FFFFFF.toInt()
@@ -162,11 +124,5 @@ class StatusBarView @JvmOverloads constructor(
 
     fun setClockTime(formattedDateTime: String) {
         binding.tvClock.text = formattedDateTime
-    }
-
-    override fun onDetachedFromWindow() {
-        mediaPulseAnimator?.cancel()
-        mediaPulseAnimator = null
-        super.onDetachedFromWindow()
     }
 }

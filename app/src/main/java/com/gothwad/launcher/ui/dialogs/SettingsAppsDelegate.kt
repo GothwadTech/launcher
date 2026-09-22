@@ -39,17 +39,6 @@ class SettingsAppsDelegate(
             }
         }
 
-        binding.switchAutoCategory.isChecked = getConfig().autoCategoryOnInstall
-        binding.rowToggleAutoCategory.setOnClickListener {
-            val newVal = !binding.switchAutoCategory.isChecked
-            binding.switchAutoCategory.isChecked = newVal
-            fragment.viewLifecycleOwner.lifecycleScope.launch {
-                store.update { it.copy(autoCategoryOnInstall = newVal) }
-                val newConfig = getConfig().copy(autoCategoryOnInstall = newVal)
-                updateConfig(newConfig)
-            }
-        }
-
         binding.switchShowHidden.isChecked = getConfig().showHidden
         binding.rowToggleShowHidden.setOnClickListener {
             val newVal = !binding.switchShowHidden.isChecked

@@ -32,9 +32,10 @@ object LockSecurity {
 
     private const val TAG = "LockSecurity"
 
-    /** Throttle buckets - one per independent lock (App Lock and Vault). */
+    /** Throttle buckets - one per independent lock (App Lock, Vault, Device). */
     const val SCOPE_APP = "app"
     const val SCOPE_VAULT = "vault"
+    const val SCOPE_DEVICE = "device"
     const val SCOPE_DEFAULT = "default"
 
     private const val ALGORITHM = "PBKDF2WithHmacSHA1" // available on every supported API level

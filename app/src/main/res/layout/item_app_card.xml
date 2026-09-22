@@ -32,28 +32,30 @@
             android:layout_height="match_parent"
             android:orientation="vertical"
             android:gravity="center"
-            android:padding="8dp"
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="8dp"
             android:visibility="visible">
 
             <FrameLayout
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:gravity="center">
+                android:id="@+id/layout_icon_container"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/bg_mobile_app_icon"
+                android:clipToOutline="true">
 
                 <ImageView
                     android:id="@+id/img_icon"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:layout_gravity="center"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
                     android:scaleType="fitCenter"
                     android:contentDescription="@null" />
             </FrameLayout>
 
             <TextView
                 android:id="@+id/txt_label"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
                 android:maxLines="1"
                 android:ellipsize="end"
                 android:textColor="#FFFFFF"
@@ -61,24 +63,6 @@
                 android:textStyle="bold"
                 android:gravity="center" />
         </LinearLayout>
-
-        <!-- Lock Indicator Badge (top right) -->
-        <FrameLayout
-            android:id="@+id/badge_lock"
-            android:layout_width="22dp"
-            android:layout_height="22dp"
-            android:layout_gravity="top|end"
-            android:layout_margin="6dp"
-            android:background="#A6000000"
-            android:visibility="gone">
-
-            <ImageView
-                android:id="@+id/img_lock_badge"
-                android:layout_width="14dp"
-                android:layout_height="14dp"
-                android:layout_gravity="center"
-                android:contentDescription="Locked" />
-        </FrameLayout>
 
         <!-- Focus / Moving Highlight Overlay Border -->
         <View
