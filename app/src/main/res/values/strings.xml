@@ -50,6 +50,8 @@
     <!-- Header Left Card & Permission Features -->
     <string name="cd_home">Home</string>
     <string name="cd_bluetooth">Bluetooth</string>
+    <string name="cd_accessibility_alert">Accessibility Service Alert</string>
+    <string name="a11y_alert_tooltip">Enable Accessibility Service in Settings for Home button &amp; remote mapping</string>
 
     <!-- Search & Secret Vault -->
     <string name="cd_search">Search</string>

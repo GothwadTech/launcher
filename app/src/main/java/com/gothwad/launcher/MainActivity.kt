@@ -176,7 +176,7 @@ class MainActivity : AppCompatActivity() {
             SelfHealGuard.markHealthy(this@MainActivity)
         }
 
-        setupA11yRecoveryBanner()
+        setupA11yWatchdogReceiver()
         setupNavigation()
         statusBarController = MainStatusBarController(
             activity = this,
@@ -192,14 +192,7 @@ class MainActivity : AppCompatActivity() {
     private val bluetoothPermissionLauncher =
         registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { /* status is refreshed by the BT flow */ }
 
-    private fun setupA11yRecoveryBanner() {
-        binding.bannerA11yRecovery.btnA11yAction.setOnClickListener {
-            Actions.openAccessibilitySettings(this)
-        }
-        binding.bannerA11yRecovery.btnA11yDismiss.setOnClickListener {
-            binding.bannerA11yRecovery.cardA11yBanner.visibility = View.GONE
-        }
-
+    private fun setupA11yWatchdogReceiver() {
         // Register receiver for watchdog alerts
         ContextCompat.registerReceiver(
             this,
@@ -215,11 +208,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkAccessibilityState() {
-        val disabledAfterCrash = com.gothwad.launcher.data.AccessibilityStateTracker
-            .checkAccessibilityDisabledAfterCrash(this)
-
-        binding.bannerA11yRecovery.cardA11yBanner.visibility =
-            if (disabledAfterCrash) View.VISIBLE else View.GONE
+        statusBarController?.updateA11yStatus()
     }
 
     private fun setupNavigation() {

@@ -31,6 +31,7 @@ class StatusBarView @JvmOverloads constructor(
     var onNetworkClick: (() -> Unit)? = null
     var onNotificationsClick: (() -> Unit)? = null
     var onSettingsClick: (() -> Unit)? = null
+    var onA11yAlertClick: (() -> Unit)? = null
 
     init {
         setupStaticIcons()
@@ -44,6 +45,8 @@ class StatusBarView @JvmOverloads constructor(
         binding.btnNetwork.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_WIFI, Color.WHITE))
         binding.btnNotifications.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BELL, Color.WHITE))
         binding.btnSettings.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_GEAR, Color.WHITE))
+        binding.btnA11yAlert.setImageDrawable(ContextCompat.getDrawable(context, R.drawable.ic_warning))
+        binding.btnA11yAlert.imageTintList = ContextCompat.getColorStateList(context, R.color.status_warning)
     }
 
     private fun setupListeners() {
@@ -53,6 +56,11 @@ class StatusBarView @JvmOverloads constructor(
         binding.btnNetwork.setOnClickListener { onNetworkClick?.invoke() }
         binding.btnNotifications.setOnClickListener { onNotificationsClick?.invoke() }
         binding.btnSettings.setOnClickListener { onSettingsClick?.invoke() }
+        binding.btnA11yAlert.setOnClickListener { onA11yAlertClick?.invoke() }
+    }
+
+    fun setA11yAlertVisible(visible: Boolean) {
+        binding.btnA11yAlert.visibility = if (visible) View.VISIBLE else View.GONE
     }
 
     fun applyConfig(config: LauncherConfig) {

@@ -84,6 +84,15 @@
         android:paddingHorizontal="8dp"
         android:paddingVertical="4dp">
 
+        <!-- Accessibility Alert Icon (visible only when accessibility service is not enabled) -->
+        <ImageButton
+            android:id="@+id/btn_a11y_alert"
+            style="@style/Widget.LiteTV.StatusButton"
+            android:layout_marginEnd="4dp"
+            android:contentDescription="@string/cd_accessibility_alert"
+            android:padding="7dp"
+            android:visibility="gone" />
+
         <ImageButton
             android:id="@+id/btn_network"
             style="@style/Widget.LiteTV.StatusButton"

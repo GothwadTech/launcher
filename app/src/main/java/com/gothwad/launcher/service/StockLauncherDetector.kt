@@ -40,6 +40,22 @@ object StockLauncherDetector {
         "com.droidlogic.tv.launcher"
     )
 
+    /**
+     * Checks if a package is a system utility, settings, system UI, or installer that
+     * must NEVER be suppressed as a stock launcher.
+     */
+    fun isSystemOrSettingsPackage(pkg: String): Boolean {
+        val lower = pkg.lowercase()
+        if (lower.contains("settings")) return true
+        if (lower.contains("packageinstaller")) return true
+        if (lower.contains("permissioncontroller")) return true
+        if (lower.contains("inputmethod") || lower.contains(".ime")) return true
+        if (lower == "com.android.systemui" ||
+            lower == "com.android.vending" ||
+            lower == "com.google.android.gms") return true
+        return false
+    }
+
     @Volatile
     private var homeHandlerCache: Pair<Long, Set<String>> = 0L to emptySet()
 
@@ -51,7 +67,16 @@ object StockLauncherDetector {
         val packages = runCatching {
             val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
             context.packageManager.queryIntentActivities(intent, 0)
-                .mapNotNull { it.activityInfo?.packageName }
+                .mapNotNull { resolveInfo ->
+                    val actInfo = resolveInfo.activityInfo ?: return@mapNotNull null
+                    val actName = actInfo.name ?: ""
+                    val pkgName = actInfo.packageName ?: return@mapNotNull null
+                    // Filter out AOSP FallbackHome stub and any settings/system packages
+                    if (actName.contains("FallbackHome", ignoreCase = true)) return@mapNotNull null
+                    if (isSystemOrSettingsPackage(pkgName)) return@mapNotNull null
+                    if (pkgName.equals(context.packageName, ignoreCase = true)) return@mapNotNull null
+                    pkgName
+                }
                 .toSet()
         }.getOrDefault(emptySet())
 
@@ -59,11 +84,14 @@ object StockLauncherDetector {
         return packages
     }
 
-    fun isStockTvLauncher(pkg: String): Boolean =
-        STOCK_LAUNCHERS.any { it.equals(pkg, ignoreCase = true) }
+    fun isStockTvLauncher(pkg: String): Boolean {
+        if (isSystemOrSettingsPackage(pkg)) return false
+        return STOCK_LAUNCHERS.any { it.equals(pkg, ignoreCase = true) }
+    }
 
     fun isStockTvLauncher(context: Context, pkg: String): Boolean {
         if (pkg.equals(context.packageName, ignoreCase = true)) return false
+        if (isSystemOrSettingsPackage(pkg)) return false
         if (isStockTvLauncher(pkg)) return true
         return homeHandlerPackages(context).any { it.equals(pkg, ignoreCase = true) }
     }

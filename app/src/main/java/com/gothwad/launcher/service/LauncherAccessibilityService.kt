@@ -92,6 +92,11 @@ class LauncherAccessibilityService : AccessibilityService() {
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             val pkg = event.packageName?.toString() ?: return
 
+            // Never intercept or kick back to Home if the user is in Android TV settings or system dialogs
+            if (StockLauncherDetector.isSystemOrSettingsPackage(pkg)) {
+                return
+            }
+
             // If user left the previously unlocked package, invalidate its session
             val previousPkg = lastForegroundPkg
             if (previousPkg != null && previousPkg != pkg && previousPkg != packageName) {

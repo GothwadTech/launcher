@@ -19,6 +19,7 @@ import com.gothwad.launcher.data.ProcessHeartbeat
 import com.gothwad.launcher.data.bluetoothStatusFlow
 import com.gothwad.launcher.data.networkStatusFlow
 import com.gothwad.launcher.databinding.ActivityMainBinding
+import com.gothwad.launcher.service.LauncherAccessibilityService
 import com.gothwad.launcher.service.NotificationManagerBridge
 import com.gothwad.launcher.ui.dialogs.NotificationBottomSheetFragment
 import com.gothwad.launcher.ui.dialogs.SearchDialogFragment
@@ -54,6 +55,7 @@ class MainStatusBarController(
     fun setup() {
         setupStatusBarClicks()
         observeStatusBarData()
+        updateA11yStatus()
     }
 
     private fun setupStatusBarClicks() {
@@ -82,6 +84,11 @@ class MainStatusBarController(
                 Actions.openNetworkSettings(activity)
             }
 
+            onA11yAlertClick = {
+                Actions.toast(activity, activity.getString(R.string.a11y_alert_tooltip))
+                Actions.openAccessibilitySettings(activity)
+            }
+
             onNotificationsClick = {
                 NotificationBottomSheetFragment.newInstance()
                     .show(activity.supportFragmentManager, NotificationBottomSheetFragment.TAG)
@@ -91,6 +98,11 @@ class MainStatusBarController(
                 openSettingsDialog()
             }
         }
+    }
+
+    fun updateA11yStatus() {
+        val isA11yEnabled = LauncherAccessibilityService.isEnabled(activity)
+        binding.mainStatusBar.setA11yAlertVisible(!isA11yEnabled)
     }
 
     private fun openSettingsDialog() {
