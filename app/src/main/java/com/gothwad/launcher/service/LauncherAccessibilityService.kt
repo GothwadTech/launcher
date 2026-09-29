@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
@@ -36,6 +37,61 @@ class LauncherAccessibilityService : AccessibilityService() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val audioManager by lazy { getSystemService(Context.AUDIO_SERVICE) as AudioManager }
+
+    // Volume repeat acceleration state (solves Android TV accessibility volume hold bug)
+    @Volatile
+    private var activeVolumeKeyCode: Int? = null
+    private var volumeRepeatCount: Int = 0
+
+    private val volumeRepeatRunnable = object : Runnable {
+        override fun run() {
+            val key = activeVolumeKeyCode ?: return
+            volumeRepeatCount++
+            if (volumeRepeatCount > 120) {
+                // Safety cutoff after ~8-9 seconds of continuous holding
+                stopVolumeRepeat()
+                return
+            }
+            adjustVolume(key)
+            // 70ms interval provides smooth, responsive volume acceleration
+            mainHandler.postDelayed(this, 70L)
+        }
+    }
+
+    private fun adjustVolume(keyCode: Int) {
+        val direction = when (keyCode) {
+            KeyEvent.KEYCODE_VOLUME_UP -> AudioManager.ADJUST_RAISE
+            KeyEvent.KEYCODE_VOLUME_DOWN -> AudioManager.ADJUST_LOWER
+            else -> return
+        }
+        try {
+            audioManager.adjustSuggestedStreamVolume(
+                direction,
+                AudioManager.USE_DEFAULT_STREAM_TYPE,
+                AudioManager.FLAG_SHOW_UI or AudioManager.FLAG_PLAY_SOUND
+            )
+        } catch (e: Exception) {
+            Log.e("LauncherA11y", "Failed to adjust volume for keyCode $keyCode", e)
+        }
+    }
+
+    private fun startVolumeRepeat(keyCode: Int) {
+        if (activeVolumeKeyCode == keyCode) return
+        stopVolumeRepeat()
+        activeVolumeKeyCode = keyCode
+        volumeRepeatCount = 0
+        // Wait 280ms before beginning continuous repeat acceleration (standard long-press threshold)
+        mainHandler.postDelayed(volumeRepeatRunnable, 280L)
+    }
+
+    private fun stopVolumeRepeat() {
+        if (activeVolumeKeyCode != null) {
+            activeVolumeKeyCode = null
+            volumeRepeatCount = 0
+            mainHandler.removeCallbacks(volumeRepeatRunnable)
+        }
+    }
 
     // Cached button mappings from ConfigStore to ensure ZERO blocking reads on keystrokes
     @Volatile
@@ -70,6 +126,7 @@ class LauncherAccessibilityService : AccessibilityService() {
     }
 
     override fun onDestroy() {
+        stopVolumeRepeat()
         dismissLockOverlay()
         serviceScope.cancel()
         super.onDestroy()
@@ -89,6 +146,7 @@ class LauncherAccessibilityService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
+        stopVolumeRepeat()
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             val pkg = event.packageName?.toString() ?: return
 
@@ -255,7 +313,43 @@ class LauncherAccessibilityService : AccessibilityService() {
             }
         }
 
-        // 2. Reserved Home key interception
+        // 2. Continuous Volume Adjustment & Hold Handling (Solves Android TV accessibility hold bug)
+        if (keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+            if (event.action == KeyEvent.ACTION_DOWN) {
+                if (activeVolumeKeyCode != keyCode) {
+                    adjustVolume(keyCode)
+                    startVolumeRepeat(keyCode)
+                }
+                return true
+            } else if (event.action == KeyEvent.ACTION_UP) {
+                stopVolumeRepeat()
+                return true
+            } else {
+                stopVolumeRepeat()
+                return true
+            }
+        }
+
+        if (keyCode == KeyEvent.KEYCODE_VOLUME_MUTE || keyCode == KeyEvent.KEYCODE_MUTE) {
+            stopVolumeRepeat()
+            if (event.action == KeyEvent.ACTION_DOWN) {
+                try {
+                    audioManager.adjustSuggestedStreamVolume(
+                        AudioManager.ADJUST_TOGGLE_MUTE,
+                        AudioManager.USE_DEFAULT_STREAM_TYPE,
+                        AudioManager.FLAG_SHOW_UI
+                    )
+                } catch (e: Exception) {
+                    Log.e("LauncherA11y", "Failed to toggle mute", e)
+                }
+            }
+            return true
+        }
+
+        // For any other key event, cancel pending volume repeats
+        stopVolumeRepeat()
+
+        // 3. Reserved Home key interception
         if (keyCode == KeyEvent.KEYCODE_HOME) {
             if (event.action == KeyEvent.ACTION_UP) {
                 launchHome(this)
@@ -263,7 +357,7 @@ class LauncherAccessibilityService : AccessibilityService() {
             return true // Consume the HOME key event so locked stock TV launcher cannot react
         }
 
-        // 3. Custom Button Mapping hotkeys (Phase 5)
+        // 4. Custom Button Mapping hotkeys (Phase 5)
         val mappedPkg = cachedButtonMap[keyCode]
         if (!mappedPkg.isNullOrEmpty()) {
             if (event.action == KeyEvent.ACTION_UP) {
@@ -276,7 +370,9 @@ class LauncherAccessibilityService : AccessibilityService() {
         return super.onKeyEvent(event)
     }
 
-    override fun onInterrupt() {}
+    override fun onInterrupt() {
+        stopVolumeRepeat()
+    }
 
     companion object {
         /**
