@@ -14,17 +14,22 @@ object SettingsMenuHelper {
         val chevronColor = Color.parseColor("#94A3B8")
         val chevronDrawable = AppIcons.createDrawable(AppIcons.PATH_CHEVRON_RIGHT, chevronColor)
 
+        // 5 Main Categories
+        binding.chevronCatAppearance.setImageDrawable(chevronDrawable)
+        binding.chevronCatApps.setImageDrawable(chevronDrawable)
+        binding.chevronCatRemote.setImageDrawable(chevronDrawable)
+        binding.chevronCatDevice.setImageDrawable(chevronDrawable)
+        binding.chevronCatAbout.setImageDrawable(chevronDrawable)
+
+        // Sub-page items
         binding.chevronWallpaper.setImageDrawable(chevronDrawable)
         binding.chevronDisplay.setImageDrawable(chevronDrawable)
         binding.chevronStatusbar.setImageDrawable(chevronDrawable)
         binding.chevronApps.setImageDrawable(chevronDrawable)
         binding.chevronSecurity.setImageDrawable(chevronDrawable)
-        binding.chevronButtonMapping.setImageDrawable(chevronDrawable)
         binding.chevronNetwork.setImageDrawable(chevronDrawable)
         binding.chevronDevicePrefs.setImageDrawable(chevronDrawable)
         binding.chevronPermissions.setImageDrawable(chevronDrawable)
-        binding.chevronWizard.setImageDrawable(chevronDrawable)
-        binding.chevronAbout.setImageDrawable(chevronDrawable)
     }
 
     fun updateSubtitles(binding: SheetSettingsBinding, config: LauncherConfig, context: Context) {
@@ -67,17 +72,14 @@ object SettingsMenuHelper {
         }
 
         val mappingCount = config.buttonMap.size
-        binding.txtButtonMappingSubtitle.text = if (mappingCount > 0) {
-            "$mappingCount buttons customized"
-        } else {
-            "Map dedicated TV remote hotkeys to apps"
-        }
 
+        var networkLabel = "Wi-Fi and Ethernet"
         try {
             val wifi = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
             val info = wifi?.connectionInfo
             val ssid = info?.ssid?.replace("\"", "") ?: ""
             if (ssid.isNotEmpty() && ssid != "<unknown ssid>") {
+                networkLabel = ssid
                 binding.txtNetworkSubtitle.text = ssid
             } else {
                 binding.txtNetworkSubtitle.text = "Wi-Fi and Ethernet"
@@ -85,5 +87,24 @@ object SettingsMenuHelper {
         } catch (_: Exception) {
             binding.txtNetworkSubtitle.text = "Wi-Fi and Ethernet"
         }
+
+        // Subtitles for the 5 Main Root Categories
+        binding.txtCatAppearanceSubtitle.text = "$wpName • UI ${uiScaleName}x • $clockFormat"
+        binding.txtCatAppsSubtitle.text = if (activeLocks.isNotEmpty() || hiddenCount > 0) {
+            "$hiddenCount protected apps • ${if (activeLocks.isNotEmpty()) activeLocks.joinToString("&") + " Lock" else "Vault"}"
+        } else {
+            "Apps vault, recent apps & PIN locks"
+        }
+        binding.txtCatRemoteSubtitle.text = if (mappingCount > 0) {
+            "$mappingCount hotkeys customized"
+        } else {
+            "Map TV remote hotkeys to favorite apps"
+        }
+        binding.txtCatDeviceSubtitle.text = if (networkLabel != "Wi-Fi and Ethernet") {
+            "$networkLabel • Android TV Settings"
+        } else {
+            "Wi-Fi, Ethernet & Android TV settings"
+        }
+        binding.txtCatAboutSubtitle.text = "v1.0.6 (Build 7) • Setup wizard"
     }
 }

@@ -151,7 +151,7 @@
                 android:orientation="vertical">
 
                 <!-- ========================================================= -->
-                <!-- ROOT MAIN MENU (Default View)                             -->
+                <!-- ROOT MAIN MENU (5 High-Level Classified Options)          -->
                 <!-- ========================================================= -->
                 <LinearLayout
                     android:id="@+id/layout_root_menu"
@@ -159,7 +159,277 @@
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
 
-                    <!-- Section: GENERAL SETTINGS -->
+                    <!-- Section: SETTINGS -->
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginBottom="12dp"
+                        android:letterSpacing="0.05"
+                        android:text="Settings"
+                        android:textAllCaps="true"
+                        android:textColor="#4DD0E1"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <!-- 1. Appearance & Themes -->
+                    <LinearLayout
+                        android:id="@+id/row_cat_appearance"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:layout_marginBottom="10dp"
+                        android:background="@drawable/bg_settings_row"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="20dp">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:duplicateParentState="true"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:duplicateParentState="true"
+                                android:text="Appearance &amp; Themes"
+                                android:textColor="@color/color_settings_text"
+                                android:textSize="15sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/txt_cat_appearance_subtitle"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="1dp"
+                                android:duplicateParentState="true"
+                                android:text="Wallpaper, TV banner curves, UI scale &amp; clock"
+                                android:textColor="#94A3B8"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+
+                        <ImageView
+                            android:id="@+id/chevron_cat_appearance"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:duplicateParentState="true"
+                            android:src="@drawable/ic_settings_chevron"
+                            android:contentDescription="Next" />
+                    </LinearLayout>
+
+                    <!-- 2. Apps & Security -->
+                    <LinearLayout
+                        android:id="@+id/row_cat_apps"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:layout_marginBottom="10dp"
+                        android:background="@drawable/bg_settings_row"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="20dp">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:duplicateParentState="true"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:duplicateParentState="true"
+                                android:text="Apps &amp; Security"
+                                android:textColor="@color/color_settings_text"
+                                android:textSize="15sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/txt_cat_apps_subtitle"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="1dp"
+                                android:duplicateParentState="true"
+                                android:text="Apps vault, hide apps &amp; PIN locks"
+                                android:textColor="#94A3B8"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+
+                        <ImageView
+                            android:id="@+id/chevron_cat_apps"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:duplicateParentState="true"
+                            android:src="@drawable/ic_settings_chevron"
+                            android:contentDescription="Next" />
+                    </LinearLayout>
+
+                    <!-- 3. Remote Button Mapping -->
+                    <LinearLayout
+                        android:id="@+id/row_cat_remote"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:layout_marginBottom="10dp"
+                        android:background="@drawable/bg_settings_row"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="20dp">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:duplicateParentState="true"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:duplicateParentState="true"
+                                android:text="Remote Button Mapping"
+                                android:textColor="@color/color_settings_text"
+                                android:textSize="15sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/txt_cat_remote_subtitle"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="1dp"
+                                android:duplicateParentState="true"
+                                android:text="Map TV remote hotkeys to favorite apps"
+                                android:textColor="#94A3B8"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+
+                        <ImageView
+                            android:id="@+id/chevron_cat_remote"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:duplicateParentState="true"
+                            android:src="@drawable/ic_settings_chevron"
+                            android:contentDescription="Next" />
+                    </LinearLayout>
+
+                    <!-- 4. Network & Device -->
+                    <LinearLayout
+                        android:id="@+id/row_cat_device"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:layout_marginBottom="10dp"
+                        android:background="@drawable/bg_settings_row"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="20dp">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:duplicateParentState="true"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:duplicateParentState="true"
+                                android:text="Network &amp; Device"
+                                android:textColor="@color/color_settings_text"
+                                android:textSize="15sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/txt_cat_device_subtitle"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="1dp"
+                                android:duplicateParentState="true"
+                                android:text="Wi-Fi, Ethernet &amp; Android TV settings"
+                                android:textColor="#94A3B8"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+
+                        <ImageView
+                            android:id="@+id/chevron_cat_device"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:duplicateParentState="true"
+                            android:src="@drawable/ic_settings_chevron"
+                            android:contentDescription="Next" />
+                    </LinearLayout>
+
+                    <!-- 5. System & About -->
+                    <LinearLayout
+                        android:id="@+id/row_cat_about"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:layout_marginBottom="16dp"
+                        android:background="@drawable/bg_settings_row"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="20dp">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:duplicateParentState="true"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:duplicateParentState="true"
+                                android:text="System &amp; About"
+                                android:textColor="@color/color_settings_text"
+                                android:textSize="15sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/txt_cat_about_subtitle"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="1dp"
+                                android:duplicateParentState="true"
+                                android:text="Setup wizard, default launcher &amp; version"
+                                android:textColor="#94A3B8"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+
+                        <ImageView
+                            android:id="@+id/chevron_cat_about"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:duplicateParentState="true"
+                            android:src="@drawable/ic_settings_chevron"
+                            android:contentDescription="Next" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- ========================================================= -->
+                <!-- SUB-PAGE: CATEGORY - APPEARANCE & THEMES                  -->
+                <!-- ========================================================= -->
+                <LinearLayout
+                    android:id="@+id/page_cat_appearance"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -168,7 +438,7 @@
                         android:layout_marginTop="4dp"
                         android:layout_marginBottom="10dp"
                         android:letterSpacing="0.05"
-                        android:text="General Settings"
+                        android:text="Appearance Settings"
                         android:textAllCaps="true"
                         android:textColor="#4DD0E1"
                         android:textSize="12sp"
@@ -257,7 +527,7 @@
                         android:id="@+id/row_statusbar"
                         android:layout_width="match_parent"
                         android:layout_height="48dp"
-                        android:layout_marginBottom="8dp"
+                        android:layout_marginBottom="16dp"
                         android:background="@drawable/bg_settings_row"
                         android:clickable="true"
                         android:focusable="true"
@@ -290,6 +560,31 @@
                             android:src="@drawable/ic_settings_chevron"
                             android:contentDescription="Next" />
                     </LinearLayout>
+                </LinearLayout>
+
+                <!-- ========================================================= -->
+                <!-- SUB-PAGE: CATEGORY - APPS & SECURITY                      -->
+                <!-- ========================================================= -->
+                <LinearLayout
+                    android:id="@+id/page_cat_apps"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginBottom="10dp"
+                        android:letterSpacing="0.05"
+                        android:text="Apps &amp; Security Settings"
+                        android:textAllCaps="true"
+                        android:textColor="#4DD0E1"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
 
                     <!-- Item: Apps & Secret Vault -->
                     <LinearLayout
@@ -335,7 +630,7 @@
                         android:id="@+id/row_security"
                         android:layout_width="match_parent"
                         android:layout_height="48dp"
-                        android:layout_marginBottom="8dp"
+                        android:layout_marginBottom="16dp"
                         android:background="@drawable/bg_settings_row"
                         android:clickable="true"
                         android:focusable="true"
@@ -368,56 +663,27 @@
                             android:src="@drawable/ic_settings_chevron"
                             android:contentDescription="Next" />
                     </LinearLayout>
+                </LinearLayout>
 
-                    <!-- Item: Remote Button Mapping -->
-                    <LinearLayout
-                        android:id="@+id/row_button_mapping"
-                        android:layout_width="match_parent"
-                        android:layout_height="48dp"
-                        android:layout_marginBottom="14dp"
-                        android:background="@drawable/bg_settings_row"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingHorizontal="20dp">
+                <!-- ========================================================= -->
+                <!-- SUB-PAGE: CATEGORY - NETWORK & DEVICE                     -->
+                <!-- ========================================================= -->
+                <LinearLayout
+                    android:id="@+id/page_cat_device"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
 
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:duplicateParentState="true"
-                            android:text="@string/button_mapping_title"
-                            android:textColor="@color/color_settings_text"
-                            android:textSize="15sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/txt_button_mapping_subtitle"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:visibility="gone"
-                            android:text="@string/button_mapping_subtitle" />
-
-                        <ImageView
-                            android:id="@+id/chevron_button_mapping"
-                            android:layout_width="18dp"
-                            android:layout_height="18dp"
-                            android:duplicateParentState="true"
-                            android:src="@drawable/ic_settings_chevron"
-                            android:contentDescription="Next" />
-                    </LinearLayout>
-
-                    <!-- Section: DEVICE & SYSTEM PREFERENCES -->
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:paddingStart="16dp"
                         android:paddingEnd="16dp"
-                        android:layout_marginTop="8dp"
+                        android:layout_marginTop="4dp"
                         android:layout_marginBottom="10dp"
                         android:letterSpacing="0.05"
-                        android:text="Device Preferences"
+                        android:text="Device &amp; System Preferences"
                         android:textAllCaps="true"
                         android:textColor="#4DD0E1"
                         android:textSize="12sp"
@@ -506,7 +772,7 @@
                         android:id="@+id/row_permissions"
                         android:layout_width="match_parent"
                         android:layout_height="48dp"
-                        android:layout_marginBottom="8dp"
+                        android:layout_marginBottom="16dp"
                         android:background="@drawable/bg_settings_row"
                         android:clickable="true"
                         android:focusable="true"
@@ -532,84 +798,6 @@
 
                         <ImageView
                             android:id="@+id/chevron_permissions"
-                            android:layout_width="18dp"
-                            android:layout_height="18dp"
-                            android:duplicateParentState="true"
-                            android:src="@drawable/ic_settings_chevron"
-                            android:contentDescription="Next" />
-                    </LinearLayout>
-
-                    <!-- Item: Setup Wizard -->
-                    <LinearLayout
-                        android:id="@+id/row_wizard"
-                        android:layout_width="match_parent"
-                        android:layout_height="48dp"
-                        android:layout_marginBottom="8dp"
-                        android:background="@drawable/bg_settings_row"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingHorizontal="20dp">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:duplicateParentState="true"
-                            android:text="Setup Wizard"
-                            android:textColor="@color/color_settings_text"
-                            android:textSize="15sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/txt_wizard_subtitle"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:visibility="gone"
-                            android:text="Rerun first-time setup guide" />
-
-                        <ImageView
-                            android:id="@+id/chevron_wizard"
-                            android:layout_width="18dp"
-                            android:layout_height="18dp"
-                            android:duplicateParentState="true"
-                            android:src="@drawable/ic_settings_chevron"
-                            android:contentDescription="Next" />
-                    </LinearLayout>
-
-                    <!-- Item: About -->
-                    <LinearLayout
-                        android:id="@+id/row_about"
-                        android:layout_width="match_parent"
-                        android:layout_height="48dp"
-                        android:layout_marginBottom="16dp"
-                        android:background="@drawable/bg_settings_row"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingHorizontal="20dp">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:duplicateParentState="true"
-                            android:text="About"
-                            android:textColor="@color/color_settings_text"
-                            android:textSize="15sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/txt_about_subtitle"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:visibility="gone"
-                            android:text="Gothwad Launcher v1.0.6 (Build 7)" />
-
-                        <ImageView
-                            android:id="@+id/chevron_about"
                             android:layout_width="18dp"
                             android:layout_height="18dp"
                             android:duplicateParentState="true"
@@ -1604,6 +1792,18 @@
                             android:textColor="#94A3B8"
                             android:textSize="12sp" />
                     </LinearLayout>
+
+                    <Button
+                        android:id="@+id/btn_rerun_wizard"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginBottom="8dp"
+                        android:background="@drawable/bg_settings_row"
+                        android:gravity="start|center_vertical"
+                        android:paddingHorizontal="24dp"
+                        android:text="🪄 Run Setup Wizard"
+                        android:textColor="#FFFFFF"
+                        android:textSize="13sp" />
 
                     <Button
                         android:id="@+id/btn_set_default_home"

@@ -191,13 +191,7 @@ class SettingsBottomSheetFragment : DialogFragment() {
             AppIcons.createDrawable(AppIcons.PATH_BACK, Color.WHITE)
         )
         binding.btnBack.setOnClickListener {
-            if (currentSubPage == binding.subpagePickApp) {
-                navigateToSubPage(binding.subpageButtonMapping, "Remote Button Mapping")
-            } else if (currentSubPage == binding.subpageToggleApps) {
-                navigateToSubPage(binding.pageSecurity, "Security & Locks")
-            } else {
-                navigateToRoot()
-            }
+            handleBackPress()
         }
     }
 
@@ -211,23 +205,40 @@ class SettingsBottomSheetFragment : DialogFragment() {
     }
 
     private fun setupRootMenuClicks() {
-        binding.rowWallpaper.setOnClickListener { navigateToSubPage(binding.pageWallpaper, "Wallpaper & Theme") }
-        binding.rowDisplay.setOnClickListener { navigateToSubPage(binding.pageDisplay, "Display & Layout") }
+        binding.rowCatAppearance.setOnClickListener { navigateToSubPage(binding.pageCatAppearance, "Appearance & Themes") }
+        binding.rowCatApps.setOnClickListener { navigateToSubPage(binding.pageCatApps, "Apps & Security") }
+        binding.rowCatRemote.setOnClickListener { navigateToSubPage(binding.subpageButtonMapping, "Remote Button Mapping") }
+        binding.rowCatDevice.setOnClickListener { navigateToSubPage(binding.pageCatDevice, "Network & Device") }
+        binding.rowCatAbout.setOnClickListener { navigateToSubPage(binding.pageAbout, "System & About") }
+
+        // Sub-page clicks within categories
+        binding.rowWallpaper.setOnClickListener { navigateToSubPage(binding.pageWallpaper, "Wallpaper & Themes") }
+        binding.rowDisplay.setOnClickListener { navigateToSubPage(binding.pageDisplay, "Display & App Curves") }
         binding.rowStatusbar.setOnClickListener { navigateToSubPage(binding.pageStatusbar, "Status Bar & Clock") }
         binding.rowApps.setOnClickListener { navigateToSubPage(binding.pageApps, "Apps & Secret Vault") }
-        binding.rowSecurity.setOnClickListener { navigateToSubPage(binding.pageSecurity, "Security & Locks") }
-        binding.rowButtonMapping.setOnClickListener { navigateToSubPage(binding.subpageButtonMapping, "Remote Button Mapping") }
+        binding.rowSecurity.setOnClickListener { navigateToSubPage(binding.pageSecurity, "Security & PIN Locks") }
         binding.rowNetwork.setOnClickListener { Actions.openNetworkSettings(requireContext()) }
         binding.rowDevicePrefs.setOnClickListener { safeStartActivity(Settings.ACTION_SETTINGS) }
         binding.rowPermissions.setOnClickListener { Actions.openAppInfo(requireContext(), requireContext().packageName) }
-        binding.rowWizard.setOnClickListener {
-            dismiss()
-            onRerunWizard?.invoke()
-        }
-        binding.rowAbout.setOnClickListener { navigateToSubPage(binding.pageAbout, "About & System") }
     }
 
     private fun setupFocusDescriptions() {
+        binding.rowCatAppearance.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) binding.txtHeroSubtitle.text = "Customize wallpaper, live TV banner curves, UI scale, and status bar clock."
+        }
+        binding.rowCatApps.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) binding.txtHeroSubtitle.text = "Manage installed apps, hide sensitive apps into secret vault, and set PIN locks."
+        }
+        binding.rowCatRemote.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) binding.txtHeroSubtitle.text = "Map dedicated TV remote hotkeys to directly launch your favorite apps."
+        }
+        binding.rowCatDevice.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) binding.txtHeroSubtitle.text = "Manage Wi-Fi, Ethernet, system permissions, and full Android TV settings."
+        }
+        binding.rowCatAbout.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) binding.txtHeroSubtitle.text = "Rerun setup wizard, set default launcher, restart, and view app details."
+        }
+
         binding.rowWallpaper.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus) binding.txtHeroSubtitle.text = "Choose dynamic gradient themes, solid colors, or set a personal custom wallpaper."
         }
@@ -243,9 +254,6 @@ class SettingsBottomSheetFragment : DialogFragment() {
         binding.rowSecurity.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus) binding.txtHeroSubtitle.text = "Protect apps and vault settings with secure PIN or pattern locks."
         }
-        binding.rowButtonMapping.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) binding.txtHeroSubtitle.text = "Map dedicated TV remote hotkeys to directly launch your favorite apps."
-        }
         binding.rowNetwork.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus) binding.txtHeroSubtitle.text = "Configure Wi-Fi, Ethernet, and network proxy connections."
         }
@@ -255,15 +263,13 @@ class SettingsBottomSheetFragment : DialogFragment() {
         binding.rowPermissions.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus) binding.txtHeroSubtitle.text = "Review and manage system permissions, overlay rights, and storage access."
         }
-        binding.rowWizard.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) binding.txtHeroSubtitle.text = "Rerun the first-time setup guide to reconfigure your home screen."
-        }
-        binding.rowAbout.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) binding.txtHeroSubtitle.text = "View version, device information, restart launcher, or set as default home."
-        }
     }
 
     private fun bindAboutSettings() {
+        binding.btnRerunWizard.setOnClickListener {
+            dismiss()
+            onRerunWizard?.invoke()
+        }
         binding.btnSetDefaultHome.setOnClickListener {
             safeStartActivity(Settings.ACTION_HOME_SETTINGS, Settings.ACTION_SETTINGS)
         }
@@ -283,29 +289,13 @@ class SettingsBottomSheetFragment : DialogFragment() {
         }
     }
 
-    private fun handleBackPress(): Boolean {
-        return when {
-            currentSubPage == binding.subpagePickApp -> {
-                navigateToSubPage(binding.subpageButtonMapping, "Remote Button Mapping")
-                true
-            }
-            currentSubPage == binding.subpageToggleApps -> {
-                navigateToSubPage(binding.pageSecurity, "Security & Locks")
-                true
-            }
-            currentSubPage != null -> {
-                navigateToRoot()
-                true
-            }
-            else -> {
-                dismiss()
-                true
-            }
-        }
-    }
+    private val pageHistory = mutableListOf<Pair<View, String>>()
 
-    private fun navigateToSubPage(subPage: View, title: String) {
+    private fun hideAllPages() {
         binding.layoutRootMenu.visibility = View.GONE
+        binding.pageCatAppearance.visibility = View.GONE
+        binding.pageCatApps.visibility = View.GONE
+        binding.pageCatDevice.visibility = View.GONE
         binding.pageWallpaper.visibility = View.GONE
         binding.pageDisplay.visibility = View.GONE
         binding.pageStatusbar.visibility = View.GONE
@@ -315,7 +305,35 @@ class SettingsBottomSheetFragment : DialogFragment() {
         binding.subpageToggleApps.visibility = View.GONE
         binding.subpageButtonMapping.visibility = View.GONE
         binding.subpagePickApp.visibility = View.GONE
+    }
 
+    private fun handleBackPress(): Boolean {
+        if (pageHistory.isNotEmpty()) {
+            val (prevPage, prevTitle) = pageHistory.removeAt(pageHistory.lastIndex)
+            if (prevPage == binding.layoutRootMenu) {
+                navigateToRoot()
+            } else {
+                navigateToSubPage(prevPage, prevTitle, addToHistory = false)
+            }
+            return true
+        } else if (currentSubPage != null) {
+            navigateToRoot()
+            return true
+        } else {
+            dismiss()
+            return true
+        }
+    }
+
+    fun navigateToSubPage(subPage: View, title: String, addToHistory: Boolean = true) {
+        val previousPage = currentSubPage ?: binding.layoutRootMenu
+        val previousTitle = binding.txtSettingsTitle.text.toString()
+
+        if (addToHistory && subPage != previousPage) {
+            pageHistory.add(previousPage to previousTitle)
+        }
+
+        hideAllPages()
         subPage.visibility = View.VISIBLE
         currentSubPage = subPage
 
@@ -332,6 +350,9 @@ class SettingsBottomSheetFragment : DialogFragment() {
         binding.txtSettingsTitle.text = title
 
         val heroDesc = when (subPage) {
+            binding.pageCatAppearance -> "Customize wallpaper, live TV banner curves, UI scale, and status bar clock."
+            binding.pageCatApps -> "Manage apps, hide apps into secret vault, and configure PIN locks."
+            binding.pageCatDevice -> "Manage Wi-Fi, Ethernet, system permissions, and full Android TV settings."
             binding.pageWallpaper -> "Select from dynamic background gradients, solid hues, or upload a custom TV wallpaper."
             binding.pageDisplay -> "Fine-tune app icon sizing, UI scale density, and layout geometry for your display."
             binding.pageStatusbar -> "Customize clock time format, network indicators, Bluetooth controls, and VPN shortcuts."
@@ -346,16 +367,9 @@ class SettingsBottomSheetFragment : DialogFragment() {
     }
 
     private fun navigateToRoot() {
+        pageHistory.clear()
         currentSubPage = null
-        binding.pageWallpaper.visibility = View.GONE
-        binding.pageDisplay.visibility = View.GONE
-        binding.pageStatusbar.visibility = View.GONE
-        binding.pageApps.visibility = View.GONE
-        binding.pageSecurity.visibility = View.GONE
-        binding.pageAbout.visibility = View.GONE
-        binding.subpageToggleApps.visibility = View.GONE
-        binding.subpageButtonMapping.visibility = View.GONE
-        binding.subpagePickApp.visibility = View.GONE
+        hideAllPages()
 
         binding.cardHeroIcon.visibility = View.VISIBLE
         binding.cardHeroBanner.visibility = View.GONE
