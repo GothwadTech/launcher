@@ -178,46 +178,38 @@
                     <LinearLayout
                         android:id="@+id/row_cat_appearance"
                         android:layout_width="match_parent"
-                        android:layout_height="52dp"
-                        android:layout_marginBottom="10dp"
+                        android:layout_height="44dp"
+                        android:layout_marginBottom="8dp"
                         android:background="@drawable/bg_settings_row"
                         android:clickable="true"
                         android:focusable="true"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
-                        android:paddingHorizontal="20dp">
+                        android:paddingHorizontal="16dp">
 
-                        <LinearLayout
+                        <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:duplicateParentState="true"
-                            android:orientation="vertical">
+                            android:singleLine="true"
+                            android:ellipsize="end"
+                            android:text="Appearance &amp; Themes"
+                            android:textColor="@color/color_settings_text"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
 
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:duplicateParentState="true"
-                                android:text="Appearance &amp; Themes"
-                                android:textColor="@color/color_settings_text"
-                                android:textSize="15sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:id="@+id/txt_cat_appearance_subtitle"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="1dp"
-                                android:duplicateParentState="true"
-                                android:text="Wallpaper, TV banner curves, UI scale &amp; clock"
-                                android:textColor="@color/color_settings_subtitle"
-                                android:textSize="11sp" />
-                        </LinearLayout>
+                        <TextView
+                            android:id="@+id/txt_cat_appearance_subtitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:visibility="gone"
+                            android:text="Wallpaper, TV banner curves, UI scale &amp; clock" />
 
                         <ImageView
                             android:id="@+id/chevron_cat_appearance"
-                            android:layout_width="18dp"
-                            android:layout_height="18dp"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
                             android:duplicateParentState="true"
                             android:src="@drawable/ic_settings_chevron"
                             android:contentDescription="Next" />
@@ -227,46 +219,38 @@
                     <LinearLayout
                         android:id="@+id/row_cat_apps"
                         android:layout_width="match_parent"
-                        android:layout_height="52dp"
-                        android:layout_marginBottom="10dp"
+                        android:layout_height="44dp"
+                        android:layout_marginBottom="8dp"
                         android:background="@drawable/bg_settings_row"
                         android:clickable="true"
                         android:focusable="true"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
-                        android:paddingHorizontal="20dp">
+                        android:paddingHorizontal="16dp">
 
-                        <LinearLayout
+                        <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:duplicateParentState="true"
-                            android:orientation="vertical">
+                            android:singleLine="true"
+                            android:ellipsize="end"
+                            android:text="Apps &amp; Security"
+                            android:textColor="@color/color_settings_text"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
 
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:duplicateParentState="true"
-                                android:text="Apps &amp; Security"
-                                android:textColor="@color/color_settings_text"
-                                android:textSize="15sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:id="@+id/txt_cat_apps_subtitle"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="1dp"
-                                android:duplicateParentState="true"
-                                android:text="Apps vault, hide apps &amp; PIN locks"
-                                android:textColor="@color/color_settings_subtitle"
-                                android:textSize="11sp" />
-                        </LinearLayout>
+                        <TextView
+                            android:id="@+id/txt_cat_apps_subtitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:visibility="gone"
+                            android:text="Apps vault, hide apps &amp; PIN locks" />
 
                         <ImageView
                             android:id="@+id/chevron_cat_apps"
-                            android:layout_width="18dp"
-                            android:layout_height="18dp"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
                             android:duplicateParentState="true"
                             android:src="@drawable/ic_settings_chevron"
                             android:contentDescription="Next" />
@@ -276,46 +260,38 @@
                     <LinearLayout
                         android:id="@+id/row_cat_remote"
                         android:layout_width="match_parent"
-                        android:layout_height="52dp"
-                        android:layout_marginBottom="10dp"
+                        android:layout_height="44dp"
+                        android:layout_marginBottom="8dp"
                         android:background="@drawable/bg_settings_row"
                         android:clickable="true"
                         android:focusable="true"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
-                        android:paddingHorizontal="20dp">
+                        android:paddingHorizontal="16dp">
 
-                        <LinearLayout
+                        <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:duplicateParentState="true"
-                            android:orientation="vertical">
+                            android:singleLine="true"
+                            android:ellipsize="end"
+                            android:text="Remote Button Mapping"
+                            android:textColor="@color/color_settings_text"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
 
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:duplicateParentState="true"
-                                android:text="Remote Button Mapping"
-                                android:textColor="@color/color_settings_text"
-                                android:textSize="15sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:id="@+id/txt_cat_remote_subtitle"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="1dp"
-                                android:duplicateParentState="true"
-                                android:text="Map TV remote hotkeys to favorite apps"
-                                android:textColor="@color/color_settings_subtitle"
-                                android:textSize="11sp" />
-                        </LinearLayout>
+                        <TextView
+                            android:id="@+id/txt_cat_remote_subtitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:visibility="gone"
+                            android:text="Map TV remote hotkeys to favorite apps" />
 
                         <ImageView
                             android:id="@+id/chevron_cat_remote"
-                            android:layout_width="18dp"
-                            android:layout_height="18dp"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
                             android:duplicateParentState="true"
                             android:src="@drawable/ic_settings_chevron"
                             android:contentDescription="Next" />
@@ -325,46 +301,38 @@
                     <LinearLayout
                         android:id="@+id/row_cat_device"
                         android:layout_width="match_parent"
-                        android:layout_height="52dp"
-                        android:layout_marginBottom="16dp"
+                        android:layout_height="44dp"
+                        android:layout_marginBottom="12dp"
                         android:background="@drawable/bg_settings_row"
                         android:clickable="true"
                         android:focusable="true"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
-                        android:paddingHorizontal="20dp">
+                        android:paddingHorizontal="16dp">
 
-                        <LinearLayout
+                        <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:duplicateParentState="true"
-                            android:orientation="vertical">
+                            android:singleLine="true"
+                            android:ellipsize="end"
+                            android:text="Device, Network &amp; System"
+                            android:textColor="@color/color_settings_text"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
 
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:duplicateParentState="true"
-                                android:text="Device, Network &amp; System"
-                                android:textColor="@color/color_settings_text"
-                                android:textSize="15sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:id="@+id/txt_cat_device_subtitle"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="1dp"
-                                android:duplicateParentState="true"
-                                android:text="Wi-Fi, Android TV settings, launcher info &amp; wizard"
-                                android:textColor="@color/color_settings_subtitle"
-                                android:textSize="11sp" />
-                        </LinearLayout>
+                        <TextView
+                            android:id="@+id/txt_cat_device_subtitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:visibility="gone"
+                            android:text="Wi-Fi, Android TV settings, launcher info &amp; wizard" />
 
                         <ImageView
                             android:id="@+id/chevron_cat_device"
-                            android:layout_width="18dp"
-                            android:layout_height="18dp"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
                             android:duplicateParentState="true"
                             android:src="@drawable/ic_settings_chevron"
                             android:contentDescription="Next" />

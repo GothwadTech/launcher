@@ -84,6 +84,17 @@ class StatusBarView @JvmOverloads constructor(
                 setStroke(strokePx, Color.parseColor("#33FFFFFF"))
             }
         }
+        val bgCenter = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = radiusPx
+            if (config.statusBarGlass) {
+                setColor(ContextCompat.getColor(context, R.color.surface_glass))
+                setStroke(strokePx, ContextCompat.getColor(context, R.color.surface_glass_stroke))
+            } else {
+                setColor(Color.parseColor("#212124"))
+                setStroke(strokePx, Color.parseColor("#33FFFFFF"))
+            }
+        }
         val bgRight = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
             cornerRadius = radiusPx
@@ -96,6 +107,7 @@ class StatusBarView @JvmOverloads constructor(
             }
         }
         binding.clusterLeft.background = bgLeft
+        binding.clusterCenter.background = bgCenter
         binding.clusterRight.background = bgRight
     }
 

@@ -9,7 +9,7 @@
     android:paddingTop="18dp"
     android:paddingBottom="8dp">
 
-    <!-- Left Cluster: Control Center, Search, Voice, BT/Remote, Network, Settings, A11y Alert, Notifications -->
+    <!-- Left Cluster (Part 1 of home bar): Home button, Search, Bluetooth/Remote -->
     <LinearLayout
         android:id="@+id/cluster_left"
         android:layout_width="wrap_content"
@@ -43,15 +43,50 @@
             android:padding="7dp"
             android:visibility="visible" />
 
-        <!-- Network (Wi-Fi / Ethernet) moved to 1st card -->
+    </LinearLayout>
+
+    <!-- Center Cluster: Time card (Date, Day, Time) centered on header -->
+    <LinearLayout
+        android:id="@+id/cluster_center"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:layout_centerVertical="true"
+        android:background="@drawable/bg_glass_cluster"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="8dp">
+
+        <TextView
+            android:id="@+id/tv_clock"
+            style="@style/TextAppearance.LiteTV.Clock"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+    </LinearLayout>
+
+    <!-- Right Cluster (Part 2 of controls, at previous time card position): Network, Settings, A11y Alert, Notifications -->
+    <LinearLayout
+        android:id="@+id/cluster_right"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_centerVertical="true"
+        android:background="@drawable/bg_glass_cluster"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="4dp">
+
+        <!-- Network (Wi-Fi / Ethernet) -->
         <ImageButton
             android:id="@+id/btn_network"
             style="@style/Widget.LiteTV.StatusButton"
-            android:layout_marginStart="4dp"
             android:contentDescription="@string/cd_network"
             android:padding="7dp" />
 
-        <!-- Settings moved to 1st card -->
+        <!-- Settings -->
         <ImageButton
             android:id="@+id/btn_settings"
             style="@style/Widget.LiteTV.StatusButton"
@@ -59,7 +94,7 @@
             android:contentDescription="@string/cd_settings"
             android:padding="7dp" />
 
-        <!-- Accessibility Alert Icon (placed near network/settings) -->
+        <!-- Accessibility Alert Icon -->
         <ImageButton
             android:id="@+id/btn_a11y_alert"
             style="@style/Widget.LiteTV.StatusButton"
@@ -93,27 +128,6 @@
                 android:backgroundTint="@color/status_notification_badge"
                 android:visibility="gone" />
         </FrameLayout>
-
-    </LinearLayout>
-
-    <!-- Right Cluster: Time card (Date with Year, Day, Seconds) -->
-    <LinearLayout
-        android:id="@+id/cluster_right"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentEnd="true"
-        android:layout_centerVertical="true"
-        android:background="@drawable/bg_glass_cluster"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="14dp"
-        android:paddingVertical="8dp">
-
-        <TextView
-            android:id="@+id/tv_clock"
-            style="@style/TextAppearance.LiteTV.Clock"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
 
     </LinearLayout>
 
