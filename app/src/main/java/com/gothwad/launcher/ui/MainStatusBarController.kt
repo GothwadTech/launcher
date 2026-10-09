@@ -50,7 +50,7 @@ class MainStatusBarController(
 
     private var clockFormatter: SimpleDateFormat? = null
     private var clockPatternInUse: String? = null
-    private val dateFormatter = SimpleDateFormat("d MMM • EEE", Locale.ENGLISH)
+    private val dateFormatter = SimpleDateFormat("d MMM yyyy • EEE", Locale.ENGLISH)
 
     fun setup() {
         setupStatusBarClicks()
@@ -186,7 +186,7 @@ class MainStatusBarController(
                         }
                         val now = Date()
                         val cfg = getCurrentConfig()
-                        val timePattern = if (cfg.h24) "HH:mm" else "hh:mm a"
+                        val timePattern = if (cfg.h24) "HH:mm:ss" else "hh:mm:ss a"
                         if (clockPatternInUse != timePattern || clockFormatter == null) {
                             clockFormatter = SimpleDateFormat(timePattern, Locale.ENGLISH)
                             clockPatternInUse = timePattern

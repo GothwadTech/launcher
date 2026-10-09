@@ -18,21 +18,21 @@
     <!-- Top Header Bar with Centered Title matching screenshot -->
     <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="76dp"
-        android:paddingHorizontal="48dp"
+        android:layout_height="64dp"
+        android:paddingHorizontal="40dp"
         android:gravity="center_vertical">
 
         <!-- Back Button (shown when navigating in subpages) -->
         <ImageButton
             android:id="@+id/btn_back"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:layout_alignParentStart="true"
             android:layout_centerVertical="true"
             android:background="@drawable/bg_settings_row"
             android:contentDescription="Back"
             android:focusable="true"
-            android:padding="10dp"
+            android:padding="9dp"
             android:scaleType="centerInside"
             android:visibility="gone"
             tools:visibility="visible" />
@@ -47,20 +47,20 @@
             android:maxLines="1"
             android:text="System Settings"
             android:textColor="#FFFFFF"
-            android:textSize="26sp"
+            android:textSize="22sp"
             android:textStyle="bold" />
 
         <!-- Close Button (dismiss settings) -->
         <ImageButton
             android:id="@+id/btn_close_settings"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
             android:background="@drawable/bg_settings_row"
             android:contentDescription="Close"
             android:focusable="true"
-            android:padding="11dp"
+            android:padding="10dp"
             android:scaleType="centerInside" />
     </RelativeLayout>
 
@@ -72,26 +72,26 @@
         android:layout_weight="1"
         android:baselineAligned="false"
         android:orientation="horizontal"
-        android:paddingHorizontal="48dp"
-        android:paddingTop="12dp"
-        android:paddingBottom="24dp">
+        android:paddingHorizontal="40dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="16dp">
 
         <!-- Left Pane: App Icon in Large Curved Card + Dynamic Description -->
         <LinearLayout
             android:id="@+id/left_hero_pane"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="4"
+            android:layout_weight="3.6"
             android:gravity="center"
             android:orientation="vertical"
-            android:paddingEnd="36dp">
+            android:paddingEnd="28dp">
 
             <androidx.cardview.widget.CardView
                 android:id="@+id/card_hero_icon"
-                android:layout_width="220dp"
-                android:layout_height="220dp"
-                app:cardCornerRadius="42dp"
-                app:cardElevation="8dp"
+                android:layout_width="160dp"
+                android:layout_height="160dp"
+                app:cardCornerRadius="32dp"
+                app:cardElevation="6dp"
                 app:cardBackgroundColor="#181B22">
 
                 <ImageView
@@ -106,11 +106,11 @@
             <!-- 16:9 TV Banner Live Corner Preview (Used in Display & Corner Settings) -->
             <androidx.cardview.widget.CardView
                 android:id="@+id/card_hero_banner"
-                android:layout_width="260dp"
-                android:layout_height="146dp"
+                android:layout_width="210dp"
+                android:layout_height="118dp"
                 android:visibility="gone"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="8dp"
+                app:cardCornerRadius="14dp"
+                app:cardElevation="6dp"
                 app:cardBackgroundColor="#181B22">
 
                 <ImageView
@@ -124,14 +124,14 @@
 
             <TextView
                 android:id="@+id/txt_hero_subtitle"
-                android:layout_width="280dp"
+                android:layout_width="240dp"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="28dp"
+                android:layout_marginTop="20dp"
                 android:gravity="center"
-                android:lineSpacingExtra="3dp"
+                android:lineSpacingExtra="2dp"
                 android:text="Customize launcher display, apps, locks, and system preferences"
-                android:textColor="#94A3B8"
-                android:textSize="14sp" />
+                android:textColor="@color/color_settings_subtitle"
+                android:textSize="13sp" />
         </LinearLayout>
 
         <!-- Right Pane: Scrollable Settings List & Sub-Pages -->
@@ -139,7 +139,7 @@
             android:id="@+id/scroll_container"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="6"
+            android:layout_weight="6.4"
             android:clipToPadding="false"
             android:fadeScrollbars="true"
             android:scrollbars="vertical"
@@ -210,7 +210,7 @@
                                 android:layout_marginTop="1dp"
                                 android:duplicateParentState="true"
                                 android:text="Wallpaper, TV banner curves, UI scale &amp; clock"
-                                android:textColor="#94A3B8"
+                                android:textColor="@color/color_settings_subtitle"
                                 android:textSize="11sp" />
                         </LinearLayout>
 
@@ -259,7 +259,7 @@
                                 android:layout_marginTop="1dp"
                                 android:duplicateParentState="true"
                                 android:text="Apps vault, hide apps &amp; PIN locks"
-                                android:textColor="#94A3B8"
+                                android:textColor="@color/color_settings_subtitle"
                                 android:textSize="11sp" />
                         </LinearLayout>
 
@@ -308,7 +308,7 @@
                                 android:layout_marginTop="1dp"
                                 android:duplicateParentState="true"
                                 android:text="Map TV remote hotkeys to favorite apps"
-                                android:textColor="#94A3B8"
+                                android:textColor="@color/color_settings_subtitle"
                                 android:textSize="11sp" />
                         </LinearLayout>
 
@@ -321,58 +321,9 @@
                             android:contentDescription="Next" />
                     </LinearLayout>
 
-                    <!-- 4. Network & Device -->
+                    <!-- 4. Device, Network & System -->
                     <LinearLayout
                         android:id="@+id/row_cat_device"
-                        android:layout_width="match_parent"
-                        android:layout_height="52dp"
-                        android:layout_marginBottom="10dp"
-                        android:background="@drawable/bg_settings_row"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingHorizontal="20dp">
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:duplicateParentState="true"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:duplicateParentState="true"
-                                android:text="Network &amp; Device"
-                                android:textColor="@color/color_settings_text"
-                                android:textSize="15sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:id="@+id/txt_cat_device_subtitle"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="1dp"
-                                android:duplicateParentState="true"
-                                android:text="Wi-Fi, Ethernet &amp; Android TV settings"
-                                android:textColor="#94A3B8"
-                                android:textSize="11sp" />
-                        </LinearLayout>
-
-                        <ImageView
-                            android:id="@+id/chevron_cat_device"
-                            android:layout_width="18dp"
-                            android:layout_height="18dp"
-                            android:duplicateParentState="true"
-                            android:src="@drawable/ic_settings_chevron"
-                            android:contentDescription="Next" />
-                    </LinearLayout>
-
-                    <!-- 5. System & About -->
-                    <LinearLayout
-                        android:id="@+id/row_cat_about"
                         android:layout_width="match_parent"
                         android:layout_height="52dp"
                         android:layout_marginBottom="16dp"
@@ -394,24 +345,24 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:duplicateParentState="true"
-                                android:text="System &amp; About"
+                                android:text="Device, Network &amp; System"
                                 android:textColor="@color/color_settings_text"
                                 android:textSize="15sp"
                                 android:textStyle="bold" />
 
                             <TextView
-                                android:id="@+id/txt_cat_about_subtitle"
+                                android:id="@+id/txt_cat_device_subtitle"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="1dp"
                                 android:duplicateParentState="true"
-                                android:text="Setup wizard, default launcher &amp; version"
-                                android:textColor="#94A3B8"
+                                android:text="Wi-Fi, Android TV settings, launcher info &amp; wizard"
+                                android:textColor="@color/color_settings_subtitle"
                                 android:textSize="11sp" />
                         </LinearLayout>
 
                         <ImageView
-                            android:id="@+id/chevron_cat_about"
+                            android:id="@+id/chevron_cat_device"
                             android:layout_width="18dp"
                             android:layout_height="18dp"
                             android:duplicateParentState="true"
@@ -772,7 +723,7 @@
                         android:id="@+id/row_permissions"
                         android:layout_width="match_parent"
                         android:layout_height="48dp"
-                        android:layout_marginBottom="16dp"
+                        android:layout_marginBottom="8dp"
                         android:background="@drawable/bg_settings_row"
                         android:clickable="true"
                         android:focusable="true"
@@ -798,6 +749,45 @@
 
                         <ImageView
                             android:id="@+id/chevron_permissions"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:duplicateParentState="true"
+                            android:src="@drawable/ic_settings_chevron"
+                            android:contentDescription="Next" />
+                    </LinearLayout>
+
+                    <!-- Item: System & About Launcher -->
+                    <LinearLayout
+                        android:id="@+id/row_cat_about"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginBottom="16dp"
+                        android:background="@drawable/bg_settings_row"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="20dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:duplicateParentState="true"
+                            android:text="System &amp; About"
+                            android:textColor="@color/color_settings_text"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/txt_cat_about_subtitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:visibility="gone"
+                            android:text="Setup wizard, default launcher &amp; version" />
+
+                        <ImageView
+                            android:id="@+id/chevron_cat_about"
                             android:layout_width="18dp"
                             android:layout_height="18dp"
                             android:duplicateParentState="true"
@@ -1777,6 +1767,7 @@
                             android:textStyle="bold" />
 
                         <TextView
+                            android:id="@+id/txt_about_version"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
@@ -1793,6 +1784,125 @@
                             android:textSize="12sp" />
                     </LinearLayout>
 
+                    <!-- Update Section Card -->
+                    <LinearLayout
+                        android:id="@+id/card_update_section"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:background="@drawable/bg_settings_row"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <RelativeLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="🔄 GitHub OTA Updates"
+                                android:textColor="#FFFFFF"
+                                android:textSize="15sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/txt_update_source_badge"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_alignParentEnd="true"
+                                android:background="#22334A"
+                                android:paddingHorizontal="8dp"
+                                android:paddingVertical="2dp"
+                                android:text="GothwadTech/launcher"
+                                android:textColor="#8AB4F8"
+                                android:textSize="10sp"
+                                android:textStyle="bold" />
+                        </RelativeLayout>
+
+                        <TextView
+                            android:id="@+id/txt_update_status"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:text="Ready to check for latest release on GitHub."
+                            android:textColor="@color/color_settings_subtitle"
+                            android:textSize="12sp" />
+
+                        <!-- Download Progress Bar -->
+                        <ProgressBar
+                            android:id="@+id/progress_update_download"
+                            style="?android:attr/progressBarStyleHorizontal"
+                            android:layout_width="match_parent"
+                            android:layout_height="8dp"
+                            android:layout_marginTop="8dp"
+                            android:max="100"
+                            android:progress="0"
+                            android:visibility="gone" />
+
+                        <!-- ADB Self-Install Permission Status & Method Toggle -->
+                        <LinearLayout
+                            android:id="@+id/layout_update_options"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:id="@+id/txt_adb_status_badge"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="⚡ ADB/Shell: Ready (Self-Install)"
+                                android:textColor="#81C784"
+                                android:textSize="11sp" />
+
+                            <Button
+                                android:id="@+id/btn_grant_install_perm"
+                                android:layout_width="wrap_content"
+                                android:layout_height="34dp"
+                                android:background="@drawable/bg_settings_row"
+                                android:text="Grant Install"
+                                android:textColor="@color/color_settings_btn_text"
+                                android:textSize="11sp"
+                                android:visibility="gone" />
+                        </LinearLayout>
+
+                        <!-- Action Buttons: Check / Download / Install -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:orientation="horizontal">
+
+                            <Button
+                                android:id="@+id/btn_check_update"
+                                android:layout_width="0dp"
+                                android:layout_height="44dp"
+                                android:layout_weight="1"
+                                android:layout_marginEnd="6dp"
+                                android:background="@drawable/bg_settings_row"
+                                android:focusable="true"
+                                android:text="🔍 Check Update"
+                                android:textColor="@color/color_settings_btn_text"
+                                android:textSize="12sp" />
+
+                            <Button
+                                android:id="@+id/btn_install_update"
+                                android:layout_width="0dp"
+                                android:layout_height="44dp"
+                                android:layout_weight="1"
+                                android:layout_marginStart="6dp"
+                                android:background="@drawable/bg_settings_row"
+                                android:enabled="false"
+                                android:focusable="true"
+                                android:text="🚀 Update Now (ADB)"
+                                android:textColor="@color/color_settings_btn_text"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+
                     <Button
                         android:id="@+id/btn_rerun_wizard"
                         android:layout_width="match_parent"
@@ -1802,7 +1912,7 @@
                         android:gravity="start|center_vertical"
                         android:paddingHorizontal="24dp"
                         android:text="🪄 Run Setup Wizard"
-                        android:textColor="#FFFFFF"
+                        android:textColor="@color/color_settings_btn_text"
                         android:textSize="13sp" />
 
                     <Button
@@ -1814,7 +1924,7 @@
                         android:gravity="start|center_vertical"
                         android:paddingHorizontal="24dp"
                         android:text="🏠 Set as Default Home Launcher"
-                        android:textColor="#FFFFFF"
+                        android:textColor="@color/color_settings_btn_text"
                         android:textSize="13sp" />
 
                     <Button
@@ -1826,7 +1936,7 @@
                         android:gravity="start|center_vertical"
                         android:paddingHorizontal="24dp"
                         android:text="🔄 Restart Launcher"
-                        android:textColor="#FFFFFF"
+                        android:textColor="@color/color_settings_btn_text"
                         android:textSize="13sp" />
                 </LinearLayout>
 

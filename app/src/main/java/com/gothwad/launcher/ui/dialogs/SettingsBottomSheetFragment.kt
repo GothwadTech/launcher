@@ -16,8 +16,12 @@ import androidx.lifecycle.lifecycleScope
 import com.gothwad.launcher.Actions
 import com.gothwad.launcher.R
 import com.gothwad.launcher.data.AppEntry
+import com.gothwad.launcher.data.AppUpdateManager
 import com.gothwad.launcher.data.ConfigStore
+import com.gothwad.launcher.data.GitHubReleaseInfo
+import com.gothwad.launcher.data.InstallResult
 import com.gothwad.launcher.data.LauncherConfig
+import com.gothwad.launcher.data.UpdateCheckResult
 import com.gothwad.launcher.databinding.SheetSettingsBinding
 import com.gothwad.launcher.ui.AppIcons
 import kotlinx.coroutines.Dispatchers
@@ -208,8 +212,7 @@ class SettingsBottomSheetFragment : DialogFragment() {
         binding.rowCatAppearance.setOnClickListener { navigateToSubPage(binding.pageCatAppearance, "Appearance & Themes") }
         binding.rowCatApps.setOnClickListener { navigateToSubPage(binding.pageCatApps, "Apps & Security") }
         binding.rowCatRemote.setOnClickListener { navigateToSubPage(binding.subpageButtonMapping, "Remote Button Mapping") }
-        binding.rowCatDevice.setOnClickListener { navigateToSubPage(binding.pageCatDevice, "Network & Device") }
-        binding.rowCatAbout.setOnClickListener { navigateToSubPage(binding.pageAbout, "System & About") }
+        binding.rowCatDevice.setOnClickListener { navigateToSubPage(binding.pageCatDevice, "Device, Network & System") }
 
         // Sub-page clicks within categories
         binding.rowWallpaper.setOnClickListener { navigateToSubPage(binding.pageWallpaper, "Wallpaper & Themes") }
@@ -220,6 +223,7 @@ class SettingsBottomSheetFragment : DialogFragment() {
         binding.rowNetwork.setOnClickListener { Actions.openNetworkSettings(requireContext()) }
         binding.rowDevicePrefs.setOnClickListener { safeStartActivity(Settings.ACTION_SETTINGS) }
         binding.rowPermissions.setOnClickListener { Actions.openAppInfo(requireContext(), requireContext().packageName) }
+        binding.rowCatAbout.setOnClickListener { navigateToSubPage(binding.pageAbout, "System & About") }
     }
 
     private fun setupFocusDescriptions() {
@@ -233,10 +237,7 @@ class SettingsBottomSheetFragment : DialogFragment() {
             if (hasFocus) binding.txtHeroSubtitle.text = "Map dedicated TV remote hotkeys to directly launch your favorite apps."
         }
         binding.rowCatDevice.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) binding.txtHeroSubtitle.text = "Manage Wi-Fi, Ethernet, system permissions, and full Android TV settings."
-        }
-        binding.rowCatAbout.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) binding.txtHeroSubtitle.text = "Rerun setup wizard, set default launcher, restart, and view app details."
+            if (hasFocus) binding.txtHeroSubtitle.text = "Manage Wi-Fi, Android TV settings, permissions, setup wizard, and app info."
         }
 
         binding.rowWallpaper.setOnFocusChangeListener { _, hasFocus ->
@@ -263,9 +264,55 @@ class SettingsBottomSheetFragment : DialogFragment() {
         binding.rowPermissions.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus) binding.txtHeroSubtitle.text = "Review and manage system permissions, overlay rights, and storage access."
         }
+        binding.rowCatAbout.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) binding.txtHeroSubtitle.text = "Rerun setup wizard, set default launcher, restart, and view app details."
+        }
     }
 
+    private var latestRelease: GitHubReleaseInfo? = null
+    private var downloadedApkFile: File? = null
+
     private fun bindAboutSettings() {
+        val currentVer = try {
+            val pInfo = requireContext().packageManager.getPackageInfo(requireContext().packageName, 0)
+            pInfo.versionName ?: "1.0.6"
+        } catch (_: Exception) {
+            "1.0.6"
+        }
+        val currentCode = try {
+            val pInfo = requireContext().packageManager.getPackageInfo(requireContext().packageName, 0)
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) pInfo.longVersionCode.toInt() else pInfo.versionCode
+        } catch (_: Exception) {
+            7
+        }
+
+        binding.txtAboutVersion.text = "Version $currentVer • Build $currentCode"
+
+        updateAdbStatusBadge()
+
+        binding.btnGrantInstallPerm.setOnClickListener {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                try {
+                    val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                        data = android.net.Uri.parse("package:${requireContext().packageName}")
+                    }
+                    startActivity(intent)
+                } catch (_: Exception) {
+                    safeStartActivity(Settings.ACTION_SECURITY_SETTINGS)
+                }
+            } else {
+                safeStartActivity(Settings.ACTION_SECURITY_SETTINGS)
+            }
+        }
+
+        binding.btnCheckUpdate.setOnClickListener {
+            checkGitHubUpdate(currentVer)
+        }
+
+        binding.btnInstallUpdate.setOnClickListener {
+            startDownloadAndInstall()
+        }
+
         binding.btnRerunWizard.setOnClickListener {
             dismiss()
             onRerunWizard?.invoke()
@@ -276,6 +323,129 @@ class SettingsBottomSheetFragment : DialogFragment() {
         binding.btnRestartLauncher.setOnClickListener {
             dismiss()
             activity?.recreate()
+        }
+    }
+
+    private fun updateAdbStatusBadge() {
+        if (!isAdded || _binding == null) return
+        val hasShell = AppUpdateManager.hasRootOrAdbShell()
+        val canPkgInstall = AppUpdateManager.canRequestPackageInstalls(requireContext())
+
+        if (hasShell) {
+            binding.txtAdbStatusBadge.text = "⚡ Root / ADB Shell: Available (Silent Update)"
+            binding.txtAdbStatusBadge.setTextColor(Color.parseColor("#81C784"))
+            binding.btnGrantInstallPerm.visibility = View.GONE
+        } else if (canPkgInstall) {
+            binding.txtAdbStatusBadge.text = "📦 Package Installer: Allowed (ADB/Direct shell fallback)"
+            binding.txtAdbStatusBadge.setTextColor(Color.parseColor("#64B5F6"))
+            binding.btnGrantInstallPerm.visibility = View.GONE
+        } else {
+            binding.txtAdbStatusBadge.text = "⚠️ Install Permission: Needed for stock TV installer"
+            binding.txtAdbStatusBadge.setTextColor(Color.parseColor("#FFB74D"))
+            binding.btnGrantInstallPerm.visibility = View.VISIBLE
+        }
+    }
+
+    private fun checkGitHubUpdate(currentVer: String) {
+        binding.btnCheckUpdate.isEnabled = false
+        binding.txtUpdateStatus.text = "Checking GitHub (GothwadTech/launcher) for new release…"
+        binding.txtUpdateStatus.setTextColor(Color.parseColor("#8AB4F8"))
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val result = AppUpdateManager.checkLatestRelease(currentVer)
+            if (!isAdded || _binding == null) return@launch
+            binding.btnCheckUpdate.isEnabled = true
+
+            when (result) {
+                is UpdateCheckResult.UpdateAvailable -> {
+                    latestRelease = result.release
+                    binding.txtUpdateStatus.text = "🎉 New Version Found: v${result.release.versionName}\nRelease: ${result.release.releaseTitle}\nFile: ${result.release.apkFileName ?: "APK"}"
+                    binding.txtUpdateStatus.setTextColor(Color.parseColor("#81C784"))
+                    binding.btnInstallUpdate.isEnabled = true
+                    binding.btnInstallUpdate.text = "🚀 Download & Update (v${result.release.versionName})"
+                }
+                is UpdateCheckResult.UpToDate -> {
+                    latestRelease = null
+                    binding.txtUpdateStatus.text = "✓ Gothwad Launcher is up to date (v$currentVer, tag: ${result.latestTag})."
+                    binding.txtUpdateStatus.setTextColor(Color.parseColor("#94A3B8"))
+                    binding.btnInstallUpdate.isEnabled = false
+                    binding.btnInstallUpdate.text = "✓ Up to date"
+                }
+                is UpdateCheckResult.Error -> {
+                    binding.txtUpdateStatus.text = "❌ Update check failed: ${result.message}"
+                    binding.txtUpdateStatus.setTextColor(Color.parseColor("#E57373"))
+                }
+            }
+        }
+    }
+
+    private fun startDownloadAndInstall() {
+        val rel = latestRelease ?: return
+        val apkUrl = rel.apkDownloadUrl ?: return
+        val fileName = rel.apkFileName ?: "launcher-update.apk"
+
+        binding.btnInstallUpdate.isEnabled = false
+        binding.btnCheckUpdate.isEnabled = false
+        binding.progressUpdateDownload.visibility = View.VISIBLE
+        binding.progressUpdateDownload.progress = 0
+        binding.txtUpdateStatus.text = "Downloading APK: 0%…"
+        binding.txtUpdateStatus.setTextColor(Color.parseColor("#8AB4F8"))
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val dlResult = AppUpdateManager.downloadApk(
+                context = requireContext(),
+                downloadUrl = apkUrl,
+                targetFileName = fileName,
+                onProgress = { percent ->
+                    if (isAdded && _binding != null) {
+                        binding.progressUpdateDownload.progress = percent
+                        binding.txtUpdateStatus.text = "Downloading APK: $percent%…"
+                    }
+                }
+            )
+
+            if (!isAdded || _binding == null) return@launch
+            binding.progressUpdateDownload.visibility = View.GONE
+            binding.btnCheckUpdate.isEnabled = true
+
+            dlResult.onSuccess { apkFile ->
+                downloadedApkFile = apkFile
+                binding.txtUpdateStatus.text = "Download complete (${apkFile.length() / 1024} KB). Installing via ADB shell / PackageInstaller…"
+                binding.txtUpdateStatus.setTextColor(Color.parseColor("#81C784"))
+
+                // Step 1: Attempt silent self-update via ADB shell / su
+                val adbResult = AppUpdateManager.installViaAdbShell(apkFile)
+                if (adbResult is InstallResult.SuccessAdb) {
+                    binding.txtUpdateStatus.text = "✓ Successfully installed update via ADB/Shell! Restarting launcher…"
+                    Actions.toast(requireContext(), "Update installed via ADB!")
+                    binding.cardUpdateSection.postDelayed({
+                        activity?.recreate()
+                    }, 1200)
+                } else {
+                    // Step 2: Fallback to Android PackageInstaller via FileProvider
+                    binding.txtUpdateStatus.text = "ADB shell install not granted. Launching Android Package Installer…"
+                    val pkgResult = AppUpdateManager.installViaPackageInstaller(requireContext(), apkFile)
+                    when (pkgResult) {
+                        is InstallResult.PackageInstallerLaunched -> {
+                            binding.txtUpdateStatus.text = "Installer opened. Confirm update on your TV screen."
+                            binding.btnInstallUpdate.isEnabled = true
+                            binding.btnInstallUpdate.text = "Retry Install"
+                        }
+                        is InstallResult.Error -> {
+                            binding.txtUpdateStatus.text = "Install error: ${pkgResult.message}"
+                            binding.txtUpdateStatus.setTextColor(Color.parseColor("#E57373"))
+                            binding.btnInstallUpdate.isEnabled = true
+                            binding.btnInstallUpdate.text = "Retry Update"
+                        }
+                        else -> {}
+                    }
+                }
+            }.onFailure { err ->
+                binding.txtUpdateStatus.text = "Download failed: ${err.localizedMessage ?: err.javaClass.simpleName}"
+                binding.txtUpdateStatus.setTextColor(Color.parseColor("#E57373"))
+                binding.btnInstallUpdate.isEnabled = true
+                binding.btnInstallUpdate.text = "Retry Download"
+            }
         }
     }
 

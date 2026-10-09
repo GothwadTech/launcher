@@ -41,7 +41,7 @@ class StatusBarView @JvmOverloads constructor(
     private fun setupStaticIcons() {
         binding.btnHome.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_HOME, Color.WHITE))
         binding.btnSearch.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_SEARCH, Color.WHITE))
-        binding.btnBluetooth.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BLUETOOTH, 0xFF64B5F6.toInt()))
+        binding.btnBluetooth.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_REMOTE, 0xFF64B5F6.toInt()))
         binding.btnNetwork.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_WIFI, Color.WHITE))
         binding.btnNotifications.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BELL, Color.WHITE))
         binding.btnSettings.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_GEAR, Color.WHITE))
@@ -111,7 +111,7 @@ class StatusBarView @JvmOverloads constructor(
     fun setBluetoothStatus(bt: BluetoothDeviceStatus) {
         binding.btnBluetooth.visibility = View.VISIBLE
         val color = if (bt.connected) 0xFF64B5F6.toInt() else Color.WHITE
-        binding.btnBluetooth.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_BLUETOOTH, color))
+        binding.btnBluetooth.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_REMOTE, color))
     }
 
     fun setNotificationCount(count: Int, hasPermission: Boolean) {

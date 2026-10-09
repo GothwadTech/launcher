@@ -9,7 +9,7 @@
     android:paddingTop="18dp"
     android:paddingBottom="8dp">
 
-    <!-- Left Cluster: Control Center, Search, Voice, BT, Notifications -->
+    <!-- Left Cluster: Control Center, Search, Voice, BT/Remote, Network, Settings, A11y Alert, Notifications -->
     <LinearLayout
         android:id="@+id/cluster_left"
         android:layout_width="wrap_content"
@@ -43,6 +43,31 @@
             android:padding="7dp"
             android:visibility="visible" />
 
+        <!-- Network (Wi-Fi / Ethernet) moved to 1st card -->
+        <ImageButton
+            android:id="@+id/btn_network"
+            style="@style/Widget.LiteTV.StatusButton"
+            android:layout_marginStart="4dp"
+            android:contentDescription="@string/cd_network"
+            android:padding="7dp" />
+
+        <!-- Settings moved to 1st card -->
+        <ImageButton
+            android:id="@+id/btn_settings"
+            style="@style/Widget.LiteTV.StatusButton"
+            android:layout_marginStart="4dp"
+            android:contentDescription="@string/cd_settings"
+            android:padding="7dp" />
+
+        <!-- Accessibility Alert Icon (placed near network/settings) -->
+        <ImageButton
+            android:id="@+id/btn_a11y_alert"
+            style="@style/Widget.LiteTV.StatusButton"
+            android:layout_marginStart="4dp"
+            android:contentDescription="@string/cd_accessibility_alert"
+            android:padding="7dp"
+            android:visibility="gone" />
+
         <!-- Notification Bell with Red Dot -->
         <FrameLayout
             android:id="@+id/layout_notification"
@@ -71,7 +96,7 @@
 
     </LinearLayout>
 
-    <!-- Right Cluster: Active Media (when present), Wi-Fi, Settings, Date/Day/Time -->
+    <!-- Right Cluster: Time card (Date with Year, Day, Seconds) -->
     <LinearLayout
         android:id="@+id/cluster_right"
         android:layout_width="wrap_content"
@@ -81,37 +106,8 @@
         android:background="@drawable/bg_glass_cluster"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="8dp"
-        android:paddingVertical="4dp">
-
-        <!-- Accessibility Alert Icon (visible only when accessibility service is not enabled) -->
-        <ImageButton
-            android:id="@+id/btn_a11y_alert"
-            style="@style/Widget.LiteTV.StatusButton"
-            android:layout_marginEnd="4dp"
-            android:contentDescription="@string/cd_accessibility_alert"
-            android:padding="7dp"
-            android:visibility="gone" />
-
-        <ImageButton
-            android:id="@+id/btn_network"
-            style="@style/Widget.LiteTV.StatusButton"
-            android:contentDescription="@string/cd_network"
-            android:padding="7dp" />
-
-        <ImageButton
-            android:id="@+id/btn_settings"
-            style="@style/Widget.LiteTV.StatusButton"
-            android:layout_marginStart="4dp"
-            android:contentDescription="@string/cd_settings"
-            android:padding="7dp" />
-
-        <View
-            android:id="@+id/divider_clock"
-            android:layout_width="1dp"
-            android:layout_height="20dp"
-            android:layout_marginHorizontal="10dp"
-            android:background="@color/surface_glass_border" />
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="8dp">
 
         <TextView
             android:id="@+id/tv_clock"

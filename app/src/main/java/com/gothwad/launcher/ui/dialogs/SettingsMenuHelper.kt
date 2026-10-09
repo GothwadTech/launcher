@@ -14,12 +14,11 @@ object SettingsMenuHelper {
         val chevronColor = Color.parseColor("#94A3B8")
         val chevronDrawable = AppIcons.createDrawable(AppIcons.PATH_CHEVRON_RIGHT, chevronColor)
 
-        // 5 Main Categories
+        // 4 Main Categories
         binding.chevronCatAppearance.setImageDrawable(chevronDrawable)
         binding.chevronCatApps.setImageDrawable(chevronDrawable)
         binding.chevronCatRemote.setImageDrawable(chevronDrawable)
         binding.chevronCatDevice.setImageDrawable(chevronDrawable)
-        binding.chevronCatAbout.setImageDrawable(chevronDrawable)
 
         // Sub-page items
         binding.chevronWallpaper.setImageDrawable(chevronDrawable)
@@ -30,6 +29,7 @@ object SettingsMenuHelper {
         binding.chevronNetwork.setImageDrawable(chevronDrawable)
         binding.chevronDevicePrefs.setImageDrawable(chevronDrawable)
         binding.chevronPermissions.setImageDrawable(chevronDrawable)
+        binding.chevronCatAbout.setImageDrawable(chevronDrawable)
     }
 
     fun updateSubtitles(binding: SheetSettingsBinding, config: LauncherConfig, context: Context) {
@@ -88,7 +88,7 @@ object SettingsMenuHelper {
             binding.txtNetworkSubtitle.text = "Wi-Fi and Ethernet"
         }
 
-        // Subtitles for the 5 Main Root Categories
+        // Subtitles for the 4 Main Root Categories
         binding.txtCatAppearanceSubtitle.text = "$wpName • UI ${uiScaleName}x • $clockFormat"
         binding.txtCatAppsSubtitle.text = if (activeLocks.isNotEmpty() || hiddenCount > 0) {
             "$hiddenCount protected apps • ${if (activeLocks.isNotEmpty()) activeLocks.joinToString("&") + " Lock" else "Vault"}"
@@ -101,9 +101,9 @@ object SettingsMenuHelper {
             "Map TV remote hotkeys to favorite apps"
         }
         binding.txtCatDeviceSubtitle.text = if (networkLabel != "Wi-Fi and Ethernet") {
-            "$networkLabel • Android TV Settings"
+            "$networkLabel • Android TV & Launcher Info"
         } else {
-            "Wi-Fi, Ethernet & Android TV settings"
+            "Wi-Fi, Android TV settings, launcher info & wizard"
         }
         binding.txtCatAboutSubtitle.text = "v1.0.6 (Build 7) • Setup wizard"
     }
