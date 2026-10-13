@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.gothwad.launcher.R
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
@@ -13,18 +12,10 @@ import kotlinx.serialization.json.Json
 
 /** Spacing steps between cards — 5 levels (in dp). */
 val GAP_SIZES: List<Float> = listOf(4f, 10f, 16f, 24f, 32f)
-/** Card icon size steps — 5 levels (in dp). */
-val ICON_SIZES: List<Float> = listOf(120f, 150f, 190f, 230f, 270f)
 /** Icon corner roundness steps (index stored in config.cornerRadius, in dp). */
 val CORNER_RADII: List<Float> = listOf(0f, 4f, 10f, 18f, 28f)
-/** Manual whole-UI scale steps (config.uiScale 1..5). <1 = more compact. */
+/** Manual whole-UI scale steps (config.uiScale indexes this, 0..4). <1 = more compact. */
 val UI_SCALES: List<Float> = listOf(0.75f, 0.9f, 1.0f, 1.15f, 1.3f)
-
-@Serializable
-data class CategoryCfg(
-    val id: String,
-    val name: String,
-)
 
 enum class LockCredentialType { NUMERIC, ALPHANUMERIC }
 
@@ -57,20 +48,19 @@ data class LockCredential(
 
 @Serializable
 data class LauncherConfig(
-    val categories: List<CategoryCfg> = listOf(
-        CategoryCfg("streaming", "Streaming"),
-        CategoryCfg("games", "Games"),
-        CategoryCfg("music", "Music"),
-        CategoryCfg("apps", "Apps"),
-    ),
-    /** package -> section ids the user assigned (an app may be in several) */
-    val sections: Map<String, Set<String>> = emptyMap(),
-    /** category id -> explicit package order */
+    /**
+     * Explicit package order for the home grid (package list, flattened by
+     * `TvLauncherFragment.rebuildAppList`). Everything not listed follows, sorted by
+     * first-install time.
+     *
+     * NOTE: this used to be keyed per category (`Map<categoryId, List<pkg>>`). The category
+     * rows were removed from the home screen, but the map shape is kept so configs written by
+     * older versions still decode (`Json { ignoreUnknownKeys = true }` drops the rest).
+     */
     val order: Map<String, List<String>> = emptyMap(),
     val hidden: Set<String> = emptySet(),
-    /** packages seen on the last scan — new installs are auto-added to the first section */
-    val knownApps: Set<String> = emptySet(),
-    val wallpaper: Int = 1, // Aurora
+    /** Index into `WALLPAPERS` (ui/Theme.kt); see `DEFAULT_WALLPAPER_INDEX`. */
+    val wallpaper: Int = 1,
     val useCustomWallpaper: Boolean = false,
     val accent: Int = 0,
     val h24: Boolean = false,
@@ -78,26 +68,21 @@ data class LauncherConfig(
     val setupDone: Boolean = false,
     // ----- status bar -----
     val showStatusBar: Boolean = true,
-    /** package of the app the VPN icon opens; empty = system VPN settings */
-    val vpnApp: String = "",
-    val showVpnButton: Boolean = true,
     /** wrap the status-bar icons in the same glass panel as dock mode */
     val statusBarGlass: Boolean = true,
     /** Match status bar header cards corner curve to app icon curve */
     val headerMatchIconCorners: Boolean = true,
     // ----- layout & visuals -----
-    val layout: Int = LAYOUT_GRID,
     /** spacing step 0..4 (see GAP_SIZES) */
     val spacing: Int = 2,
-    /** icon size step 0..4 (see ICON_SIZES) */
-    val iconScale: Int = 2,
     /** icon/panel corner roundness step 0..4 (see CORNER_RADII) */
     val cornerRadius: Int = 2,
-    /** whole-UI scale step 1..5 (see UI_SCALES, default 3 = 1.0x) */
-    val uiScale: Int = 3,
-    val showCategoryNames: Boolean = true,
-    val showAppLabels: Boolean = true,
-    /** 0 = full, 1 = top only, 2 = bottom only, 3 = both, 4 = none */
+    /**
+     * Whole-UI scale step 0..4 (see UI_SCALES, default 2 = 1.0x). Applied to the density by
+     * `DensityAdapter` - see `MainStatusBarController.applyDensityPolicy`.
+     */
+    val uiScale: Int = 2,
+    /** 0 = full screen, 1 = top edge, 2 = bottom edge, 3 = both edges, 4 = none */
     val scrimMode: Int = 0,
     // ----- behavior -----
     /** Boot-ad shield / force-launch home at boot. Discoverable in Settings > Apps. */
@@ -110,29 +95,47 @@ data class LauncherConfig(
     val aggressiveMemoryTrim: Boolean = false,
     /** Honour the system font-size (accessibility) setting instead of forcing 1.0x. */
     val respectSystemFontScale: Boolean = true,
-    val autoCategoryOnInstall: Boolean = true,
     /** app lock: list of package names requiring a PIN to open */
     val lockedApps: Set<String> = emptySet(),
     val appLock: LockCredential = LockCredential(),
     val hiddenAppsLock: LockCredential = LockCredential(),
+    /**
+     * LEGACY plain-text hidden-apps reveal code. Kept only so an existing install can be
+     * migrated to [hiddenAppsRevealCodeHash] on first launch (see
+     * `LockSecurity.migrateLegacyCredentials`); it is cleared by that migration and must
+     * never be written again.
+     */
     val hiddenAppsRevealCode: String = "",
+    /** Base64 PBKDF2 hash of the search-bar reveal code. */
+    val hiddenAppsRevealCodeHash: String = "",
+    /** Base64 random salt for [hiddenAppsRevealCodeHash]. */
+    val hiddenAppsRevealCodeSalt: String = "",
     // ----- Remote Button Mapping (Phase 5) -----
     val buttonMap: Map<Int, String> = emptyMap(),
     val buttonMapDefaultsApplied: Boolean = false,
 )
 
-const val LAYOUT_GRID = 0
-
 private val Context.dataStore by preferencesDataStore(name = "launcher_config")
 
 class ConfigStore(private val context: Context) {
+    private companion object {
+        const val TAG = "ConfigStore"
+    }
+
     private val key = stringPreferencesKey("config_json")
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
     val flow: Flow<LauncherConfig> = context.dataStore.data.map { prefs ->
-        prefs[key]?.let {
-            runCatching { json.decodeFromString<LauncherConfig>(it) }.getOrNull()
-        } ?: LauncherConfig()
+        val stored = prefs[key] ?: return@map LauncherConfig()
+        runCatching { json.decodeFromString<LauncherConfig>(stored) }
+            .onFailure { e ->
+                // A failed decode means the launcher silently comes up with factory defaults,
+                // which for a home screen looks like "all my settings and locks disappeared".
+                // Log it loudly: the raw JSON is still in the DataStore file and is recoverable
+                // from a bug report.
+                android.util.Log.e(TAG, "Config decode failed - falling back to defaults", e)
+            }
+            .getOrDefault(LauncherConfig())
     }
 
     suspend fun update(transform: (LauncherConfig) -> LauncherConfig) {

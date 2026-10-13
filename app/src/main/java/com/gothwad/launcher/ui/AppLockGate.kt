@@ -1,6 +1,9 @@
 package com.gothwad.launcher.ui
 
+import android.content.Context
+import androidx.annotation.StringRes
 import androidx.fragment.app.FragmentManager
+import com.gothwad.launcher.R
 import com.gothwad.launcher.data.AppEntry
 import com.gothwad.launcher.data.LauncherConfig
 import com.gothwad.launcher.data.LockCredential
@@ -36,10 +39,13 @@ object AppLockGate {
      * Evaluates the locks for [app] and shows the credential prompt when one is needed.
      * Only App Lock and Hidden App Vault Lock are evaluated.
      *
+     * @param context used to resolve prompt strings (kept explicit so this object never has
+     *   to reach for a global application context).
      * @param onProceed invoked on the calling (main) thread once the app may be launched -
      *   either immediately, or after the user entered the correct credential.
      */
     fun evaluate(
+        context: Context,
         fragmentManager: FragmentManager,
         app: AppEntry,
         config: LauncherConfig,
@@ -52,12 +58,13 @@ object AppLockGate {
 
         if (needsAppUnlock) {
             prompt(
+                context = context,
                 fragmentManager = fragmentManager,
                 app = app,
                 credential = config.appLock,
                 scope = LockSecurity.SCOPE_APP,
-                title = "App Locked",
-                subtitlePrefix = "Enter PIN/Password to launch",
+                titleRes = R.string.lock_title_app,
+                subtitleRes = R.string.lock_subtitle_app,
                 onProceed = onProceed,
             )
             return Result.PROMPTED
@@ -70,12 +77,13 @@ object AppLockGate {
 
         if (needsVaultUnlock) {
             prompt(
+                context = context,
                 fragmentManager = fragmentManager,
                 app = app,
                 credential = config.hiddenAppsLock,
                 scope = LockSecurity.SCOPE_VAULT,
-                title = "Hidden App",
-                subtitlePrefix = "Enter vault credential to launch",
+                titleRes = R.string.lock_title_hidden,
+                subtitleRes = R.string.lock_subtitle_hidden,
                 onProceed = onProceed,
             )
             return Result.PROMPTED
@@ -90,17 +98,18 @@ object AppLockGate {
     }
 
     private fun prompt(
+        context: Context,
         fragmentManager: FragmentManager,
         app: AppEntry,
         credential: LockCredential,
         scope: String,
-        title: String,
-        subtitlePrefix: String,
+        @StringRes titleRes: Int,
+        @StringRes subtitleRes: Int,
         onProceed: () -> Unit,
     ) {
         PinEntryDialogFragment.newInstance(
-            title = title,
-            subtitle = "$subtitlePrefix ${app.label}",
+            title = context.getString(titleRes),
+            subtitle = context.getString(subtitleRes, app.label),
             credential = credential,
             isCancelable = true,
             lockScope = scope,

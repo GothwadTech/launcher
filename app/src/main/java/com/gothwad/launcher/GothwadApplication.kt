@@ -5,13 +5,13 @@ import android.app.Application
 import android.app.PendingIntent
 import android.content.ComponentCallbacks2
 import android.content.Context
-import android.content.Intent
 import android.os.Build
 import android.os.SystemClock
 import android.util.Log
 import com.gothwad.launcher.data.AppLaunchTracker
 import com.gothwad.launcher.data.ProcessHeartbeat
 import com.gothwad.launcher.data.SelfHealGuard
+import com.gothwad.launcher.service.LauncherAccessibilityService
 import com.gothwad.launcher.service.LauncherWatchdogService
 import java.io.File
 import java.io.PrintWriter
@@ -94,21 +94,20 @@ class GothwadApplication : Application() {
 
     private fun scheduleEmergencyRelaunch() {
         runCatching {
-            val intent = Intent(this, MainActivity::class.java).apply {
-                action = Intent.ACTION_MAIN
-                addCategory(Intent.CATEGORY_HOME)
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED or
-                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
-            }
+            // Same intent every other recovery path uses (single definition, no drift).
+            val intent = LauncherAccessibilityService.homeIntent(this)
 
             val pendingIntent = PendingIntent.getActivity(
                 this,
                 RELAUNCH_REQUEST_CODE,
                 intent,
-                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+                // FLAG_IMMUTABLE only exists from API 23 and minSdk is 21.
+                PendingIntent.FLAG_UPDATE_CURRENT or
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        PendingIntent.FLAG_IMMUTABLE
+                    } else {
+                        0
+                    },
             )
 
             val alarmManager = getSystemService(Context.ALARM_SERVICE) as? AlarmManager

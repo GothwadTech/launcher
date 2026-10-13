@@ -19,7 +19,12 @@ android {
 
     // Release signing key, supplied by CI via environment variables (from GitHub
     // secrets). Absent locally and on F-Droid, so this config stays inert there.
-    val ciKeystore = System.getenv("KEYSTORE_FILE")
+    //
+    // Read through `providers.environmentVariable` rather than `System.getenv`: gradle.properties
+    // turns the configuration cache on, and only the provider API registers the variable as a
+    // configuration input. With System.getenv a cached configuration could keep signing with a
+    // stale (or absent) keystore after the environment changed.
+    val ciKeystore = providers.environmentVariable("KEYSTORE_FILE").orNull
     signingConfigs {
         create("debugConfig") {
             val rootKey = file("${rootDir}/debug.keystore")
@@ -32,9 +37,9 @@ android {
         if (ciKeystore != null) {
             create("ci") {
                 storeFile = file(ciKeystore)
-                storePassword = System.getenv("KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("KEY_ALIAS")
-                keyPassword = System.getenv("KEY_PASSWORD")
+                storePassword = providers.environmentVariable("KEYSTORE_PASSWORD").orNull
+                keyAlias = providers.environmentVariable("KEY_ALIAS").orNull
+                keyPassword = providers.environmentVariable("KEY_PASSWORD").orNull
             }
         }
     }
@@ -53,7 +58,9 @@ android {
             //  • otherwise (incl. F-Droid)   → UNSIGNED; F-Droid signs with its own key.
             signingConfig = when {
                 ciKeystore != null -> signingConfigs.getByName("ci")
-                project.hasProperty("localSign") -> signingConfigs.getByName("debug")
+                // "debugConfig" (not AGP's built-in "debug") so -PlocalSign honours a
+                // repo-root debug.keystore the same way the debug build type does.
+                project.hasProperty("localSign") -> signingConfigs.getByName("debugConfig")
                 else -> null
             }
         }
@@ -92,8 +99,18 @@ android {
         viewBinding = true
     }
     lint {
+        // Kept non-fatal on purpose: the baseline is not clean yet, and CI runs `lintDebug`
+        // as its own step and uploads the report. Flip abortOnError to true (or add a
+        // lint-baseline.xml) once the outstanding warnings are fixed - see docs/CI_RELEASE.md.
         abortOnError = false
         checkReleaseBuilds = false
+    }
+
+    testOptions {
+        // The JVM unit tests cover pure logic (config JSON, credential hashing). Returning
+        // default values instead of throwing keeps an incidental android.util.Log or similar
+        // framework call from failing an otherwise valid test.
+        unitTests.isReturnDefaultValues = true
     }
 }
 

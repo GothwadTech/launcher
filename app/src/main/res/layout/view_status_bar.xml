@@ -51,8 +51,9 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"
-        android:layout_centerVertical="true"
         android:background="@drawable/bg_glass_cluster"
+        android:contentDescription="@string/cd_quick_dashboard"
+        android:focusable="true"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingHorizontal="14dp"
@@ -116,7 +117,11 @@
                 android:contentDescription="@string/cd_notifications"
                 android:padding="7dp" />
 
-            <!-- Red Dot when notifications present -->
+            <!-- Red Dot when notifications present.
+                 Must be a solid shape: the previous @drawable/bg_status_icon_button is a
+                 *selector* whose default state is a fully transparent oval, and
+                 backgroundTint (SRC_IN) over a transparent pixel stays transparent, so the
+                 badge was never visible. bg_circle_badge is a solid oval that tints cleanly. -->
             <View
                 android:id="@+id/view_notification_dot"
                 android:layout_width="8dp"
@@ -124,7 +129,7 @@
                 android:layout_gravity="top|end"
                 android:layout_marginTop="4dp"
                 android:layout_marginEnd="4dp"
-                android:background="@drawable/bg_status_icon_button"
+                android:background="@drawable/bg_circle_badge"
                 android:backgroundTint="@color/status_notification_badge"
                 android:visibility="gone" />
         </FrameLayout>

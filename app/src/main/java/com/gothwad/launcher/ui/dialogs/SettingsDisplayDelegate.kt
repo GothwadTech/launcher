@@ -2,9 +2,12 @@ package com.gothwad.launcher.ui.dialogs
 
 import android.graphics.Color
 import androidx.lifecycle.lifecycleScope
+import com.gothwad.launcher.Actions
+import com.gothwad.launcher.R
 import com.gothwad.launcher.data.CORNER_RADII
 import com.gothwad.launcher.data.ConfigStore
 import com.gothwad.launcher.data.LauncherConfig
+import com.gothwad.launcher.data.UI_SCALES
 import com.gothwad.launcher.databinding.SheetSettingsBinding
 import com.gothwad.launcher.ui.DensityAdapter
 import kotlinx.coroutines.launch
@@ -93,6 +96,19 @@ class SettingsDisplayDelegate(
                     updateConfig(newConfig)
                     highlightSelectedScale(scaleIdx)
                     updateSubtitles()
+
+                    // Actually apply it. Persisting alone used to leave this control a no-op:
+                    // density is baked into every view at inflate time, so the host activity
+                    // has to be recreated for the new scale to reach the whole UI. The sheet
+                    // dismisses itself on recreation (see SettingsBottomSheetFragment).
+                    val multiplier = UI_SCALES.getOrElse(scaleIdx) { 1.0f }
+                    val context = fragment.requireContext()
+                    if (DensityAdapter.setUiScale(context, multiplier)) {
+                        runCatching { DensityAdapter.apply(context) }
+                        val activity = fragment.requireActivity()
+                        Actions.toast(context, context.getString(R.string.toast_ui_scale_applied))
+                        activity.recreate()
+                    }
                 }
             }
         }
@@ -105,7 +121,7 @@ class SettingsDisplayDelegate(
                 store.update { it.copy(respectSystemFontScale = newVal) }
                 val newConfig = getConfig().copy(respectSystemFontScale = newVal)
                 updateConfig(newConfig)
-                DensityAdapter.respectSystemFontScale = newVal
+                DensityAdapter.setRespectSystemFontScale(fragment.requireContext(), newVal)
                 runCatching { DensityAdapter.apply(fragment.requireContext()) }
                 updateSubtitles()
             }

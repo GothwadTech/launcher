@@ -9,12 +9,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.BufferedReader
 import java.io.File
 import java.io.FileOutputStream
-import java.io.InputStreamReader
 import java.net.HttpURLConnection
+import java.net.URI
 import java.net.URL
+import java.util.concurrent.TimeUnit
 
 data class GitHubReleaseInfo(
     val tagName: String,
@@ -44,19 +44,72 @@ object AppUpdateManager {
     private const val GITHUB_REPO = "launcher"
     private const val RELEASES_API_URL = "https://api.github.com/repos/$GITHUB_OWNER/$GITHUB_REPO/releases/latest"
 
+    private const val USER_AGENT = "GothwadLauncher-AndroidTV"
+    private const val CONNECT_TIMEOUT_MS = 15_000
+    private const val READ_TIMEOUT_MS = 30_000
+    private const val MAX_REDIRECTS = 5
+
+    /**
+     * A shelled-out `su` can block for as long as a root prompt waits for the user, so every
+     * subprocess gets a hard deadline instead of an unbounded `waitFor()`.
+     */
+    private const val SHELL_TIMEOUT_MS = 8_000L
+
+    /** How this device is able to install a downloaded update. */
+    enum class InstallCapability { ROOT_SHELL, PACKAGE_INSTALLER, NEEDS_PERMISSION }
+
     /**
      * Checks if current app has root or local shell execution ability.
      * On TVs rooted or running local adb port / test-keys / su, commands succeed.
      */
-    fun hasRootOrAdbShell(): Boolean {
+    fun hasRootOrAdbShell(): Boolean =
+        runShell(arrayOf("su", "-c", "id"))?.first == 0
+
+    /**
+     * Runs [command] with merged stdout/stderr and a hard timeout.
+     *
+     * @return exit code to output, or null when the command could not run or timed out.
+     */
+    private fun runShell(command: Array<String>): Pair<Int, String>? {
+        var process: Process? = null
         return try {
-            val p = Runtime.getRuntime().exec(arrayOf("su", "-c", "id"))
-            val exit = p.waitFor()
-            exit == 0
+            process = ProcessBuilder(*command).redirectErrorStream(true).start()
+            // Drain the single merged stream first: reading stdout to EOF and *then* waiting is
+            // what avoids the classic full-pipe deadlock.
+            val output = process.inputStream.bufferedReader().use { it.readText() }
+            val finished = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                process.waitFor(SHELL_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+            } else {
+                process.waitFor()
+                true
+            }
+            if (!finished) {
+                process.destroy()
+                null
+            } else {
+                process.exitValue() to output
+            }
         } catch (_: Exception) {
-            false
+            null
+        } finally {
+            runCatching { process?.destroy() }
         }
     }
+
+    /**
+     * Resolves how this device can install an update, off the main thread.
+     *
+     * `hasRootOrAdbShell()` shells out to `su`; the Settings sheet used to call it directly on
+     * the UI thread, which hangs (ANR) on any box where `su` exists and shows a prompt.
+     */
+    suspend fun detectInstallCapability(context: Context): InstallCapability =
+        withContext(Dispatchers.IO) {
+            when {
+                hasRootOrAdbShell() -> InstallCapability.ROOT_SHELL
+                canRequestPackageInstalls(context) -> InstallCapability.PACKAGE_INSTALLER
+                else -> InstallCapability.NEEDS_PERMISSION
+            }
+        }
 
     /**
      * Checks if can install packages directly via normal package installer
@@ -73,21 +126,19 @@ object AppUpdateManager {
      * Fetches the latest release details from GitHub API for GothwadTech/launcher
      */
     suspend fun checkLatestRelease(currentVersionName: String): UpdateCheckResult = withContext(Dispatchers.IO) {
+        var conn: HttpURLConnection? = null
         try {
-            val url = URL(RELEASES_API_URL)
-            val conn = url.openConnection() as HttpURLConnection
-            conn.connectTimeout = 12000
-            conn.readTimeout = 12000
+            conn = URL(RELEASES_API_URL).openConnection() as HttpURLConnection
+            conn.connectTimeout = CONNECT_TIMEOUT_MS
+            conn.readTimeout = READ_TIMEOUT_MS
             conn.setRequestProperty("Accept", "application/vnd.github.v3+json")
-            conn.setRequestProperty("User-Agent", "GothwadLauncher-AndroidTV")
+            conn.setRequestProperty("User-Agent", USER_AGENT)
 
             if (conn.responseCode != 200) {
                 return@withContext UpdateCheckResult.Error("GitHub response error (${conn.responseCode}): ${conn.responseMessage}")
             }
 
-            val reader = BufferedReader(InputStreamReader(conn.inputStream))
-            val jsonStr = reader.readText()
-            reader.close()
+            val jsonStr = conn.inputStream.bufferedReader().use { it.readText() }
 
             val root = JSONObject(jsonStr)
             val tagName = root.optString("tag_name", "")
@@ -136,11 +187,14 @@ object AppUpdateManager {
             }
         } catch (e: Exception) {
             UpdateCheckResult.Error("Failed to check update: ${e.localizedMessage ?: e.javaClass.simpleName}")
+        } finally {
+            runCatching { conn?.disconnect() }
         }
     }
 
     /**
-     * Download the APK to the application cache updates directory
+     * Downloads the APK into the application cache `updates/` directory (the path exposed by
+     * `res/xml/file_paths.xml` for the FileProvider install intent).
      */
     suspend fun downloadApk(
         context: Context,
@@ -148,6 +202,7 @@ object AppUpdateManager {
         targetFileName: String,
         onProgress: (Int) -> Unit
     ): Result<File> = withContext(Dispatchers.IO) {
+        var conn: HttpURLConnection? = null
         try {
             val updateDir = File(context.cacheDir, "updates")
             if (!updateDir.exists()) updateDir.mkdirs()
@@ -155,86 +210,116 @@ object AppUpdateManager {
             val outFile = File(updateDir, targetFileName)
             if (outFile.exists()) outFile.delete()
 
-            val url = URL(downloadUrl)
-            val conn = url.openConnection() as HttpURLConnection
-            conn.connectTimeout = 15000
-            conn.readTimeout = 30000
-            conn.instanceFollowRedirects = true
-            conn.setRequestProperty("User-Agent", "GothwadLauncher-AndroidTV")
+            conn = openFollowingRedirects(downloadUrl)
+                ?: return@withContext Result.failure(
+                    IllegalArgumentException("Refusing to download from: $downloadUrl")
+                )
 
-            var responseCode = conn.responseCode
-            var finalConn = conn
-            if (responseCode == HttpURLConnection.HTTP_MOVED_TEMP || responseCode == HttpURLConnection.HTTP_MOVED_PERM || responseCode == 307 || responseCode == 308) {
-                val redirectUrl = conn.getHeaderField("Location")
-                val redUrl = URL(redirectUrl)
-                finalConn = redUrl.openConnection() as HttpURLConnection
-                finalConn.connectTimeout = 15000
-                finalConn.readTimeout = 30000
-                finalConn.setRequestProperty("User-Agent", "GothwadLauncher-AndroidTV")
+            val code = conn.responseCode
+            if (code !in 200..299) {
+                return@withContext Result.failure(
+                    IllegalStateException("Download failed with HTTP $code")
+                )
             }
 
-            val fileLength = finalConn.contentLength
-            val input = finalConn.inputStream
-            val output = FileOutputStream(outFile)
+            val fileLength = conn.contentLength
+            var lastReported = -1
 
-            val buffer = ByteArray(8192)
-            var total: Long = 0
-            var count: Int
+            conn.inputStream.use { input ->
+                FileOutputStream(outFile).use { output ->
+                    val buffer = ByteArray(8192)
+                    var total = 0L
+                    while (true) {
+                        val count = input.read(buffer)
+                        if (count == -1) break
+                        total += count
+                        output.write(buffer, 0, count)
 
-            while (input.read(buffer).also { count = it } != -1) {
-                total += count
-                if (fileLength > 0) {
-                    val progress = ((total * 100) / fileLength).toInt()
-                    withContext(Dispatchers.Main) {
-                        onProgress(progress)
+                        if (fileLength > 0) {
+                            val progress = ((total * 100) / fileLength).toInt().coerceIn(0, 100)
+                            // One main-thread hop per percent instead of one per 8 KB chunk.
+                            if (progress != lastReported) {
+                                lastReported = progress
+                                withContext(Dispatchers.Main) { onProgress(progress) }
+                            }
+                        }
                     }
+                    output.flush()
                 }
-                output.write(buffer, 0, count)
             }
-
-            output.flush()
-            output.close()
-            input.close()
 
             Result.success(outFile)
         } catch (e: Exception) {
             Result.failure(e)
+        } finally {
+            runCatching { conn?.disconnect() }
         }
     }
 
     /**
-     * Tries silent self-installation via ADB shell / root command.
-     * Commands: pm install -r <apkPath>
+     * Opens [url], following up to [MAX_REDIRECTS] hops manually.
+     *
+     * `HttpURLConnection.instanceFollowRedirects` does not cross hosts, and GitHub release
+     * assets redirect from github.com to a signed objects.githubusercontent.com URL, so the hop
+     * has to be handled here. Only http(s) targets are followed: anything else (`file:`,
+     * `content:`, `jar:`) is rejected instead of opened, because what comes back is handed to a
+     * package installer.
+     */
+    private fun openFollowingRedirects(url: String): HttpURLConnection? {
+        var current = url
+        repeat(MAX_REDIRECTS) {
+            val scheme = runCatching { URI(current).scheme?.lowercase() }.getOrNull()
+            if (scheme != "https" && scheme != "http") return null
+
+            val conn = URL(current).openConnection() as HttpURLConnection
+            conn.connectTimeout = CONNECT_TIMEOUT_MS
+            conn.readTimeout = READ_TIMEOUT_MS
+            conn.instanceFollowRedirects = false
+            conn.setRequestProperty("User-Agent", USER_AGENT)
+
+            val code = runCatching { conn.responseCode }.getOrDefault(-1)
+            if (code in 300..399) {
+                val location = conn.getHeaderField("Location")
+                conn.disconnect()
+                if (location.isNullOrEmpty()) return null
+                current = URL(URL(current), location).toString()
+                return@repeat
+            }
+            return conn
+        }
+        return null
+    }
+
+    /**
+     * Tries a silent self-install through root / a local shell (`pm install -r <apk>`).
+     *
+     * Every command is bounded by [SHELL_TIMEOUT_MS]; an unrooted box where `su` exists but
+     * waits for a user prompt used to block here forever.
      */
     suspend fun installViaAdbShell(apkFile: File): InstallResult = withContext(Dispatchers.IO) {
         try {
-            // Make file world readable so shell / pm process can read it
+            // Make the file readable by the shell / pm process performing the install.
             apkFile.setReadable(true, false)
 
+            val path = apkFile.absolutePath
             val commands = listOf(
-                arrayOf("su", "-c", "pm install -r \"${apkFile.absolutePath}\""),
-                arrayOf("sh", "-c", "pm install -r \"${apkFile.absolutePath}\""),
-                arrayOf("pm", "install", "-r", apkFile.absolutePath)
+                arrayOf("su", "-c", "pm install -r \"$path\""),
+                arrayOf("sh", "-c", "pm install -r \"$path\""),
+                arrayOf("pm", "install", "-r", path),
             )
 
             var lastError = "No command succeeded"
             for (cmd in commands) {
-                try {
-                    val proc = Runtime.getRuntime().exec(cmd)
-                    val reader = BufferedReader(InputStreamReader(proc.inputStream))
-                    val errReader = BufferedReader(InputStreamReader(proc.errorStream))
-                    val out = reader.readText()
-                    val err = errReader.readText()
-                    val exit = proc.waitFor()
-
-                    if (exit == 0 && (out.contains("Success", ignoreCase = true) || err.contains("Success", ignoreCase = true))) {
-                        return@withContext InstallResult.SuccessAdb
-                    } else {
-                        lastError = (out + " " + err).trim()
-                    }
-                } catch (e: Exception) {
-                    lastError = e.localizedMessage ?: "Command failed"
+                val result = runShell(cmd)
+                if (result == null) {
+                    lastError = "${cmd.first()} timed out or could not be executed"
+                    continue
                 }
+                val (exit, output) = result
+                if (exit == 0 && output.contains("Success", ignoreCase = true)) {
+                    return@withContext InstallResult.SuccessAdb
+                }
+                lastError = output.trim().ifEmpty { "exit code $exit" }
             }
 
             InstallResult.Error("ADB/Shell install not permitted on this TV: $lastError")

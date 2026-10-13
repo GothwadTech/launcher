@@ -117,14 +117,22 @@ class LauncherWatchdogService : Service() {
     }
 
     private fun relaunchLauncher(reason: String) {
+        // The user turned "launch on boot" off and we are not the default home app: a missing
+        // heartbeat then means "the launcher simply is not running", not "it crashed", and
+        // stealing the screen is exactly what the setting is supposed to prevent.
+        if (!ProcessHeartbeat.isRelaunchAllowed(applicationContext)) {
+            Log.i(TAG, "Skipping relaunch ($reason): the user disabled launcher auto-start.")
+            return
+        }
         if (!SelfHealGuard.shouldRelaunch(applicationContext)) {
             Log.w(TAG, "Skipping relaunch ($reason): self-healing is paused after repeated restarts.")
             return
         }
-        runCatching {
-            LauncherAccessibilityService.launchHome(applicationContext)
-        }.onFailure { e ->
-            Log.e(TAG, "Failed to relaunch launcher from watchdog", e)
+        // launchHomeCompat, not launchHome: this service is a background process, where a plain
+        // startActivity is dropped silently by Android 10+ background-activity-start rules.
+        val started = LauncherAccessibilityService.launchHomeCompat(applicationContext)
+        if (!started) {
+            Log.e(TAG, "Failed to relaunch launcher from watchdog ($reason)")
         }
     }
 

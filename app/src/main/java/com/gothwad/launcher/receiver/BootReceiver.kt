@@ -8,9 +8,11 @@ import com.gothwad.launcher.data.ConfigStore
 import com.gothwad.launcher.service.BootShieldService
 import com.gothwad.launcher.service.LauncherAccessibilityService
 import com.gothwad.launcher.service.LauncherWatchdogService
+import com.gothwad.launcher.service.StockLauncherDetector
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -55,7 +57,8 @@ class BootReceiver : BroadcastReceiver() {
         // 2. Respect the user's "Launch on boot" preference (default: on, discoverable in
         //    Settings > Apps; the shield is what keeps OEM boot ads off the screen).
         val pendingResult = goAsync()
-        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val job = SupervisorJob()
+        val scope = CoroutineScope(job + Dispatchers.Default)
         scope.launch {
             try {
                 val config = runCatching { ConfigStore(context).flow.first() }.getOrNull()
@@ -65,7 +68,7 @@ class BootReceiver : BroadcastReceiver() {
                     BootShieldService.start(context)
                 } else {
                     Log.i(TAG, "launchOnBoot disabled - only launching Home if we are the default HOME app")
-                    if (isDefaultHomeApp(context)) {
+                    if (StockLauncherDetector.isDefaultHomeApp(context)) {
                         LauncherAccessibilityService.launchHomeWithRetry(context, maxAttempts = 2)
                     }
                 }
@@ -73,17 +76,11 @@ class BootReceiver : BroadcastReceiver() {
                 Log.e(TAG, "Error while starting boot handling", e)
             } finally {
                 pendingResult.finish()
+                // The scope only ever runs this one job; cancel it so the SupervisorJob and the
+                // Default-dispatcher thread it holds are released instead of leaking per boot.
+                job.cancel()
             }
         }
-    }
-
-    /** True when this package currently resolves as the system HOME app. */
-    private fun isDefaultHomeApp(context: Context): Boolean {
-        return runCatching {
-            val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
-            val resolve = context.packageManager.resolveActivity(intent, 0)
-            resolve?.activityInfo?.packageName == context.packageName
-        }.getOrDefault(false)
     }
 
     companion object {

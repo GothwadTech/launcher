@@ -9,6 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.DialogFragment
 import com.gothwad.launcher.Actions
+import com.gothwad.launcher.R
 import com.gothwad.launcher.data.BluetoothDeviceStatus
 import com.gothwad.launcher.data.NetStatus
 import com.gothwad.launcher.data.TvControlHelper
@@ -73,8 +74,18 @@ class QuickDashboardDialogFragment : DialogFragment() {
         val netIconPath = if (netStatus.wifi) AppIcons.PATH_WIFI else if (netStatus.ethernet) AppIcons.PATH_ETHERNET else AppIcons.PATH_WIFI_OFF
         val netColor = if (isNetConnected) 0xFF81C784.toInt() else 0xFFE57373.toInt()
         binding.imgNetIcon.setImageDrawable(AppIcons.createDrawable(netIconPath, netColor))
-        binding.tvNetTitle.text = if (netStatus.wifi) "Wi-Fi" else if (netStatus.ethernet) "Ethernet" else "Offline"
-        binding.tvNetSub.text = if (netStatus.ssid.isNotEmpty()) netStatus.ssid else if (isNetConnected) "Connected" else "Disconnected"
+        binding.tvNetTitle.text = getString(
+            when {
+                netStatus.wifi -> R.string.dashboard_net_wifi
+                netStatus.ethernet -> R.string.dashboard_net_ethernet
+                else -> R.string.dashboard_net_offline
+            }
+        )
+        binding.tvNetSub.text = when {
+            netStatus.ssid.isNotEmpty() -> netStatus.ssid
+            isNetConnected -> getString(R.string.dashboard_net_connected)
+            else -> getString(R.string.dashboard_net_disconnected)
+        }
 
         binding.tileNetwork.setOnClickListener {
             Actions.openNetworkSettings(requireContext())
@@ -83,8 +94,8 @@ class QuickDashboardDialogFragment : DialogFragment() {
 
         // Home action
         binding.imgHomeIcon.setImageDrawable(AppIcons.createDrawable(AppIcons.PATH_HOME, 0xFF64B5F6.toInt()))
-        binding.tvHomeTitle.text = "Home"
-        binding.tvHomeSub.text = "Return Home"
+        binding.tvHomeTitle.text = getString(R.string.dashboard_home_title)
+        binding.tvHomeSub.text = getString(R.string.dashboard_home_subtitle)
 
         binding.tileHome.setOnClickListener {
             dismiss()

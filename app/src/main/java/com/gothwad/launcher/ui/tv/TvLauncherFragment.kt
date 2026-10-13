@@ -1,6 +1,7 @@
 package com.gothwad.launcher.ui.tv
 
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
@@ -26,6 +27,8 @@ import com.gothwad.launcher.data.LauncherConfig
 import com.gothwad.launcher.databinding.FragmentTvLauncherBinding
 import com.gothwad.launcher.ui.ACCENTS
 import com.gothwad.launcher.ui.AppLockGate
+import com.gothwad.launcher.ui.DEFAULT_WALLPAPER_INDEX
+import com.gothwad.launcher.ui.DensityAdapter
 import com.gothwad.launcher.ui.WALLPAPERS
 import com.gothwad.launcher.ui.dialogs.SetupWizardDialogFragment
 import com.gothwad.launcher.ui.view.AppCardAdapter
@@ -51,6 +54,17 @@ class TvLauncherFragment : Fragment() {
 
     /** Guards against re-showing the first-run wizard on every config emission. */
     private var wizardShownThisView: Boolean = false
+
+    /** False until the first package scan completed, so early config emissions cannot blank the grid. */
+    private var hasLoadedApps: Boolean = false
+
+    /**
+     * Identifies the wallpaper currently drawn ("preset:<index>" or
+     * "custom:<size>:<modified>"). The config flow re-emits on every settings change; without
+     * this guard each emission re-decoded the custom wallpaper and left the previous bitmap to
+     * the GC - an easy OOM on a 2 GB TV box.
+     */
+    private var appliedWallpaperKey: String? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -129,12 +143,14 @@ class TvLauncherFragment : Fragment() {
 
     private fun handleAppLaunch(app: AppEntry) {
         // App lock & hidden vault gate
+        val context = requireContext()
         AppLockGate.evaluate(
+            context = context,
             fragmentManager = parentFragmentManager,
             app = app,
             config = currentConfig,
         ) {
-            Actions.launchApp(requireContext(), app.pkg)
+            Actions.launchApp(context, app.pkg)
         }
     }
 
@@ -183,53 +199,89 @@ class TvLauncherFragment : Fragment() {
     }
 
     /**
-     * Applies the configured wallpaper.
+     * Applies the configured wallpaper and scrim.
+     *
+     * Cheap and idempotent: the bitmap is only re-decoded when the source actually changed
+     * (see [appliedWallpaperKey]), and it is decoded down-sampled to the physical screen size
+     * instead of at the camera's full resolution.
      */
     fun applyWallpaper() {
         val viewBinding = _binding ?: return
         if (!isAdded) return
+        val appContext = requireContext().applicationContext
+        val config = currentConfig
+
         viewLifecycleOwner.lifecycleScope.launch {
-            if (currentConfig.useCustomWallpaper) {
-                val file = File(requireContext().filesDir, "wallpaper.jpg")
-                if (file.exists()) {
+            val customFile = File(appContext.filesDir, WALLPAPER_FILE)
+            val wantsCustom = config.useCustomWallpaper && customFile.exists()
+            val key = if (wantsCustom) {
+                "custom:${customFile.length()}:${customFile.lastModified()}"
+            } else {
+                "preset:${config.wallpaper}"
+            }
+
+            if (key != appliedWallpaperKey) {
+                if (wantsCustom) {
+                    val (screenW, screenH) = DensityAdapter.getRealScreenSize(appContext)
                     val bmp = withContext(Dispatchers.IO) {
-                        BitmapFactory.decodeFile(file.absolutePath)
+                        decodeSampledWallpaper(customFile, screenW, screenH)
                     }
                     if (bmp != null) {
                         viewBinding.imgWallpaper.setImageBitmap(bmp)
                         viewBinding.imgWallpaper.visibility = View.VISIBLE
+                        appliedWallpaperKey = key
                     }
-                }
-            } else {
-                val preset = WALLPAPERS.getOrElse(currentConfig.wallpaper.coerceIn(0, WALLPAPERS.size - 1)) { WALLPAPERS[0] }
-                val colors = preset.colors.toIntArray()
-
-                val gradient = GradientDrawable(GradientDrawable.Orientation.TL_BR, colors)
-                viewBinding.imgWallpaper.setImageDrawable(gradient)
-                viewBinding.imgWallpaper.visibility = View.VISIBLE
-            }
-
-            // Scrim mode: 0 = top & bottom, 1 = top, 2 = bottom, 3 = both, 4 = off
-            when (currentConfig.scrimMode) {
-                0, 3 -> {
-                    viewBinding.viewScrimTop.visibility = View.VISIBLE
-                    viewBinding.viewScrimBottom.visibility = View.VISIBLE
-                }
-                1 -> {
-                    viewBinding.viewScrimTop.visibility = View.VISIBLE
-                    viewBinding.viewScrimBottom.visibility = View.GONE
-                }
-                2 -> {
-                    viewBinding.viewScrimTop.visibility = View.GONE
-                    viewBinding.viewScrimBottom.visibility = View.VISIBLE
-                }
-                else -> {
-                    viewBinding.viewScrimTop.visibility = View.GONE
-                    viewBinding.viewScrimBottom.visibility = View.GONE
+                } else {
+                    // Also the fallback when a custom wallpaper is configured but its file is
+                    // gone (cache clear / failed pick) - better a preset than a black screen.
+                    val preset = WALLPAPERS.getOrElse(
+                        config.wallpaper.coerceIn(0, WALLPAPERS.size - 1)
+                    ) { WALLPAPERS[DEFAULT_WALLPAPER_INDEX] }
+                    viewBinding.imgWallpaper.setImageDrawable(
+                        GradientDrawable(
+                            GradientDrawable.Orientation.TL_BR,
+                            preset.colors.toIntArray(),
+                        )
+                    )
+                    viewBinding.imgWallpaper.visibility = View.VISIBLE
+                    appliedWallpaperKey = key
                 }
             }
+
+            // Scrim mode: 0 = full screen, 1 = top edge, 2 = bottom edge, 3 = both edges, 4 = off.
+            // Mode 0 used to be documented (and advertised in Settings) as "Full Screen Scrim"
+            // while drawing exactly the same top+bottom edges as mode 3.
+            val full = config.scrimMode == 0
+            val top = config.scrimMode == 0 || config.scrimMode == 1 || config.scrimMode == 3
+            val bottom = config.scrimMode == 0 || config.scrimMode == 2 || config.scrimMode == 3
+            viewBinding.viewScrimFull.visibility = if (full) View.VISIBLE else View.GONE
+            viewBinding.viewScrimTop.visibility = if (top) View.VISIBLE else View.GONE
+            viewBinding.viewScrimBottom.visibility = if (bottom) View.VISIBLE else View.GONE
         }
     }
+
+    /**
+     * Decodes [file] at most as large as the screen, halving the sample size until the result
+     * would be smaller than the target. Keeps a 4000x3000 phone photo at ~2 MP instead of 12 MP.
+     */
+    private fun decodeSampledWallpaper(file: File, reqWidth: Int, reqHeight: Int): Bitmap? =
+        runCatching {
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeFile(file.absolutePath, bounds)
+
+            var sample = 1
+            if (bounds.outWidth > 0 && bounds.outHeight > 0 && reqWidth > 0 && reqHeight > 0) {
+                while (bounds.outWidth / (sample * 2) >= reqWidth &&
+                    bounds.outHeight / (sample * 2) >= reqHeight
+                ) {
+                    sample *= 2
+                }
+            }
+            BitmapFactory.decodeFile(
+                file.absolutePath,
+                BitmapFactory.Options().apply { inSampleSize = sample },
+            )
+        }.getOrNull()
 
     fun onRescanRequested() {
         if (_binding == null || !isAdded) return
@@ -239,7 +291,10 @@ class TvLauncherFragment : Fragment() {
     }
 
     private suspend fun loadApps() {
-        allApps = AppRepository.scan(requireContext())
+        val context = requireContext().applicationContext
+        // scan() pins itself to Dispatchers.IO; the fragment only touches the result.
+        allApps = AppRepository.scan(context)
+        hasLoadedApps = true
         rebuildAppList()
     }
 
@@ -264,7 +319,10 @@ class TvLauncherFragment : Fragment() {
     }
 
     private fun rebuildAppList() {
-        if (allApps.isEmpty()) return
+        // Skip only the emissions that arrive *before* the first scan. An empty list after a
+        // scan is a real state (everything hidden / uninstalled) and has to clear the grid -
+        // the old `if (allApps.isEmpty()) return` left stale tiles on screen.
+        if (!hasLoadedApps) return
 
         val visible = if (currentConfig.showHidden) allApps else allApps.filter { it.pkg !in currentConfig.hidden }
         val ordered = if (currentConfig.order.isNotEmpty()) {
@@ -290,5 +348,10 @@ class TvLauncherFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    private companion object {
+        /** File name the Settings photo picker writes the custom wallpaper to. */
+        const val WALLPAPER_FILE = "wallpaper.jpg"
     }
 }

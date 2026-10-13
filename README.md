@@ -29,7 +29,8 @@
 ### 🎬 Wallpapers
 - Five built-in gradient presets (Midnight, Aurora, Sunset, Deep, Charcoal) plus custom
   wallpapers picked through the Storage Access Framework.
-- Three scrim modes (top, bottom, both) so text and tiles stay readable over bright images.
+- Five scrim modes (full, top only, bottom only, both edges, none) so text and tiles stay
+  readable over bright images.
 - Background-media awareness: when another app is playing audio, the launcher shows what is
   playing and can silence stock boot-ad audio while the boot shield is active.
 
@@ -38,8 +39,11 @@
 - Voice search modal with direct voice recognition support (`RecognizerIntent`).
 
 ### 🌤️ Quick Dashboard
+- Opened by selecting the **clock cluster** in the status bar.
 - One-panel overview: Wi-Fi/network status, Bluetooth remote state and battery (when the
   remote reports it), volume/mute control and shortcuts into the relevant system settings.
+- Bluetooth details are requested at the moment you look at them (`BLUETOOTH_CONNECT` on
+  Android 12+); if you decline, the panel says *unknown* rather than inventing a value.
 - No location access, no weather service — the launcher requests neither.
 
 ### 🔒 Privacy & App Security
@@ -49,6 +53,14 @@
 - The vault is enforced by the accessibility service too, so hidden apps cannot be opened
   from another launcher, the recents switcher or notifications while locked.
 - `allowBackup=false`: config and credentials never leave the device through backups.
+
+### 📐 Display & scaling
+- Density is derived from a 960 dp design width instead of trusting the firmware's reported
+  DPI, which on TV boxes is often nonsense.
+- **UI Scale** (0.75×–1.3×) and corner radius are user settings; the system font scale is
+  honoured (clamped 0.85–1.30) or pinned to 1.0×, your choice.
+- The scale is mirrored into a small SharedPreferences so the first frame after a cold start
+  is already correct — the DataStore config arrives too late for that.
 
 ### ⚡ Performance & Optimization
 - Crash/ANR self-healing: a file-backed heartbeat plus a `:watchdog` process, with a
@@ -78,7 +90,7 @@
 - **Performance:** AndroidX ProfileInstaller with a starter baseline profile
   (regeneration guide: `docs/baseline-profile.md`)
 - **Build:** AGP 8.5.2 + Gradle 8.10.2 (wrapper pinned), JDK 17, R8 full mode
-- **Tests:** JVM unit tests for the grid rules, config JSON round-trip and credential hashing
+- **Tests:** JVM unit tests for config JSON decoding and credential hashing/verification
   (`./gradlew :app:testDebugUnitTest`)
 
 ---
@@ -114,14 +126,44 @@
 
 ## 🤖 CI / CD (GitHub Actions)
 
-This repository includes automated workflows in `.github/workflows/`:
-- **`build_apk.yml`**: builds Debug + Release APKs and the Play Store AAB on every push to
-  `main` and on manual dispatch. It uploads them as **build artifacts only** — it does not
-  create tags or releases, so it can never collide with a release build.
-- **`release.yml`**: triggered by a `v*` **tag**. This is the only workflow that publishes a
-  GitHub Release (with the APKs/AAB attached).
-- Signing secrets are optional for ordinary builds: when they are missing the workflow
-  skips the export step instead of failing the run (forks/PRs stay green).
+Three workflows in `.github/workflows/`, with the shared logic in two composite actions
+(`resolve-version`, `prepare-signing`) so they cannot drift apart:
+
+| Workflow | Trigger | Does | Publishes |
+| --- | --- | --- | --- |
+| `ci.yml` | every **pull request**, push to `main`, manual | `assembleDebug` + `assembleRelease` (minified) + unit tests + lint | Debug APK and reports as run artifacts |
+| `release.yml` | tag `v*`, manual | build, sign, verify | **GitHub Release** — signed Release APK + Play Store AAB |
+| `build_apk.yml` | manual only | build whatever you ask for | Artifacts only, never a release |
+
+- `versionCode` is derived from the version name (`MAJOR*10000 + MINOR*100 + PATCH`), so it is
+  monotonic and two workflows cannot collide on a tag.
+- Gradle signs both artifacts (v1+v2+v3). Signing secrets are **required** for `release.yml` —
+  a missing keystore fails the job instead of publishing an unsigned "release"; they stay
+  optional for `build_apk.yml` so forks and PRs stay green.
+- The debug APK is attached to the *run*, not to the release: it is signed with a different key,
+  so installing it would block later upgrades.
+
+Full details — secrets, local signing, F-Droid reproducibility, cutting a release:
+[docs/CI_RELEASE.md](docs/CI_RELEASE.md).
+
+---
+
+## 📚 Documentation
+
+| | |
+| --- | --- |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Layers, process model, data flow, startup paths, invariants |
+| [docs/CONFIG.md](docs/CONFIG.md) | Every persisted setting: type, default, reader, writer |
+| [docs/SECURITY.md](docs/SECURITY.md) | Threat model, credential storage, lock enforcement, permissions |
+| [docs/PERFORMANCE.md](docs/PERFORMANCE.md) | Memory/startup budget, caching, the rules that keep a 2 GB box usable |
+| [docs/CI_RELEASE.md](docs/CI_RELEASE.md) | Workflows, secrets, signing, version policy |
+| [docs/TESTING.md](docs/TESTING.md) | What is covered, how to run it, what to add |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Device/OEM symptoms → cause → fix |
+| [docs/baseline-profile.md](docs/baseline-profile.md) | The shipped profile and how to regenerate it with Macrobenchmark |
+| [docs/I18N.md](docs/I18N.md) | String-extraction status and remaining inventory |
+| [docs/ISSUE_LOG.md](docs/ISSUE_LOG.md) | The `#NN` numbers referenced in code comments |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | Known remaining work and explicit non-goals |
+| [CONTRIBUTING.md](CONTRIBUTING.md) · [AGENTS.md](AGENTS.md) | Ground rules, PR checklist, code style |
 
 ---
 
