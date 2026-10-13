@@ -18,6 +18,24 @@ design. `:watchdog` gets what it needs from small files instead (`ProcessHeartbe
 
 ---
 
+## Migration
+
+| Field | Type / default | Notes |
+| --- | --- | --- |
+| `configVersion` | `Int` = `0` in a stored config that predates the marker, `CONFIG_VERSION` after a write | never read for behaviour, only to decide whether the *meaning* of a field changed |
+
+`normalizeConfig()` runs on every read (`ConfigStore.flow`) and every write (`ConfigStore.update`,
+which stamps the result with `CONFIG_VERSION`). A config without the marker is treated as legacy.
+
+**Version 1: `uiScale`.** The setting was stored, displayed and read back but *never applied*
+until the release that also moved its index base from `1..5` (`3 = 1.0x`) to today's `0..4`
+(`2 = 1.0x`). A legacy value therefore means "a number the user never saw rendered", and reading
+it under the new meaning would resize the whole UI by up to ±15% on every device that updates.
+`normalizeConfig()` resets it to `UI_SCALE_NEUTRAL_INDEX` (1.0x) once; values written after the
+update carry the marker and are honoured.
+
+---
+
 ## Fields
 
 Legend for the *UI* column: **W** = a settings screen writes it, **R** = something renders it.

@@ -11,6 +11,26 @@ is cut.
 
 ### Fixed — correctness & stability
 
+- **Cold-start crash on every device: the density mirror was read through `applicationContext`
+  while the `Application` was still being attached.** 1.0.79 added `hydrate()` to
+  `DensityAdapter.wrapContext()`, which `GothwadApplication.attachBaseContext()` calls, and the
+  prefs helper did `context.applicationContext.getSharedPreferences(...)`. Inside
+  `attachBaseContext()` that value is **null** by design - `LoadedApk.makeApplication()` assigns
+  `mApplication = app` only after `Instrumentation.newApplication()` (which is what calls
+  `attachBaseContext`) returns, and `ContextImpl.getApplicationContext()` is literally
+  `mPackageInfo.getApplication()` (verified in AOSP 5.1/9/11/14). Result: a `NullPointerException`
+  before the first frame, on every start, so the TV showed "Gothwad Launcher keeps stopping" over
+  a black screen. `prefs()` now uses the context it is given and returns null instead of throwing
+  (pre-unlock the `:watchdog` process cannot read credential-encrypted storage at all), and the
+  density entry points (`wrapContext`, `apply`, `init`) are best-effort: a density problem must
+  never make HOME unbootable. `tools/ktcheck.py` gained a check that follows the call chain from
+  `Application.attachBaseContext` and fails on this pattern.
+- **A pre-1.0.79 `uiScale` is no longer interpreted under the new meaning.** `uiScale` was stored,
+  shown and read back but never applied, and its index base was `1..5` with `3 = 1.0x` against
+  today's `0..4` with `2 = 1.0x`. Reading `3` under the new meaning would have rendered the whole
+  UI at 1.15x for every device that updates. `LauncherConfig.configVersion` + `normalizeConfig()`
+  reset such a config to the neutral step (1.0x) once; anything picked after the update is
+  stamped and kept. Unrelated fields are untouched.
 - **UI Scale now actually scales the UI.** The setting was stored and read back but never applied
   to anything; `DensityAdapter` now derives density from a 960 dp design width times the chosen
   scale, and the activity recreates when the effective scale changes. The default moved from index

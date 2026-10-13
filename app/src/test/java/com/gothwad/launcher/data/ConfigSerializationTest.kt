@@ -78,6 +78,47 @@ class ConfigSerializationTest {
         assertEquals(1.0f, UI_SCALES[LauncherConfig().uiScale], 0.0001f)
     }
 
+    /**
+     * A config written before 1.0.79 keeps the meaning it had: `uiScale` was stored and shown
+     * but never applied, and its index base was `1..5` (3 = "1.0x") against today's `0..4`
+     * (2 = 1.0x). Reading `3` under the new meaning would render the whole launcher at 1.15x
+     * on every device that updates, so such a config has to come back neutral.
+     */
+    @Test
+    fun `config from a build where uiScale did nothing is normalised to 1x`() {
+        val legacy = json.decodeFromString(
+            LauncherConfig.serializer(),
+            """{"uiScale":3,"wallpaper":2,"setupDone":true,"h24":true}""",
+        )
+        assertEquals(0, legacy.configVersion)
+
+        val normalised = normalizeConfig(legacy)
+
+        assertEquals(UI_SCALE_NEUTRAL_INDEX, normalised.uiScale)
+        assertEquals(1.0f, UI_SCALES[normalised.uiScale], 0.0001f)
+        assertEquals(CONFIG_VERSION, normalised.configVersion)
+        // Migration must not disturb anything else.
+        assertEquals(2, normalised.wallpaper)
+        assertTrue(normalised.setupDone)
+        assertTrue(normalised.h24)
+    }
+
+    /** A scale the user picked on a build that actually applies it survives normalisation. */
+    @Test
+    fun `ui scale chosen after the update is kept`() {
+        val stored = json.encodeToString(
+            LauncherConfig.serializer(),
+            normalizeConfig(LauncherConfig()).copy(uiScale = 4),
+        )
+
+        val normalised = normalizeConfig(
+            json.decodeFromString(LauncherConfig.serializer(), stored),
+        )
+
+        assertEquals(4, normalised.uiScale)
+        assertEquals(1.3f, UI_SCALES[normalised.uiScale], 0.0001f)
+    }
+
     @Test
     fun `unknown keys from a newer version do not break the config`() {
         val decoded = json.decodeFromString(

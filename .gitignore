@@ -27,6 +27,10 @@ app/build/
 # Misc
 /tmp/
 
+# Python bytecode (tools/)
+__pycache__/
+*.pyc
+
 # Session transcripts / exports
 pi-session-*.html
 *.session.html

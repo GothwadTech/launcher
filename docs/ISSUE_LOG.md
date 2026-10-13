@@ -55,6 +55,18 @@ exactly the numbers still (or formerly) quoted in the repository — `7, 15, 19,
 | `README.md` linked to a `docs/baseline-profile.md` that did not exist | P3 | written |
 | No `LICENSE` file, although the README declared Apache-2.0 | P2 | added (canonical Apache 2.0 text) |
 
+## Post-1.0.79 field crash (reported from a TV)
+
+| Finding | Severity | Fix |
+| --- | --- | --- |
+| `DensityAdapter.hydrate()` ran from `GothwadApplication.attachBaseContext()` (via `wrapContext`) and read `context.applicationContext.getSharedPreferences(...)`. `applicationContext` is `null` for the whole attach window (`LoadedApk.mApplication` is assigned only after `Instrumentation.newApplication()` returns), so **every** cold start died with a `NullPointerException` - as the default HOME app, that is a crash dialog over a black screen | P0 | `prefs()` uses the context it is given and returns null on failure; `wrapContext`/`apply`/`init` are best-effort and log instead of throwing; `tools/ktcheck.py` now follows the call chain from `Application.attachBaseContext` and fails on the pattern |
+
+Related, same update: `uiScale` written before 1.0.79 was stored in an index base (`1..5`,
+`3 = 1.0x`) that the now-working setting no longer uses (`0..4`, `2 = 1.0x`), so an untouched
+config would have resized the UI by 15% on first launch after the update.
+`LauncherConfig.configVersion` + `normalizeConfig()` now neutralise such a config once - see
+[CONFIG.md](CONFIG.md#migration).
+
 ## Deliberately *not* fixed (with reasons)
 
 | Finding | Decision |

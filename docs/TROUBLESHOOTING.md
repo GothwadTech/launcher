@@ -7,6 +7,42 @@ filing an issue — most "the launcher does X" reports are one of these.
 
 ## Boot & startup
 
+### "Gothwad Launcher keeps stopping" after an update, and the screen is black
+
+**Cause:** 1.0.79 read its own preferences from `applicationContext` while the `Application` was
+still being attached - where that value is `null` by design (the framework registers the
+Application only *after* `attachBaseContext()` returns). Every cold start died with a
+`NullPointerException` before the first frame; since the launcher is normally the default HOME
+app, the TV showed the crash dialog over a black screen. Fixed in the next release: `hydrate()`
+can no longer throw, and `wrapContext`/`apply`/`init` degrade to the firmware's density instead
+of killing the process.
+
+**Recovering the TV right now** (any one of these):
+
+1. **ADB** (Developer options → USB debugging is enough):
+   `adb install -r -d GothwadLauncher-v1.0.78-Release.apk`
+   - the previous build, from this project's GitHub releases. `-d` allows the downgrade.
+2. **Uninstall the update from the TV UI:** Settings → Apps → Gothwad Launcher → Uninstall (or
+   *Clear data*), then make sure a working launcher is selected in
+   Settings → Device Preferences → **Home screen**.
+3. **Install the fixed build** the same way (`adb install -r GothwadLauncher-v<newer>-Release.apk`)
+   - it keeps the settings, locks and hidden-app list.
+
+**Diagnosing it on the device:** the app's own `gothwad_crash.log` is written by
+`GothwadApplication.onCreate()`, which never runs when the crash is *before* it - so for this
+class of bug use `adb logcat -b crash` (or `adb logcat | grep -i "gothwad\\|AndroidRuntime"`).
+The launcher's crash dialog itself is the system's "keeps stopping" ANR/crash reporter, not ours.
+
+### "The UI got bigger/smaller by itself after updating to 1.0.79"
+
+**Cause:** the UI Scale setting did nothing before 1.0.79 (stored, displayed, never applied) and
+its index base moved from `1..5` (`3 = 1.0x`) to `0..4` (`2 = 1.0x`) in the release that made it
+work. An untouched old config therefore held `3`, which under the new meaning is `1.15x`.
+
+**Fix:** handled automatically since the next release (`configVersion` + `normalizeConfig()` reset
+a pre-1.0.79 value to the neutral 1.0x once). If you are on 1.0.79 itself: Settings → Display →
+**UI Scale** → pick `1.0x`.
+
 ### "An ad plays for ~90 seconds after every reboot"
 
 **Cause:** the stock launcher / a preinstalled promo app owns the screen during boot, and it is
