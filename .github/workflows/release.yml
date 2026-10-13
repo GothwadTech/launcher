@@ -1,8 +1,4 @@
-name: Release
-
-# Publishes signed artifacts to a GitHub Release.
-# Triggered by a version tag (v*) or manually. Compilation is verified on every PR by ci.yml;
-# this workflow is only about signing and publishing.
+name: Release to GitHub Releases
 
 on:
   push:
@@ -11,147 +7,175 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version name (e.g. 1.0.7 — empty = derive from the tag / run number)'
+        description: 'Version Name (e.g. 1.0.6 - leave empty for auto 1.0.X)'
         required: false
         default: ''
       version_code:
-        description: 'Version code (empty = MAJOR*10000 + MINOR*100 + PATCH)'
+        description: 'Version Code (Integer, e.g. 12 - leave blank for auto increment)'
         required: false
         default: ''
 
 permissions:
   contents: write
 
-concurrency:
-  group: release-${{ github.ref }}
-  cancel-in-progress: false
-
 jobs:
-  release:
-    name: Build, sign and publish
+  build_release:
+    name: Build & Publish Release
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v6
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: 'gradle'
 
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
+      - name: Validate and Prepare Gradle Wrapper
+        run: |
+          if [ ! -f "gradle/wrapper/gradle-wrapper.jar" ]; then
+            echo "gradle-wrapper.jar not found, generating wrapper..."
+            gradle wrapper --gradle-version 8.10.2 || true
+          fi
+          chmod +x ./gradlew
 
-      # The debug build type uses a custom signing config that points at
-      # ~/.android/debug.keystore, which AGP does not create for custom configs.
-      - name: Create a debug keystore
+      - name: Determine Version Code and Name
+        id: versioning
+        run: |
+          if [ -n "${{ inputs.version_code }}" ]; then
+            V_CODE="${{ inputs.version_code }}"
+          else
+            V_CODE=$(( 10 + ${{ github.run_number }} ))
+          fi
+
+          if [ -n "${{ inputs.version }}" ]; then
+            V_NAME="${{ inputs.version }}"
+          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            V_NAME="${GITHUB_REF_NAME#v}"
+          else
+            V_NAME="1.0.${V_CODE}"
+          fi
+
+          echo "Determined Version Code: $V_CODE"
+          echo "Determined Version Name: $V_NAME"
+          echo "v_code=$V_CODE" >> $GITHUB_OUTPUT
+          echo "v_name=$V_NAME" >> $GITHUB_OUTPUT
+
+      - name: Build Release APK, Debug APK and AAB
         run: |
           mkdir -p ~/.android
           if [ ! -f ~/.android/debug.keystore ]; then
-            keytool -genkeypair -v -keystore ~/.android/debug.keystore \
-              -alias androiddebugkey -storepass android -keypass android \
-              -keyalg RSA -keysize 2048 -validity 10000 \
-              -dname "CN=Android Debug,O=Android,C=US"
+            keytool -genkey -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" || true
           fi
+          ./gradlew assembleRelease assembleDebug bundleRelease \
+            -PversionCode=${{ steps.versioning.outputs.v_code }} \
+            -PversionName=${{ steps.versioning.outputs.v_name }} \
+            --no-daemon
 
-      - name: Resolve version
-        id: version
-        uses: ./.github/actions/resolve-version
-        with:
-          version: ${{ inputs.version }}
-          version-code: ${{ inputs.version_code }}
-          ref-name: ${{ github.ref_name }}
-
-      # Exports KEYSTORE_FILE / KEYSTORE_PASSWORD / KEY_ALIAS / KEY_PASSWORD so the Android
-      # Gradle Plugin signs the APK and the AAB itself (v1+v2+v3). No apksigner/jarsigner step.
-      - name: Prepare release signing
-        id: signing
-        uses: ./.github/actions/prepare-signing
-        with:
-          keystore-base64: ${{ secrets.RELEASE_KEYSTORE_BASE64 || secrets.KEYSTORE_BASE64 }}
-          keystore-password: ${{ secrets.KEYSTORE_PASSWORD }}
-          key-alias: ${{ secrets.KEY_ALIAS }}
-          key-password: ${{ secrets.KEY_PASSWORD }}
-          required: 'true'
-
-      - name: Build release APK, AAB and debug APK
+      - name: Sign Release APK & AAB
+        env:
+          KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 || secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.KEY_PASSWORD }}
+          V_NAME: ${{ steps.versioning.outputs.v_name }}
         run: |
-          ./gradlew --no-daemon --stacktrace \
-            assembleRelease bundleRelease assembleDebug \
-            -PversionCode=${{ steps.version.outputs.code }} \
-            -PversionName=${{ steps.version.outputs.name }}
+          mkdir -p release_out
+          APK=$(find app/build/outputs/apk/release/ -name "*.apk" | head -n 1)
+          DEBUG_APK=$(find app/build/outputs/apk/debug/ -name "*.apk" | head -n 1)
+          AAB=$(find app/build/outputs/bundle/release/ -name "*.aab" | head -n 1)
 
-      - name: Collect artifacts
-        run: |
-          set -euo pipefail
-          V_NAME="${{ steps.version.outputs.name }}"
-          mkdir -p release_out artifacts_out
-
-          APK="$(find app/build/outputs/apk/release -name '*.apk' | head -n 1 || true)"
-          AAB="$(find app/build/outputs/bundle/release -name '*.aab' | head -n 1 || true)"
-          DEBUG_APK="$(find app/build/outputs/apk/debug -name '*.apk' | head -n 1 || true)"
-
-          if [ -n "$APK" ]; then
-            cp "$APK" "release_out/GothwadLauncher-v${V_NAME}-Release.apk"
-          else
-            echo "::error::No release APK was produced."
-            exit 1
-          fi
-          if [ -n "$AAB" ]; then
-            cp "$AAB" "release_out/GothwadLauncher-v${V_NAME}-PlayStore.aab"
-          else
-            echo "::error::No release AAB was produced."
-            exit 1
-          fi
-          # The debug APK is a workflow artifact only, NOT part of the public release: it is
-          # signed with a different key, so a user who installs it cannot upgrade to the signed
-          # release without uninstalling first.
           if [ -n "$DEBUG_APK" ]; then
-            cp "$DEBUG_APK" "artifacts_out/GothwadLauncher-v${V_NAME}-Debug.apk"
-          fi
-          ls -l release_out artifacts_out
-
-      - name: Verify APK signature
-        run: |
-          set -euo pipefail
-          V_NAME="${{ steps.version.outputs.name }}"
-          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -n 1)"
-          "$APKSIGNER" verify --verbose --print-certs \
-            "release_out/GothwadLauncher-v${V_NAME}-Release.apk"
-
-      # The temporary keystore must not survive the job, whatever happened above.
-      - name: Destroy the temporary keystore
-        if: always()
-        run: |
-          KS="${{ steps.signing.outputs.keystore-path }}"
-          if [ -n "$KS" ] && [ -f "$KS" ]; then
-            rm -f "$KS"
-            echo "Temporary keystore removed."
+            cp "$DEBUG_APK" release_out/GothwadLauncher-v${V_NAME}-Debug.apk
+            echo "Copied Debug APK: release_out/GothwadLauncher-v${V_NAME}-Debug.apk"
           fi
 
-      - name: Upload workflow artifacts
-        uses: actions/upload-artifact@v7
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "❌ Error: RELEASE_KEYSTORE_BASE64 secret is missing in GitHub Repository Secrets!"
+            echo "Please add RELEASE_KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, and KEY_PASSWORD to GitHub Secrets."
+            exit 1
+          fi
+
+          if [ -z "$KEYSTORE_PASS" ]; then
+            echo "❌ Error: KEYSTORE_PASSWORD secret is missing in GitHub Repository Secrets!"
+            exit 1
+          fi
+
+          KS_PATH="/tmp/release_key.jks"
+          echo "Decoding permanent release keystore from GitHub Secrets..."
+          echo "$KEYSTORE_BASE64" | base64 -d > "$KS_PATH"
+
+          # Dynamically detect exact Alias name from the keystore
+          DETECTED_ALIAS=$(keytool -list -v -keystore "$KS_PATH" -storepass "$KEYSTORE_PASS" 2>/dev/null | grep -i "Alias name:" | head -n 1 | sed 's/.*Alias name: //I' | tr -d '\r' | xargs)
+          
+          if [ -n "$KEY_ALIAS" ]; then
+            ACTUAL_ALIAS="$KEY_ALIAS"
+          elif [ -n "$DETECTED_ALIAS" ]; then
+            ACTUAL_ALIAS="$DETECTED_ALIAS"
+          else
+            ACTUAL_ALIAS="gothwad_launcher_key"
+          fi
+          
+          echo "Using Keystore Alias: $ACTUAL_ALIAS"
+
+          ZIPALIGN=$(find $ANDROID_HOME/build-tools/ -name "zipalign" | sort -V | tail -n 1)
+          APKSIGNER=$(find $ANDROID_HOME/build-tools/ -name "apksigner" | sort -V | tail -n 1)
+          
+          if [ -n "$APK" ]; then
+            UNALIGNED_TEMP="/tmp/unaligned_temp.apk"
+            if [ -n "$ZIPALIGN" ]; then
+              $ZIPALIGN -v -p 4 "$APK" "$UNALIGNED_TEMP" || cp "$APK" "$UNALIGNED_TEMP"
+            else
+              cp "$APK" "$UNALIGNED_TEMP"
+            fi
+
+            $APKSIGNER sign \
+              --ks "$KS_PATH" \
+              --ks-key-alias "$ACTUAL_ALIAS" \
+              --ks-pass "pass:$KEYSTORE_PASS" \
+              --key-pass "pass:$KEY_PASS" \
+              --out release_out/GothwadLauncher-v${V_NAME}-Release.apk \
+              "$UNALIGNED_TEMP"
+
+            $APKSIGNER verify --verbose release_out/GothwadLauncher-v${V_NAME}-Release.apk
+            rm -f "$UNALIGNED_TEMP"
+          fi
+
+          if [ -n "$AAB" ]; then
+            cp "$AAB" release_out/GothwadLauncher-v${V_NAME}-PlayStore.aab
+            jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
+              -keystore "$KS_PATH" \
+              -storepass "$KEYSTORE_PASS" -keypass "$KEY_PASS" \
+              release_out/GothwadLauncher-v${V_NAME}-PlayStore.aab \
+              "$ACTUAL_ALIAS"
+            echo "Successfully signed Play Store AAB!"
+          fi
+
+          # Securely destroy the temporary keystore file so it is never exposed or uploaded
+          rm -f "$KS_PATH"
+          echo "Keystore securely cleaned up."
+
+      - name: Upload Release Artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: Gothwad-Launcher-v${{ steps.version.outputs.name }}-debug
-          path: artifacts_out/
-          if-no-files-found: ignore
+          name: Gothwad-Launcher-v${{ steps.versioning.outputs.v_name }}-Release
+          path: release_out/
 
-      - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v3
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ steps.version.outputs.name }}
-          name: v${{ steps.version.outputs.name }}
+          tag_name: v${{ steps.versioning.outputs.v_name }}
+          name: v${{ steps.versioning.outputs.v_name }}
           draft: false
           prerelease: false
           generate_release_notes: true
-          fail_on_unmatched_files: true
           files: |
-            release_out/GothwadLauncher-v${{ steps.version.outputs.name }}-Release.apk
-            release_out/GothwadLauncher-v${{ steps.version.outputs.name }}-PlayStore.aab
+            release_out/GothwadLauncher-v${{ steps.versioning.outputs.v_name }}-Release.apk
+            release_out/GothwadLauncher-v${{ steps.versioning.outputs.v_name }}-Debug.apk
+            release_out/GothwadLauncher-v${{ steps.versioning.outputs.v_name }}-PlayStore.aab
