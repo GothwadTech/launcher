@@ -253,20 +253,29 @@ class SettingsSecurityDelegate(
     }
 
     fun updateRevealCodeLabel() {
-        val code = getConfig().hiddenAppsRevealCode
-        binding.txtHiddenRevealCodeValue.text = if (code.isNotEmpty()) {
-            "Active: •••••• (type the code in search… click to change)"
-        } else {
-            "Not set — click to set reveal code"
-        }
+        val context = fragment.requireContext()
+        binding.txtHiddenRevealCodeValue.text = context.getString(
+            if (LockSecurity.isRevealCodeSet(getConfig())) {
+                R.string.reveal_code_active
+            } else {
+                R.string.reveal_code_not_set
+            }
+        )
     }
 
     private fun showEditRevealCodeDialog() {
         val context = fragment.requireContext()
         val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_edit_text, null)
         val dialogBinding = DialogEditTextBinding.bind(dialogView)
-        dialogBinding.etRevealCode.setText(getConfig().hiddenAppsRevealCode)
-        dialogBinding.etRevealCode.setSelection(dialogBinding.etRevealCode.text.length)
+        // Nothing to prefill: only a salted hash of the code is stored, and it cannot be
+        // reversed. Say so instead of showing an empty field that looks unset.
+        dialogBinding.txtRevealCodeDesc.setText(
+            if (LockSecurity.isRevealCodeSet(getConfig())) {
+                R.string.reveal_code_desc_change
+            } else {
+                R.string.reveal_code_desc_new
+            }
+        )
 
         val dialog = AlertDialog.Builder(context, R.style.Theme_LiteTV_Dialog)
             .setView(dialogView)
@@ -277,13 +286,19 @@ class SettingsSecurityDelegate(
         }
 
         dialogBinding.btnSaveRevealCode.setOnClickListener {
-            val code = dialogBinding.etRevealCode.text.toString().trim()
+            val code = dialogBinding.etRevealCode.text.toString()
             if (!fragment.isAdded) return@setOnClickListener
             fragment.viewLifecycleOwner.lifecycleScope.launch {
-                store.update { it.copy(hiddenAppsRevealCode = code) }
-                updateConfig(getConfig().copy(hiddenAppsRevealCode = code))
+                store.update { LockSecurity.applyRevealCode(it, code) }
+                updateConfig(LockSecurity.applyRevealCode(getConfig(), code))
                 updateRevealCodeLabel()
-                Actions.toast(context, if (code.isNotEmpty()) "Reveal code saved" else "Reveal code cleared")
+                Actions.toast(
+                    context,
+                    context.getString(
+                        if (code.isNotBlank()) R.string.reveal_code_saved
+                        else R.string.reveal_code_cleared
+                    ),
+                )
                 dialog.dismiss()
             }
         }

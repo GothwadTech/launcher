@@ -48,6 +48,67 @@ object DensityAdapter {
      */
     @Volatile
     var respectSystemFontScale: Boolean = true
+        private set
+
+    /**
+     * Whole-UI multiplier from Settings > Display > UI Scale (`UI_SCALES` in Config.kt).
+     *
+     * It is applied to the *calculated density*: 1.3x makes every dp physically larger, so
+     * the design canvas shrinks from 960dp to ~738dp wide and the whole launcher scales up.
+     * This used to be a settings toggle that was persisted and labelled but never actually
+     * applied to anything - the UI looked identical at 0.75x and 1.3x.
+     */
+    @Volatile
+    var userUiScale: Float = 1.0f
+        private set
+
+    /** Persisted so the first frame after a cold start already uses the user's choices. */
+    private const val PREFS_NAME = "gothwad_density"
+    private const val KEY_UI_SCALE = "ui_scale"
+    private const val KEY_RESPECT_FONT_SCALE = "respect_system_font_scale"
+
+    /** Guard rails so a corrupt preference can never render the launcher unusable. */
+    const val MIN_UI_SCALE = 0.6f
+    const val MAX_UI_SCALE = 1.6f
+
+    private fun prefs(context: Context) =
+        context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    /**
+     * Loads the persisted scale / font policy. Cheap after the first call (SharedPreferences
+     * keeps the parsed map in memory); called from every entry point below so a value written
+     * by another component is never ignored.
+     */
+    fun hydrate(context: Context) {
+        val sp = prefs(context)
+        userUiScale = sp.getFloat(KEY_UI_SCALE, 1.0f).coerceIn(MIN_UI_SCALE, MAX_UI_SCALE)
+        respectSystemFontScale = sp.getBoolean(KEY_RESPECT_FONT_SCALE, true)
+    }
+
+    /**
+     * Persists + applies a new whole-UI scale.
+     *
+     * NOTE: views that are already inflated keep their old pixel sizes, so the caller must
+     * recreate the activity for the change to become visible end-to-end.
+     *
+     * @return true when the effective value actually changed.
+     */
+    fun setUiScale(context: Context, multiplier: Float): Boolean {
+        val clamped = multiplier.coerceIn(MIN_UI_SCALE, MAX_UI_SCALE)
+        val changed = kotlin.math.abs(clamped - userUiScale) > 0.001f
+        userUiScale = clamped
+        prefs(context).edit().putFloat(KEY_UI_SCALE, clamped).apply()
+        Log.i(TAG, "UI scale set to ${clamped}x")
+        return changed
+    }
+
+    /** Persists + applies the "respect system font size" policy. */
+    fun setRespectSystemFontScale(context: Context, enabled: Boolean): Boolean {
+        val changed = respectSystemFontScale != enabled
+        respectSystemFontScale = enabled
+        prefs(context).edit().putBoolean(KEY_RESPECT_FONT_SCALE, enabled).apply()
+        return changed
+    }
 
     /** System font scale, clamped so a broken ROM value cannot render the UI unusable. */
     private fun effectiveFontScale(): Float =
@@ -101,7 +162,11 @@ object DensityAdapter {
      */
     fun calculateMetrics(context: Context): AdaptedMetrics {
         val (screenWidthPx, screenHeightPx) = getRealScreenSize(context)
-        val targetDensity = (screenWidthPx.toFloat() / DESIGN_WIDTH_DP).coerceAtLeast(0.5f)
+        val baseline = (screenWidthPx.toFloat() / DESIGN_WIDTH_DP).coerceAtLeast(0.5f)
+        // UI Scale multiplies the baseline density: >1 = bigger everything (fewer dp across
+        // the screen), <1 = more compact.
+        val scale = userUiScale.coerceIn(MIN_UI_SCALE, MAX_UI_SCALE)
+        val targetDensity = (baseline * scale).coerceAtLeast(0.4f)
         val targetDensityDpi = (targetDensity * 160f).roundToInt()
         val screenWidthDp = (screenWidthPx / targetDensity).roundToInt()
         val screenHeightDp = (screenHeightPx / targetDensity).roundToInt()
@@ -145,6 +210,7 @@ object DensityAdapter {
      * Ideal for [Activity.attachBaseContext].
      */
     fun wrapContext(baseContext: Context): Context {
+        hydrate(baseContext)
         val metrics = calculateMetrics(baseContext)
         val config = Configuration(baseContext.resources.configuration).apply {
             densityDpi = metrics.targetDensityDpi
@@ -163,6 +229,7 @@ object DensityAdapter {
      * Enforces the target DPI on the provided [Context] (Activity or Application).
      */
     fun apply(context: Context) {
+        hydrate(context)
         val metrics = calculateMetrics(context)
         applyToResources(context.resources, metrics)
     }
@@ -171,6 +238,7 @@ object DensityAdapter {
      * Enforces the target DPI on an [Activity], its Window decor, and Application resources.
      */
     fun apply(activity: Activity) {
+        hydrate(activity)
         val metrics = calculateMetrics(activity)
         applyToResources(activity.resources, metrics)
         activity.window?.decorView?.resources?.let { applyToResources(it, metrics) }
@@ -185,6 +253,7 @@ object DensityAdapter {
     fun init(application: Application) {
         if (isInitialized) return
         isInitialized = true
+        hydrate(application)
 
         val metrics = calculateMetrics(application)
         applyToResources(application.resources, metrics)

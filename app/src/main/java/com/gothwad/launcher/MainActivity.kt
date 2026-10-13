@@ -1,10 +1,13 @@
 package com.gothwad.launcher
 
+import android.Manifest
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.content.res.Configuration
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import androidx.activity.OnBackPressedCallback
@@ -26,17 +29,12 @@ import android.view.KeyEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-
-    /** Bumped whenever a package is installed/removed so the app grid rescans. */
-    var rescanTick: Int = 0
-        private set
 
     private var currentConfig: LauncherConfig = LauncherConfig()
     private var rescanJob: Job? = null
@@ -54,7 +52,6 @@ class MainActivity : AppCompatActivity() {
                     packageManager.getLaunchIntentForPackage(pkg) != null
                 )
             if (intent.action == Intent.ACTION_PACKAGE_REMOVED || launchable) {
-                rescanTick++
                 scheduleAppsRescan()
             }
         }
@@ -89,42 +86,24 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Rescans the installed apps and seeds the remote-button defaults.
+     *
+     * This used to also write an auto-category assignment for every newly installed package
+     * (`config.sections` + `config.knownApps`) - a JSON encode and a DataStore write on every
+     * scan, for a category grid that the home screen no longer renders and no settings screen
+     * exposes. That machinery is gone; the grid is a single flat list ordered by
+     * `config.order`.
+     */
     private fun refreshAppsList() {
         lifecycleScope.launch(Dispatchers.IO) {
             val apps = AppRepository.scan(this@MainActivity)
             allApps = apps
             val store = ConfigStore(this@MainActivity)
-            val installedPackages = apps.map { it.pkg }.toSet()
-            com.gothwad.launcher.data.ButtonMappingManager.seedDefaultMappings(store, installedPackages)
-
-            // Newly installed apps: drop them into their real auto-category instead of
-            // always into the first section. `knownApps` (previously a dead config field)
-            // is what makes "new since the last scan" detectable.
-            val config = runCatching { store.flow.first() }.getOrNull() ?: return@launch
-            val newPackages = installedPackages - config.knownApps
-            if (newPackages.isEmpty()) {
-                if (config.knownApps != installedPackages) {
-                    store.update { it.copy(knownApps = installedPackages) }
-                }
-                return@launch
-            }
-
-            store.update { cfg ->
-                val updatedSections = cfg.sections.toMutableMap()
-                if (cfg.autoCategoryOnInstall) {
-                    val fallbackId = cfg.categories.firstOrNull()?.id
-                    for (pkg in newPackages) {
-                        if (updatedSections.containsKey(pkg)) continue
-                        val auto = apps.firstOrNull { it.pkg == pkg }?.autoCategory
-                        val target = when {
-                            auto != null && cfg.categories.any { it.id == auto } -> auto
-                            else -> fallbackId
-                        }
-                        if (target != null) updatedSections[pkg] = setOf(target)
-                    }
-                }
-                cfg.copy(sections = updatedSections, knownApps = installedPackages)
-            }
+            com.gothwad.launcher.data.ButtonMappingManager.seedDefaultMappings(
+                store,
+                apps.map { it.pkg }.toSet(),
+            )
         }
     }
 
@@ -132,7 +111,7 @@ class MainActivity : AppCompatActivity() {
         // NOTE: there is no locale override here any more. The old code read a
         // "locale"/"lang" SharedPreferences entry that nothing ever wrote, so it was dead
         // code pretending to be an i18n feature. Real localization needs translated
-        // string resources first (see ISSUE-REPORT.md, issue #19).
+        // string resources first (see docs/ISSUE_LOG.md, issue #19).
         super.attachBaseContext(com.gothwad.launcher.ui.DensityAdapter.wrapContext(newBase))
     }
 
@@ -192,6 +171,30 @@ class MainActivity : AppCompatActivity() {
     private val bluetoothPermissionLauncher =
         registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { /* status is refreshed by the BT flow */ }
 
+    /** Asked at most once per process; a denial is respected and never re-prompted. */
+    private var bluetoothPermissionRequested = false
+
+    /**
+     * Requests `BLUETOOTH_CONNECT` on Android 12+.
+     *
+     * The permission is declared in the manifest but is a *runtime* permission there, and
+     * nothing ever asked for it - so `bluetoothStatusFlow` could only report
+     * `connected = false, isRemote = false` ("unknown") and the dashboard's remote name and
+     * battery readout never worked on a modern TV. Called when the Quick Dashboard opens.
+     */
+    fun ensureBluetoothPermission() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
+        if (bluetoothPermissionRequested) return
+        val permission = Manifest.permission.BLUETOOTH_CONNECT
+        if (ContextCompat.checkSelfPermission(this, permission) ==
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+        bluetoothPermissionRequested = true
+        runCatching { bluetoothPermissionLauncher.launch(permission) }
+    }
+
     private fun setupA11yWatchdogReceiver() {
         // Register receiver for watchdog alerts
         ContextCompat.registerReceiver(
@@ -218,6 +221,7 @@ class MainActivity : AppCompatActivity() {
     private fun handleAppLaunch(app: AppEntry) {
         // App lock & hidden vault gate
         AppLockGate.evaluate(
+            context = this,
             fragmentManager = supportFragmentManager,
             app = app,
             config = currentConfig,

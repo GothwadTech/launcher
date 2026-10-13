@@ -9,6 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.DialogFragment
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.gothwad.launcher.R
 import com.gothwad.launcher.data.AppEntry
 import com.gothwad.launcher.data.LauncherConfig
 import com.gothwad.launcher.data.LockSecurity
@@ -91,9 +92,10 @@ class SearchDialogFragment : DialogFragment() {
 
     private fun updateAppList(query: String) {
         val trimmed = query.trim()
-        val isSecretMatch = if (trimmed.isEmpty()) false else {
-            config.hiddenAppsRevealCode.isNotEmpty() && trimmed.equals(config.hiddenAppsRevealCode, ignoreCase = true)
-        }
+        // Hashed comparison (see LockSecurity): the reveal code is no longer stored - or
+        // compared - as plain text.
+        val isSecretMatch = trimmed.isNotEmpty() &&
+            LockSecurity.verifyRevealCode(config, trimmed)
 
         if (isSecretMatch) {
             // Phase 5: Distinct second-layer confirmation before hidden apps actually render and launch
@@ -117,7 +119,7 @@ class SearchDialogFragment : DialogFragment() {
             adapter?.submitList(visibleApps)
             binding.tvEmptyState.visibility = if (visibleApps.isEmpty()) View.VISIBLE else View.GONE
             if (visibleApps.isEmpty()) {
-                binding.tvEmptyState.text = "No apps found matching '$trimmed'"
+                binding.tvEmptyState.text = getString(R.string.search_empty_state, trimmed)
             }
         }
     }
@@ -136,8 +138,8 @@ class SearchDialogFragment : DialogFragment() {
         // ("already executing transactions") and was only needed because the cancel path
         // had no callback. PinEntryDialogFragment reports cancellation directly.
         PinEntryDialogFragment.newInstance(
-            title = "Hidden Apps Vault",
-            subtitle = "Enter second-layer credential to access hidden apps",
+            title = getString(R.string.lock_vault_confirm_title),
+            subtitle = getString(R.string.lock_vault_confirm_subtitle),
             credential = config.hiddenAppsLock,
             isCancelable = true,
             lockScope = LockSecurity.SCOPE_VAULT,
@@ -162,7 +164,7 @@ class SearchDialogFragment : DialogFragment() {
         adapter?.submitList(hiddenApps)
         binding.tvEmptyState.visibility = if (hiddenApps.isEmpty()) View.VISIBLE else View.GONE
         if (hiddenApps.isEmpty()) {
-            binding.tvEmptyState.text = "No apps are currently hidden"
+            binding.tvEmptyState.text = getString(R.string.search_vault_empty)
         }
     }
 

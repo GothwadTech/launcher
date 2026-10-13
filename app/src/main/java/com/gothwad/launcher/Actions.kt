@@ -18,10 +18,7 @@ object Actions {
             ?: pm.getLaunchIntentForPackage(pkg)
         if (intent != null) {
             runCatching {
-                if (context !is android.app.Activity) {
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-                context.startActivity(intent)
+                context.startActivity(newTaskIfRequired(context, intent))
                 com.gothwad.launcher.data.AppLaunchTracker.onAppLaunched(pkg)
             }.onFailure { toast(context, context.getString(R.string.toast_cannot_open)) }
         } else toast(context, context.getString(R.string.toast_no_launchable))
@@ -30,9 +27,12 @@ object Actions {
     fun openAppInfo(context: Context, pkg: String) {
         runCatching {
             context.startActivity(
-                Intent(
-                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                    Uri.parse("package:$pkg")
+                newTaskIfRequired(
+                    context,
+                    Intent(
+                        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.parse("package:$pkg")
+                    )
                 )
             )
         }
@@ -40,8 +40,20 @@ object Actions {
 
     fun uninstall(context: Context, pkg: String) {
         runCatching {
-            context.startActivity(Intent(Intent.ACTION_DELETE, Uri.parse("package:$pkg")))
+            context.startActivity(
+                newTaskIfRequired(context, Intent(Intent.ACTION_DELETE, Uri.parse("package:$pkg")))
+            )
         }
+    }
+
+    /**
+     * `startActivity` from a non-Activity context throws `AndroidRuntimeException` unless the
+     * intent starts its own task. These two helpers were the only ones missing the flag, and the
+     * surrounding `runCatching` swallowed the throw - so "Open app details" / "Uninstall" silently
+     * did nothing when reached from a service, receiver or overlay.
+     */
+    private fun newTaskIfRequired(context: Context, intent: Intent): Intent = intent.apply {
+        if (context !is android.app.Activity) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
 
     /** Best-effort: clears the app from cached memory. True force-stop is in App info. */

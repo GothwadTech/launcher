@@ -4,7 +4,7 @@
       Only strings that are actually referenced remain here. ~220 unused entries that
       described features which do not exist in this codebase (built-in aerial videos,
       weather, language picker, save/load config, section move/hide menus ...) were
-      removed - see ISSUE-REPORT.md issues #19/#35. UI text that is still hard-coded in
+      removed - see docs/ISSUE_LOG.md issues #19/#35. UI text that is still hard-coded in
       Kotlin/XML needs to be extracted here before any real localization work.
     -->
     <string name="app_name">Gothwad Launcher</string>
@@ -16,7 +16,6 @@
 
     <!-- Status bar -->
     <string name="cd_network">Network</string>
-    <string name="cd_vpn">VPN</string>
     <string name="cd_settings">Settings</string>
     <string name="safe_mode_active">Gothwad Launcher restarted repeatedly — self-healing paused</string>
     <string name="toast_cannot_open">Could not open app</string>
@@ -60,10 +59,91 @@
     <string name="voice_search_hint">Voice search is not available on this device</string>
 
     <!-- Password & Security / Privacy -->
-    <string name="a11y_recovery_banner_title">HOME Key Interception Disabled</string>
-    <string name="a11y_recovery_banner_desc">Android disabled the accessibility permission after a crash. Re-enable it to restore HOME button and TV auto-return.</string>
-    <string name="a11y_recovery_banner_action">Re-enable in Settings</string>
-    <string name="a11y_recovery_banner_dismiss">Dismiss</string>
+    <!-- Display: UI scale -->
+    <string name="toast_ui_scale_applied">UI scale applied — reloading home screen</string>
+
+    <!-- Wallpaper & scrim (labels are driven by WALLPAPERS in Theme.kt) -->
+    <string name="wallpaper_custom">Custom Image</string>
+    <string name="wallpaper_option_default">%1$s (Default)</string>
+    <string name="scrim_full">Full Scrim</string>
+    <string name="scrim_top_only">Top Only</string>
+    <string name="scrim_bottom_only">Bottom Only</string>
+    <string name="scrim_both_edges">Both Edges</string>
+    <string name="scrim_none">None</string>
+
+    <!-- Self-update (Settings > About) -->
+    <string name="update_badge_checking">Checking install method…</string>
+    <string name="update_badge_root">⚡ Root / ADB Shell: Available (Silent Update)</string>
+    <string name="update_badge_installer">📦 Package Installer: Allowed (ADB/Direct shell fallback)</string>
+    <string name="update_badge_permission">⚠️ Install Permission: Needed for stock TV installer</string>
+
+    <!-- About -->
+    <string name="settings_about_subtitle">v%1$s (Build %2$s) • Setup wizard</string>
+
+    <!-- App lock / hidden vault prompts -->
+    <string name="lock_title_app">App Locked</string>
+    <string name="lock_subtitle_app">Enter PIN/Password to launch %1$s</string>
+    <string name="lock_title_hidden">Hidden App</string>
+    <string name="lock_subtitle_hidden">Enter vault credential to launch %1$s</string>
+    <string name="lock_subtitle_overlay">Enter credential to open %1$s</string>
+    <string name="lock_vault_confirm_title">Hidden Apps Vault</string>
+    <string name="lock_vault_confirm_subtitle">Enter second-layer credential to access hidden apps</string>
+
+    <!-- Search -->
+    <string name="search_empty_state">No apps found matching \'%1$s\'</string>
+    <string name="search_vault_empty">No apps are currently hidden</string>
+
+    <!-- Quick dashboard -->
+    <string name="dashboard_net_wifi">Wi-Fi</string>
+    <string name="dashboard_net_ethernet">Ethernet</string>
+    <string name="dashboard_net_offline">Offline</string>
+    <string name="dashboard_net_connected">Connected</string>
+    <string name="dashboard_net_disconnected">Disconnected</string>
+    <string name="cd_quick_dashboard">Quick dashboard: network, remote and volume</string>
+    <string name="dashboard_home_title">Home</string>
+    <string name="dashboard_home_subtitle">Return Home</string>
+
+    <!-- Hidden-apps reveal code (stored as a PBKDF2 hash, never as text) -->
+    <string name="reveal_code_active">Active — type the code in search to open the vault</string>
+    <string name="reveal_code_not_set">Not set — click to set a reveal code</string>
+    <string name="reveal_code_saved">Reveal code saved</string>
+    <string name="reveal_code_cleared">Reveal code cleared</string>
+    <string name="reveal_code_dialog_title">Hidden Apps Search Reveal Code</string>
+    <string name="reveal_code_desc_new">Enter the secret keyword or code to type into the search bar to reveal hidden apps.</string>
+    <string name="reveal_code_desc_change">A reveal code is already stored — as a salted hash, so it cannot be shown again. Type a new one to replace it, or leave the field empty to remove it.</string>
+    <string name="reveal_code_hint_example">e.g. #hidden, vault, secret</string>
+    <string name="reveal_code_save">Save Code</string>
+    <string name="cancel">Cancel</string>
+
+    <!-- Settings: page titles -->
+    <string name="settings_root_title">Settings</string>
+    <string name="settings_root_subtitle">Customize launcher display, apps, locks, and system preferences</string>
+    <string name="page_title_appearance">Appearance &amp; Themes</string>
+    <string name="page_title_apps_security">Apps &amp; Security</string>
+    <string name="page_title_device">Device, Network &amp; System</string>
+    <string name="page_title_wallpaper">Wallpaper &amp; Themes</string>
+    <string name="page_title_display">Display &amp; App Curves</string>
+    <string name="page_title_statusbar">Status Bar &amp; Clock</string>
+    <string name="page_title_apps_vault">Apps &amp; Secret Vault</string>
+    <string name="page_title_security">Security &amp; PIN Locks</string>
+    <string name="page_title_about">System &amp; About</string>
+    <string name="toast_cannot_open_settings">Cannot open system settings on this device</string>
+
+    <!-- Settings: hero descriptions shown while a row has D-pad focus -->
+    <string name="focus_desc_cat_appearance">Customize wallpaper, live TV banner curves, UI scale, and status bar clock.</string>
+    <string name="focus_desc_cat_apps">Manage installed apps, hide sensitive apps into secret vault, and set PIN locks.</string>
+    <string name="focus_desc_cat_remote">Map dedicated TV remote hotkeys to directly launch your favorite apps.</string>
+    <string name="focus_desc_cat_device">Manage Wi-Fi, Android TV settings, permissions, setup wizard, and app info.</string>
+    <string name="focus_desc_wallpaper">Choose dynamic gradient themes, solid colors, or set a personal custom wallpaper.</string>
+    <string name="focus_desc_display">Adjust corner rounding and UI layout scale for your TV screen.</string>
+    <string name="focus_desc_statusbar">Configure digital clock format, glass styling, and status bar appearance.</string>
+    <string name="focus_desc_apps">Manage installed apps, hide sensitive apps into a PIN-protected vault, and set sorting.</string>
+    <string name="focus_desc_security">Protect apps and vault settings with secure PIN or pattern locks.</string>
+    <string name="focus_desc_network">Configure Wi-Fi, Ethernet, and network proxy connections.</string>
+    <string name="focus_desc_device_prefs">Open full device Android system preferences, display, audio, and accounts.</string>
+    <string name="focus_desc_permissions">Review and manage system permissions, overlay rights, and storage access.</string>
+    <string name="focus_desc_about">Rerun setup wizard, set default launcher, restart, and view app details.</string>
+
     <!-- Remote Button Mapping (Phase 5) -->
     <string name="button_mapping_title">Remote Button Mapping</string>
     <string name="button_mapping_subtitle">Map dedicated TV remote hotkeys to apps</string>

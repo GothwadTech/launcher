@@ -1,0 +1,94 @@
+name: Prepare release signing
+description: >
+  Decodes the release keystore from repository secrets and exports KEYSTORE_FILE,
+  KEYSTORE_PASSWORD, KEY_ALIAS and KEY_PASSWORD for the rest of the job. app/build.gradle.kts
+  picks those up at configuration time and lets the Android Gradle Plugin sign the APK and the
+  AAB itself (v1 + v2 + v3), which replaces the old apksigner/jarsigner shell steps - jarsigner
+  only produces a v1 signature, which is not what the Play Store wants for an AAB.
+
+  When no keystore secret is configured the step is a no-op and the artifacts stay unsigned
+  (that is what local and F-Droid builds expect).
+
+inputs:
+  keystore-base64:
+    description: 'Base64-encoded JKS/PKCS12 keystore (secret RELEASE_KEYSTORE_BASE64 or KEYSTORE_BASE64)'
+    required: true
+  keystore-password:
+    description: 'Keystore password (secret KEYSTORE_PASSWORD)'
+    required: true
+  key-alias:
+    description: 'Key alias (secret KEY_ALIAS); detected from the keystore when empty'
+    required: false
+    default: ''
+  key-password:
+    description: 'Key password (secret KEY_PASSWORD)'
+    required: true
+  required:
+    description: 'Fail the job when no keystore is configured instead of building unsigned'
+    required: false
+    default: 'false'
+
+outputs:
+  signed:
+    description: "'true' when Gradle will sign the artifacts"
+    value: ${{ steps.prepare.outputs.signed }}
+  keystore-path:
+    description: 'Path of the temporary keystore file (empty when unsigned); delete it after the build'
+    value: ${{ steps.prepare.outputs.path }}
+
+runs:
+  using: composite
+  steps:
+    - id: prepare
+      shell: bash
+      env:
+        # Passed through env so the values never appear in a rendered command line.
+        KS_B64: ${{ inputs.keystore-base64 }}
+        KS_PASS: ${{ inputs.keystore-password }}
+        KS_ALIAS: ${{ inputs.key-alias }}
+        KS_KEY_PASS: ${{ inputs.key-password }}
+        KS_REQUIRED: ${{ inputs.required }}
+      run: |
+        set -euo pipefail
+
+        if [ -z "$KS_B64" ]; then
+          echo "signed=false" >> "$GITHUB_OUTPUT"
+          echo "path=" >> "$GITHUB_OUTPUT"
+          if [ "$KS_REQUIRED" = "true" ]; then
+            echo "::error::RELEASE_KEYSTORE_BASE64 (or KEYSTORE_BASE64) is not set, and this job must publish signed artifacts."
+            exit 1
+          fi
+          echo "::warning::No release keystore secret configured - artifacts will be UNSIGNED."
+          exit 0
+        fi
+
+        if [ -z "$KS_PASS" ] || [ -z "$KS_KEY_PASS" ]; then
+          echo "::error::KEYSTORE_PASSWORD and KEY_PASSWORD secrets are required to sign."
+          exit 1
+        fi
+
+        KS_PATH="${RUNNER_TEMP}/gothwad_release.keystore"
+        printf '%s' "$KS_B64" | base64 -d > "$KS_PATH"
+        chmod 600 "$KS_PATH"
+
+        ALIAS="$KS_ALIAS"
+        if [ -z "$ALIAS" ]; then
+          ALIAS="$(keytool -list -v -keystore "$KS_PATH" -storepass "$KS_PASS" 2>/dev/null \
+            | grep -i 'Alias name:' | head -n 1 | sed 's/.*Alias name: *//I' | tr -d '\r' | xargs || true)"
+        fi
+        if [ -z "$ALIAS" ]; then
+          echo "::error::Could not determine the key alias - set the KEY_ALIAS repository secret."
+          rm -f "$KS_PATH"
+          exit 1
+        fi
+
+        {
+          echo "KEYSTORE_FILE=${KS_PATH}"
+          echo "KEYSTORE_PASSWORD=${KS_PASS}"
+          echo "KEY_ALIAS=${ALIAS}"
+          echo "KEY_PASSWORD=${KS_KEY_PASS}"
+        } >> "$GITHUB_ENV"
+
+        echo "signed=true" >> "$GITHUB_OUTPUT"
+        echo "path=${KS_PATH}" >> "$GITHUB_OUTPUT"
+        echo "Release signing configured for alias '${ALIAS}'."

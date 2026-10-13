@@ -276,7 +276,7 @@
                             android:duplicateParentState="true"
                             android:singleLine="true"
                             android:ellipsize="end"
-                            android:text="Remote Button Mapping"
+                            android:text="@string/button_mapping_title"
                             android:textColor="@color/color_settings_text"
                             android:textSize="14sp"
                             android:textStyle="bold" />
@@ -286,7 +286,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:visibility="gone"
-                            android:text="Map TV remote hotkeys to favorite apps" />
+                            android:text="@string/button_mapping_subtitle" />
 
                         <ImageView
                             android:id="@+id/chevron_cat_remote"

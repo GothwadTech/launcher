@@ -1,9 +1,12 @@
 package com.gothwad.launcher.ui.dialogs
 
 import androidx.lifecycle.lifecycleScope
+import com.gothwad.launcher.R
 import com.gothwad.launcher.data.ConfigStore
 import com.gothwad.launcher.data.LauncherConfig
 import com.gothwad.launcher.databinding.SheetSettingsBinding
+import com.gothwad.launcher.ui.DEFAULT_WALLPAPER_INDEX
+import com.gothwad.launcher.ui.WALLPAPERS
 import kotlinx.coroutines.launch
 
 class SettingsWallpaperDelegate(
@@ -26,7 +29,19 @@ class SettingsWallpaperDelegate(
             binding.btnWp4 to 4
         )
 
+        // Label the buttons from the preset list itself. The XML used to carry its own names
+        // ("Deep Space", "Cyberpunk Neon", "Obsidian Minimal") which had drifted away from the
+        // gradients actually rendered by Theme.kt, so four of the five buttons lied.
+        val context = fragment.requireContext()
         for ((btn, wpIdx) in wpButtons) {
+            val preset = WALLPAPERS.getOrNull(wpIdx)
+            if (preset != null) {
+                btn.text = if (wpIdx == DEFAULT_WALLPAPER_INDEX) {
+                    context.getString(R.string.wallpaper_option_default, preset.displayLabel())
+                } else {
+                    preset.displayLabel()
+                }
+            }
             btn.setOnClickListener {
                 fragment.viewLifecycleOwner.lifecycleScope.launch {
                     store.update {

@@ -2,7 +2,9 @@ package com.gothwad.launcher.ui.view
 
 import android.content.Context
 import android.graphics.Color
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.StateListDrawable
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
@@ -33,6 +35,9 @@ class StatusBarView @JvmOverloads constructor(
     var onSettingsClick: (() -> Unit)? = null
     var onA11yAlertClick: (() -> Unit)? = null
 
+    /** Tapping/focusing the centre clock cluster opens the Quick Dashboard. */
+    var onDashboardClick: (() -> Unit)? = null
+
     init {
         setupStaticIcons()
         setupListeners()
@@ -57,6 +62,9 @@ class StatusBarView @JvmOverloads constructor(
         binding.btnNotifications.setOnClickListener { onNotificationsClick?.invoke() }
         binding.btnSettings.setOnClickListener { onSettingsClick?.invoke() }
         binding.btnA11yAlert.setOnClickListener { onA11yAlertClick?.invoke() }
+        // The clock cluster is the Quick Dashboard entry point (network, Bluetooth remote,
+        // volume). That panel existed but nothing in the UI could open it.
+        binding.clusterCenter.setOnClickListener { onDashboardClick?.invoke() }
     }
 
     fun setA11yAlertVisible(visible: Boolean) {
@@ -73,42 +81,52 @@ class StatusBarView @JvmOverloads constructor(
         }
         val strokePx = (1f * density).toInt()
 
-        val bgLeft = GradientDrawable().apply {
+        // All three clusters look the same, so they share one builder (this used to be the
+        // same 12-line GradientDrawable block pasted three times). Each view still needs its
+        // own Drawable instance - sharing one would share bounds/state/callback.
+        val glass = config.statusBarGlass
+        binding.clusterLeft.background = clusterBackground(radiusPx, strokePx, glass)
+        binding.clusterCenter.background = clusterBackground(radiusPx, strokePx, glass)
+        binding.clusterRight.background = clusterBackground(radiusPx, strokePx, glass)
+    }
+
+    /**
+     * Glass/solid cluster background *with* focus and hover states.
+     *
+     * The centre cluster is D-pad reachable (it opens the Quick Dashboard), and a plain
+     * [GradientDrawable] gives a focused item no visual feedback at all - unusable with a
+     * remote. Each call returns a fresh [StateListDrawable]: drawables cannot be shared
+     * between views without sharing mutable state (bounds, level, callback).
+     */
+    private fun clusterBackground(radiusPx: Float, strokePx: Int, glass: Boolean): Drawable {
+        fun panel(fill: Int, stroke: Int) = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
             cornerRadius = radiusPx
-            if (config.statusBarGlass) {
-                setColor(ContextCompat.getColor(context, R.color.surface_glass))
-                setStroke(strokePx, ContextCompat.getColor(context, R.color.surface_glass_stroke))
-            } else {
-                setColor(Color.parseColor("#212124"))
-                setStroke(strokePx, Color.parseColor("#33FFFFFF"))
-            }
+            setColor(fill)
+            setStroke(strokePx, stroke)
         }
-        val bgCenter = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = radiusPx
-            if (config.statusBarGlass) {
-                setColor(ContextCompat.getColor(context, R.color.surface_glass))
-                setStroke(strokePx, ContextCompat.getColor(context, R.color.surface_glass_stroke))
-            } else {
-                setColor(Color.parseColor("#212124"))
-                setStroke(strokePx, Color.parseColor("#33FFFFFF"))
-            }
+
+        val (fill, stroke) = if (glass) {
+            ContextCompat.getColor(context, R.color.surface_glass) to
+                ContextCompat.getColor(context, R.color.surface_glass_stroke)
+        } else {
+            Color.parseColor("#212124") to Color.parseColor("#33FFFFFF")
         }
-        val bgRight = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = radiusPx
-            if (config.statusBarGlass) {
-                setColor(ContextCompat.getColor(context, R.color.surface_glass))
-                setStroke(strokePx, ContextCompat.getColor(context, R.color.surface_glass_stroke))
-            } else {
-                setColor(Color.parseColor("#212124"))
-                setStroke(strokePx, Color.parseColor("#33FFFFFF"))
-            }
+
+        return StateListDrawable().apply {
+            addState(
+                intArrayOf(android.R.attr.state_focused),
+                panel(
+                    ContextCompat.getColor(context, R.color.status_pill_focused),
+                    ContextCompat.getColor(context, R.color.accent_blue),
+                ),
+            )
+            addState(
+                intArrayOf(android.R.attr.state_hovered),
+                panel(ContextCompat.getColor(context, R.color.status_pill_hover), stroke),
+            )
+            addState(intArrayOf(), panel(fill, stroke))
         }
-        binding.clusterLeft.background = bgLeft
-        binding.clusterCenter.background = bgCenter
-        binding.clusterRight.background = bgRight
     }
 
     fun setNetStatus(net: NetStatus) {

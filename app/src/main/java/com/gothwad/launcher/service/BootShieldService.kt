@@ -11,6 +11,7 @@ import android.os.IBinder
 import android.util.Log
 import com.gothwad.launcher.data.BackgroundMediaTracker
 import com.gothwad.launcher.data.UsageTracker
+import java.util.Locale
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -112,7 +113,14 @@ class BootShieldService : Service() {
         }.getOrDefault(4.0)
 
         return if (totalRamGb <= 2.2) {
-            Log.i(TAG, "Low RAM device detected (${"%.2f".format(totalRamGb)} GB). Extending boot shield to 90s.")
+            // Locale.ROOT: this is a log line, and a locale with a decimal comma would
+            // make the number unreadable in bug reports.
+            Log.i(
+                TAG,
+                "Low RAM device detected (" +
+                    String.format(Locale.ROOT, "%.2f", totalRamGb) +
+                    " GB). Extending boot shield to 90s."
+            )
             90_000L
         } else {
             45_000L

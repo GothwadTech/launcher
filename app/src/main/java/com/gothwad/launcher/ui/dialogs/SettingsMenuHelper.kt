@@ -3,10 +3,13 @@ package com.gothwad.launcher.ui.dialogs
 import android.content.Context
 import android.graphics.Color
 import android.net.wifi.WifiManager
+import android.os.Build
+import com.gothwad.launcher.R
 import com.gothwad.launcher.data.LauncherConfig
 import com.gothwad.launcher.data.UI_SCALES
 import com.gothwad.launcher.databinding.SheetSettingsBinding
 import com.gothwad.launcher.ui.AppIcons
+import com.gothwad.launcher.ui.WALLPAPERS
 
 object SettingsMenuHelper {
 
@@ -33,22 +36,24 @@ object SettingsMenuHelper {
     }
 
     fun updateSubtitles(binding: SheetSettingsBinding, config: LauncherConfig, context: Context) {
-        val wpName = if (config.useCustomWallpaper) "Custom Image" else when (config.wallpaper) {
-            0 -> "Deep Space"
-            1 -> "Aurora"
-            2 -> "Cyberpunk"
-            3 -> "Sunset"
-            4 -> "Obsidian"
-            else -> "Preset ${config.wallpaper}"
+        // Read the name from the preset that is actually rendered - this list used to be a
+        // second, stale copy of the wallpaper names.
+        val wpName = if (config.useCustomWallpaper) {
+            context.getString(R.string.wallpaper_custom)
+        } else {
+            WALLPAPERS.getOrElse(config.wallpaper.coerceIn(0, WALLPAPERS.size - 1)) {
+                WALLPAPERS.first()
+            }.name
         }
-        val scrimName = when (config.scrimMode) {
-            0 -> "Full Scrim"
-            1 -> "Top Only"
-            2 -> "Bottom Only"
-            3 -> "Both"
-            4 -> "None"
-            else -> "Normal"
-        }
+        val scrimName = context.getString(
+            when (config.scrimMode) {
+                1 -> R.string.scrim_top_only
+                2 -> R.string.scrim_bottom_only
+                3 -> R.string.scrim_both_edges
+                4 -> R.string.scrim_none
+                else -> R.string.scrim_full
+            }
+        )
         binding.txtWallpaperSubtitle.text = "$wpName • $scrimName"
 
         val uiScaleName = UI_SCALES.getOrElse(config.uiScale.coerceIn(0, UI_SCALES.size - 1)) { 1.0f }
@@ -105,6 +110,30 @@ object SettingsMenuHelper {
         } else {
             "Wi-Fi, Android TV settings, launcher info & wizard"
         }
-        binding.txtCatAboutSubtitle.text = "v1.0.6 (Build 7) • Setup wizard"
+        // Was hard-coded as "v1.0.6 (Build 7)", which went stale the moment CI bumped the
+        // version (the app was reporting 1.0.6 while running 1.0.2x).
+        val (versionName, versionCode) = appVersion(context)
+        binding.txtCatAboutSubtitle.text = context.getString(
+            R.string.settings_about_subtitle,
+            versionName,
+            versionCode.toString(),
+        )
     }
+
+    /**
+     * Version name + code of the running APK, read from the PackageManager.
+     *
+     * `BuildConfig` is not generated in this project (AGP 8 leaves `buildFeatures.buildConfig`
+     * off), so the package info is the only source that cannot go stale.
+     */
+    private fun appVersion(context: Context): Pair<String, Int> = runCatching {
+        val info = context.packageManager.getPackageInfo(context.packageName, 0)
+        val code = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            info.longVersionCode.toInt()
+        } else {
+            @Suppress("DEPRECATION")
+            info.versionCode
+        }
+        (info.versionName ?: "?") to code
+    }.getOrDefault("?" to 0)
 }

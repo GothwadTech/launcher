@@ -209,63 +209,63 @@ class SettingsBottomSheetFragment : DialogFragment() {
     }
 
     private fun setupRootMenuClicks() {
-        binding.rowCatAppearance.setOnClickListener { navigateToSubPage(binding.pageCatAppearance, "Appearance & Themes") }
-        binding.rowCatApps.setOnClickListener { navigateToSubPage(binding.pageCatApps, "Apps & Security") }
-        binding.rowCatRemote.setOnClickListener { navigateToSubPage(binding.subpageButtonMapping, "Remote Button Mapping") }
-        binding.rowCatDevice.setOnClickListener { navigateToSubPage(binding.pageCatDevice, "Device, Network & System") }
+        binding.rowCatAppearance.setOnClickListener { navigateToSubPage(binding.pageCatAppearance, getString(R.string.page_title_appearance)) }
+        binding.rowCatApps.setOnClickListener { navigateToSubPage(binding.pageCatApps, getString(R.string.page_title_apps_security)) }
+        binding.rowCatRemote.setOnClickListener { navigateToSubPage(binding.subpageButtonMapping, getString(R.string.button_mapping_title)) }
+        binding.rowCatDevice.setOnClickListener { navigateToSubPage(binding.pageCatDevice, getString(R.string.page_title_device)) }
 
         // Sub-page clicks within categories
-        binding.rowWallpaper.setOnClickListener { navigateToSubPage(binding.pageWallpaper, "Wallpaper & Themes") }
-        binding.rowDisplay.setOnClickListener { navigateToSubPage(binding.pageDisplay, "Display & App Curves") }
-        binding.rowStatusbar.setOnClickListener { navigateToSubPage(binding.pageStatusbar, "Status Bar & Clock") }
-        binding.rowApps.setOnClickListener { navigateToSubPage(binding.pageApps, "Apps & Secret Vault") }
-        binding.rowSecurity.setOnClickListener { navigateToSubPage(binding.pageSecurity, "Security & PIN Locks") }
+        binding.rowWallpaper.setOnClickListener { navigateToSubPage(binding.pageWallpaper, getString(R.string.page_title_wallpaper)) }
+        binding.rowDisplay.setOnClickListener { navigateToSubPage(binding.pageDisplay, getString(R.string.page_title_display)) }
+        binding.rowStatusbar.setOnClickListener { navigateToSubPage(binding.pageStatusbar, getString(R.string.page_title_statusbar)) }
+        binding.rowApps.setOnClickListener { navigateToSubPage(binding.pageApps, getString(R.string.page_title_apps_vault)) }
+        binding.rowSecurity.setOnClickListener { navigateToSubPage(binding.pageSecurity, getString(R.string.page_title_security)) }
         binding.rowNetwork.setOnClickListener { Actions.openNetworkSettings(requireContext()) }
         binding.rowDevicePrefs.setOnClickListener { safeStartActivity(Settings.ACTION_SETTINGS) }
         binding.rowPermissions.setOnClickListener { Actions.openAppInfo(requireContext(), requireContext().packageName) }
-        binding.rowCatAbout.setOnClickListener { navigateToSubPage(binding.pageAbout, "System & About") }
+        binding.rowCatAbout.setOnClickListener { navigateToSubPage(binding.pageAbout, getString(R.string.page_title_about)) }
     }
 
     private fun setupFocusDescriptions() {
         binding.rowCatAppearance.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) binding.txtHeroSubtitle.text = "Customize wallpaper, live TV banner curves, UI scale, and status bar clock."
+            if (hasFocus) binding.txtHeroSubtitle.setText(R.string.focus_desc_cat_appearance)
         }
         binding.rowCatApps.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) binding.txtHeroSubtitle.text = "Manage installed apps, hide sensitive apps into secret vault, and set PIN locks."
+            if (hasFocus) binding.txtHeroSubtitle.setText(R.string.focus_desc_cat_apps)
         }
         binding.rowCatRemote.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) binding.txtHeroSubtitle.text = "Map dedicated TV remote hotkeys to directly launch your favorite apps."
+            if (hasFocus) binding.txtHeroSubtitle.setText(R.string.focus_desc_cat_remote)
         }
         binding.rowCatDevice.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) binding.txtHeroSubtitle.text = "Manage Wi-Fi, Android TV settings, permissions, setup wizard, and app info."
+            if (hasFocus) binding.txtHeroSubtitle.setText(R.string.focus_desc_cat_device)
         }
 
         binding.rowWallpaper.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) binding.txtHeroSubtitle.text = "Choose dynamic gradient themes, solid colors, or set a personal custom wallpaper."
+            if (hasFocus) binding.txtHeroSubtitle.setText(R.string.focus_desc_wallpaper)
         }
         binding.rowDisplay.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) binding.txtHeroSubtitle.text = "Adjust corner rounding and UI layout scale for your TV screen."
+            if (hasFocus) binding.txtHeroSubtitle.setText(R.string.focus_desc_display)
         }
         binding.rowStatusbar.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) binding.txtHeroSubtitle.text = "Configure digital clock format, glass styling, and status bar appearance."
+            if (hasFocus) binding.txtHeroSubtitle.setText(R.string.focus_desc_statusbar)
         }
         binding.rowApps.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) binding.txtHeroSubtitle.text = "Manage installed apps, hide sensitive apps into a PIN-protected vault, and set sorting."
+            if (hasFocus) binding.txtHeroSubtitle.setText(R.string.focus_desc_apps)
         }
         binding.rowSecurity.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) binding.txtHeroSubtitle.text = "Protect apps and vault settings with secure PIN or pattern locks."
+            if (hasFocus) binding.txtHeroSubtitle.setText(R.string.focus_desc_security)
         }
         binding.rowNetwork.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) binding.txtHeroSubtitle.text = "Configure Wi-Fi, Ethernet, and network proxy connections."
+            if (hasFocus) binding.txtHeroSubtitle.setText(R.string.focus_desc_network)
         }
         binding.rowDevicePrefs.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) binding.txtHeroSubtitle.text = "Open full device Android system preferences, display, audio, and accounts."
+            if (hasFocus) binding.txtHeroSubtitle.setText(R.string.focus_desc_device_prefs)
         }
         binding.rowPermissions.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) binding.txtHeroSubtitle.text = "Review and manage system permissions, overlay rights, and storage access."
+            if (hasFocus) binding.txtHeroSubtitle.setText(R.string.focus_desc_permissions)
         }
         binding.rowCatAbout.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) binding.txtHeroSubtitle.text = "Rerun setup wizard, set default launcher, restart, and view app details."
+            if (hasFocus) binding.txtHeroSubtitle.setText(R.string.focus_desc_about)
         }
     }
 
@@ -326,23 +326,41 @@ class SettingsBottomSheetFragment : DialogFragment() {
         }
     }
 
+    /**
+     * Shows which install path this device supports.
+     *
+     * The probe shells out to `su`, which can block for as long as a root prompt waits for the
+     * user, so it runs on IO behind a "checking" state instead of on the UI thread - calling it
+     * synchronously here was an ANR on any rooted box.
+     */
     private fun updateAdbStatusBadge() {
         if (!isAdded || _binding == null) return
-        val hasShell = AppUpdateManager.hasRootOrAdbShell()
-        val canPkgInstall = AppUpdateManager.canRequestPackageInstalls(requireContext())
+        val context = requireContext().applicationContext
 
-        if (hasShell) {
-            binding.txtAdbStatusBadge.text = "⚡ Root / ADB Shell: Available (Silent Update)"
-            binding.txtAdbStatusBadge.setTextColor(Color.parseColor("#81C784"))
-            binding.btnGrantInstallPerm.visibility = View.GONE
-        } else if (canPkgInstall) {
-            binding.txtAdbStatusBadge.text = "📦 Package Installer: Allowed (ADB/Direct shell fallback)"
-            binding.txtAdbStatusBadge.setTextColor(Color.parseColor("#64B5F6"))
-            binding.btnGrantInstallPerm.visibility = View.GONE
-        } else {
-            binding.txtAdbStatusBadge.text = "⚠️ Install Permission: Needed for stock TV installer"
-            binding.txtAdbStatusBadge.setTextColor(Color.parseColor("#FFB74D"))
-            binding.btnGrantInstallPerm.visibility = View.VISIBLE
+        binding.txtAdbStatusBadge.setText(R.string.update_badge_checking)
+        binding.txtAdbStatusBadge.setTextColor(Color.parseColor("#94A3B8"))
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val capability = AppUpdateManager.detectInstallCapability(context)
+            if (!isAdded || _binding == null) return@launch
+
+            when (capability) {
+                AppUpdateManager.InstallCapability.ROOT_SHELL -> {
+                    binding.txtAdbStatusBadge.setText(R.string.update_badge_root)
+                    binding.txtAdbStatusBadge.setTextColor(Color.parseColor("#81C784"))
+                    binding.btnGrantInstallPerm.visibility = View.GONE
+                }
+                AppUpdateManager.InstallCapability.PACKAGE_INSTALLER -> {
+                    binding.txtAdbStatusBadge.setText(R.string.update_badge_installer)
+                    binding.txtAdbStatusBadge.setTextColor(Color.parseColor("#64B5F6"))
+                    binding.btnGrantInstallPerm.visibility = View.GONE
+                }
+                AppUpdateManager.InstallCapability.NEEDS_PERMISSION -> {
+                    binding.txtAdbStatusBadge.setText(R.string.update_badge_permission)
+                    binding.txtAdbStatusBadge.setTextColor(Color.parseColor("#FFB74D"))
+                    binding.btnGrantInstallPerm.visibility = View.VISIBLE
+                }
+            }
         }
     }
 
@@ -546,8 +564,8 @@ class SettingsBottomSheetFragment : DialogFragment() {
 
         binding.layoutRootMenu.visibility = View.VISIBLE
         binding.btnBack.visibility = View.GONE
-        binding.txtSettingsTitle.text = "Settings"
-        binding.txtHeroSubtitle.text = "Customize launcher display, apps, locks, and system preferences"
+        binding.txtSettingsTitle.setText(R.string.settings_root_title)
+        binding.txtHeroSubtitle.setText(R.string.settings_root_subtitle)
         binding.scrollContainer.smoothScrollTo(0, 0)
     }
 
@@ -559,10 +577,10 @@ class SettingsBottomSheetFragment : DialogFragment() {
                 try {
                     startActivity(Intent(fallbackAction))
                 } catch (_: Exception) {
-                    Actions.toast(requireContext(), "Cannot open system settings on this device")
+                    Actions.toast(requireContext(), getString(R.string.toast_cannot_open_settings))
                 }
             } else {
-                Actions.toast(requireContext(), "Cannot open system settings on this device")
+                Actions.toast(requireContext(), getString(R.string.toast_cannot_open_settings))
             }
         }
     }

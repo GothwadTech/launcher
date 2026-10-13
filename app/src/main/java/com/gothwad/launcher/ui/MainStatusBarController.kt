@@ -16,12 +16,15 @@ import com.gothwad.launcher.data.ConfigStore
 import com.gothwad.launcher.data.LauncherConfig
 import com.gothwad.launcher.data.NetStatus
 import com.gothwad.launcher.data.ProcessHeartbeat
+import com.gothwad.launcher.data.UI_SCALES
 import com.gothwad.launcher.data.bluetoothStatusFlow
 import com.gothwad.launcher.data.networkStatusFlow
 import com.gothwad.launcher.databinding.ActivityMainBinding
 import com.gothwad.launcher.service.LauncherAccessibilityService
 import com.gothwad.launcher.service.NotificationManagerBridge
+import com.gothwad.launcher.service.StockLauncherDetector
 import com.gothwad.launcher.ui.dialogs.NotificationBottomSheetFragment
+import com.gothwad.launcher.ui.dialogs.QuickDashboardDialogFragment
 import com.gothwad.launcher.ui.dialogs.SearchDialogFragment
 import com.gothwad.launcher.ui.dialogs.SettingsBottomSheetFragment
 import com.gothwad.launcher.ui.dialogs.SetupWizardDialogFragment
@@ -97,7 +100,28 @@ class MainStatusBarController(
             onSettingsClick = {
                 openSettingsDialog()
             }
+
+            onDashboardClick = {
+                showQuickDashboard()
+            }
         }
+    }
+
+    /**
+     * One-panel overview: network, Bluetooth remote and volume.
+     *
+     * The panel already existed but had no entry point anywhere in the UI, so the feature the
+     * README advertises was unreachable. The clock cluster opens it.
+     */
+    private fun showQuickDashboard() {
+        // Bluetooth details (remote name, battery) need BLUETOOTH_CONNECT on Android 12+;
+        // ask now, at the moment the user actually looks at that data.
+        activity.ensureBluetoothPermission()
+        QuickDashboardDialogFragment.newInstance(
+            net = currentNetStatus,
+            bt = currentBtStatus,
+            onOpenSettings = { openSettingsDialog() },
+        ).show(activity.supportFragmentManager, QuickDashboardDialogFragment.TAG)
     }
 
     fun updateA11yStatus() {
@@ -129,6 +153,41 @@ class MainStatusBarController(
         }.show(activity.supportFragmentManager, SetupWizardDialogFragment.TAG)
     }
 
+    /**
+     * Pushes the persisted UI-scale + font-scale policy into [DensityAdapter].
+     *
+     * `LauncherConfig` is the source of truth; the adapter keeps its own tiny prefs file so
+     * the very first frame after a cold start is already correct. When the two disagree the
+     * activity is recreated once, because density is baked into views at inflate time and
+     * already-inflated views would otherwise keep their old pixel sizes.
+     */
+    private fun applyDensityPolicy(config: LauncherConfig) {
+        val scale = UI_SCALES.getOrElse(config.uiScale.coerceIn(0, UI_SCALES.size - 1)) { 1.0f }
+        val scaleChanged = DensityAdapter.setUiScale(activity, scale)
+        val fontChanged = DensityAdapter.setRespectSystemFontScale(
+            activity,
+            config.respectSystemFontScale,
+        )
+        if (!scaleChanged && !fontChanged) return
+        runCatching { DensityAdapter.apply(activity) }
+        if (scaleChanged) {
+            runCatching { activity.recreate() }
+        }
+    }
+
+    /**
+     * Tells the `:watchdog` process whether it may pull the launcher to the foreground.
+     *
+     * The watchdog cannot read the DataStore itself (Preferences DataStore is single-process and
+     * two processes on one file can corrupt it), so the policy is mirrored into a tiny file in
+     * device-protected storage - see [ProcessHeartbeat.setRelaunchAllowed].
+     */
+    private fun publishWatchdogPolicy(config: LauncherConfig) {
+        val allowed = config.launchOnBoot ||
+            StockLauncherDetector.isDefaultHomeApp(activity)
+        ProcessHeartbeat.setRelaunchAllowed(activity, allowed)
+    }
+
     private fun observeStatusBarData() {
         val configStore = ConfigStore(activity)
 
@@ -141,11 +200,8 @@ class MainStatusBarController(
 
                         com.gothwad.launcher.data.AppLaunchTracker.aggressiveTrimEnabled =
                             config.aggressiveMemoryTrim
-                        if (com.gothwad.launcher.ui.DensityAdapter.respectSystemFontScale != config.respectSystemFontScale) {
-                            com.gothwad.launcher.ui.DensityAdapter.respectSystemFontScale =
-                                config.respectSystemFontScale
-                            runCatching { com.gothwad.launcher.ui.DensityAdapter.apply(activity) }
-                        }
+                        applyDensityPolicy(config)
+                        publishWatchdogPolicy(config)
 
                         binding.mainStatusBar.applyConfig(config)
                         binding.mainStatusBar.visibility =

@@ -84,6 +84,19 @@ object StockLauncherDetector {
         return packages
     }
 
+    /**
+     * True when this package is the one Android currently resolves for the HOME intent, i.e.
+     * the user picked Gothwad Launcher as the default launcher.
+     *
+     * Shared by `BootReceiver` and the watchdog: whether it is acceptable to pull the launcher
+     * to the foreground depends on it.
+     */
+    fun isDefaultHomeApp(context: Context): Boolean = runCatching {
+        val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+        context.packageManager.resolveActivity(intent, 0)
+            ?.activityInfo?.packageName == context.packageName
+    }.getOrDefault(false)
+
     fun isStockTvLauncher(pkg: String): Boolean {
         if (isSystemOrSettingsPackage(pkg)) return false
         return STOCK_LAUNCHERS.any { it.equals(pkg, ignoreCase = true) }

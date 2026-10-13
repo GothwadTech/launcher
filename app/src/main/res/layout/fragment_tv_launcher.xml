@@ -16,7 +16,15 @@
         android:contentDescription="@null"
         android:visibility="gone" />
 
-    <!-- Top and Bottom Readability Gradient Scrims -->
+    <!-- Readability scrims. `view_scrim_full` backs scrim mode 0 ("Full Screen Scrim"),
+         which previously rendered exactly like mode 3 (top + bottom edges only). -->
+    <View
+        android:id="@+id/view_scrim_full"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#59000000"
+        android:visibility="gone" />
+
     <View
         android:id="@+id/view_scrim_top"
         android:layout_width="match_parent"

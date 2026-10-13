@@ -1,6 +1,7 @@
 package com.gothwad.launcher.data
 
 import android.content.Context
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -18,8 +19,9 @@ import java.io.File
  * returns `null`/an incomplete list for third-party apps, which made the launcher
  * steal the screen away from every other app every 10 seconds.
  *
- * Instead we publish two monotonically increasing timestamps to a tiny file inside
- * `filesDir` (visible to both processes, same UID):
+ * Instead we publish two monotonically increasing timestamps to a tiny file in
+ * device-protected storage (visible to both processes, same UID, and readable before the
+ * user unlocks the device - see [sharedDir]):
  *
  *  - `process` beat: written by the main process application object, every few seconds,
  *    regardless of UI state. If this goes stale, the process is genuinely dead/hung.
@@ -34,12 +36,30 @@ object ProcessHeartbeat {
 
     private const val TAG = "ProcessHeartbeat"
     private const val FILE_NAME = "gothwad_heartbeat"
+    private const val POLICY_FILE_NAME = "gothwad_relaunch_policy"
 
     /** How often the main process publishes a beat. */
     const val BEAT_INTERVAL_MS = 5_000L
 
     /** A main-process beat older than this means the process is dead or hung. */
     const val STALE_PROCESS_MS = 45_000L
+
+    /**
+     * Directory for state shared between the main process and `:watchdog`.
+     *
+     * It has to be *device-protected* storage: the watchdog is `directBootAware` and can be
+     * started from `LOCKED_BOOT_COMPLETED`, when credential-encrypted `filesDir` is not mounted
+     * yet. Every read there throws, the throw is swallowed by `runCatching`, and the watchdog
+     * concludes "no heartbeat = the main process is dead" - so it yanked the TV back to HOME
+     * before the device was even unlocked.
+     */
+    internal fun sharedDir(context: Context): File = runCatching {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            context.createDeviceProtectedStorageContext().filesDir
+        } else {
+            context.filesDir
+        }
+    }.getOrDefault(context.filesDir)
 
     private var handler: Handler? = null
 
@@ -79,7 +99,7 @@ object ProcessHeartbeat {
     fun touch(context: Context, foreground: Boolean) {
         runCatching {
             val now = SystemClock.elapsedRealtime()
-            val file = File(context.filesDir, FILE_NAME)
+            val file = File(sharedDir(context), FILE_NAME)
             val previous = readPair(file)
             // A foreground beat must never wipe the process beat (keep the last known one,
             // and publish `now` if we never had one).
@@ -90,10 +110,31 @@ object ProcessHeartbeat {
     }
 
     /** Last main-process beat (elapsedRealtime), or 0 when unknown. */
-    fun lastProcessBeat(context: Context): Long = readPair(File(context.filesDir, FILE_NAME)).first
+    fun lastProcessBeat(context: Context): Long = readPair(File(sharedDir(context), FILE_NAME)).first
 
     /** Last foreground (MainActivity STARTED) beat, or 0 when unknown. */
-    fun lastForegroundBeat(context: Context): Long = readPair(File(context.filesDir, FILE_NAME)).second
+    fun lastForegroundBeat(context: Context): Long = readPair(File(sharedDir(context), FILE_NAME)).second
+
+    /**
+     * Publishes whether the watchdog may pull the launcher to the foreground.
+     *
+     * Mirrors `LauncherConfig.launchOnBoot` (plus "are we the default home app?") into a file,
+     * because the `:watchdog` process must not touch the Preferences DataStore: DataStore is
+     * single-process by design and two processes on one file can corrupt it.
+     */
+    fun setRelaunchAllowed(context: Context, allowed: Boolean) {
+        runCatching {
+            File(sharedDir(context), POLICY_FILE_NAME).writeText(if (allowed) "1" else "0")
+        }
+    }
+
+    /**
+     * Last published policy. Defaults to "allowed" when nothing has been written yet, so crash
+     * recovery still works on a fresh install before the first config emission.
+     */
+    fun isRelaunchAllowed(context: Context): Boolean = runCatching {
+        File(sharedDir(context), POLICY_FILE_NAME).readText().trim() != "0"
+    }.getOrDefault(true)
 
     /** True when the main process looks dead or hung. Safe against missing/corrupt state. */
     fun isMainProcessStale(context: Context): Boolean {
@@ -138,7 +179,7 @@ object SelfHealGuard {
     // File-backed (not SharedPreferences) on purpose: the crash handler lives in the
     // main process and the watchdog in `:watchdog`, and SharedPreferences instances are
     // cached per process, so cross-process counters would silently drift apart.
-    private fun file(context: Context) = File(context.filesDir, FILE_NAME)
+    private fun file(context: Context) = File(ProcessHeartbeat.sharedDir(context), FILE_NAME)
 
     private fun read(context: Context): Triple<Int, Long, Boolean> {
         return runCatching {

@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.first
 import kotlin.io.encoding.Base64 as KotlinBase64
 import java.security.MessageDigest
 import java.security.SecureRandom
+import java.util.Locale
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
 
@@ -136,16 +137,27 @@ object LockSecurity {
 
         Log.i(TAG, "Migrating legacy plain-text lock credentials to PBKDF2 hashes")
         store.update { cfg ->
-            cfg.copy(
-                appLock = migrateOne(cfg.appLock),
-                hiddenAppsLock = migrateOne(cfg.hiddenAppsLock),
+            migrateRevealCode(
+                cfg.copy(
+                    appLock = migrateOne(cfg.appLock),
+                    hiddenAppsLock = migrateOne(cfg.hiddenAppsLock),
+                )
             )
         }
     }
 
     private fun hasLegacyPlainText(config: LauncherConfig): Boolean =
         (config.appLock.value.isNotEmpty() && config.appLock.credentialHash.isEmpty()) ||
-            (config.hiddenAppsLock.value.isNotEmpty() && config.hiddenAppsLock.credentialHash.isEmpty())
+            (config.hiddenAppsLock.value.isNotEmpty() && config.hiddenAppsLock.credentialHash.isEmpty()) ||
+            (config.hiddenAppsRevealCode.isNotEmpty() && config.hiddenAppsRevealCodeHash.isEmpty())
+
+    /** Hashes and clears a legacy plain-text search-bar reveal code. */
+    private fun migrateRevealCode(config: LauncherConfig): LauncherConfig =
+        if (config.hiddenAppsRevealCode.isEmpty() || config.hiddenAppsRevealCodeHash.isNotEmpty()) {
+            config
+        } else {
+            applyRevealCode(config, config.hiddenAppsRevealCode)
+        }
 
     private fun migrateOne(credential: LockCredential): LockCredential {
         if (credential.value.isEmpty() || credential.credentialHash.isNotEmpty()) return credential
@@ -154,6 +166,59 @@ object LockSecurity {
             credentialHash = hash(credential.value, salt),
             credentialSalt = salt,
             value = "",
+        )
+    }
+
+    // =========================================================================
+    // Hidden-apps reveal code (typed into the search bar)
+    // =========================================================================
+
+    /**
+     * The reveal code used to live in the config as plain text, which contradicted the
+     * "never plain text" rule the rest of this file exists to enforce: it sat in the same
+     * DataStore JSON as the hashed PINs and was echoed back into an editable text field.
+     * It is now stored exactly like a credential - salted PBKDF2, never reversible - so the
+     * Settings screen can tell *whether* a code is set but can no longer reveal it.
+     *
+     * Matching stays case-insensitive (that was the pre-hashing behaviour and it matters on a
+     * TV remote), so the candidate is normalised before it is hashed.
+     */
+    private fun normalizeRevealCode(code: String): String =
+        code.trim().lowercase(Locale.ROOT)
+
+    /** True when a hashed reveal code is configured. */
+    fun isRevealCodeSet(config: LauncherConfig): Boolean =
+        config.hiddenAppsRevealCodeHash.isNotBlank() && config.hiddenAppsRevealCodeSalt.isNotBlank()
+
+    /** Constant-time check of a search-bar candidate against the stored reveal code. */
+    fun verifyRevealCode(config: LauncherConfig, candidate: String): Boolean {
+        if (candidate.isBlank() || !isRevealCodeSet(config)) return false
+        val computed = hash(normalizeRevealCode(candidate), config.hiddenAppsRevealCodeSalt)
+        if (computed.isBlank()) return false
+        return MessageDigest.isEqual(
+            computed.toByteArray(Charsets.UTF_8),
+            config.hiddenAppsRevealCodeHash.toByteArray(Charsets.UTF_8),
+        )
+    }
+
+    /**
+     * Returns [config] with [code] stored as a fresh salted hash. An empty/blank [code]
+     * clears the reveal code entirely. The plain-text legacy field is always wiped.
+     */
+    fun applyRevealCode(config: LauncherConfig, code: String): LauncherConfig {
+        val normalized = normalizeRevealCode(code)
+        if (normalized.isEmpty()) {
+            return config.copy(
+                hiddenAppsRevealCode = "",
+                hiddenAppsRevealCodeHash = "",
+                hiddenAppsRevealCodeSalt = "",
+            )
+        }
+        val salt = randomSalt()
+        return config.copy(
+            hiddenAppsRevealCode = "",
+            hiddenAppsRevealCodeHash = hash(normalized, salt),
+            hiddenAppsRevealCodeSalt = salt,
         )
     }
 

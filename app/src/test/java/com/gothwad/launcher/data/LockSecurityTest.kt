@@ -62,4 +62,54 @@ class LockSecurityTest {
         assertFalse(LockSecurity.verify(empty, ""))
         assertFalse(LockSecurity.verify(empty, "0000"))
     }
+
+    // ----- hidden-apps reveal code (was stored as plain text) -----
+
+    @Test
+    fun `reveal code is stored as a salted hash, never as text`() {
+        val stored = LockSecurity.applyRevealCode(LauncherConfig(), "#vault")
+
+        assertTrue(LockSecurity.isRevealCodeSet(stored))
+        assertTrue(stored.hiddenAppsRevealCode.isEmpty())
+        assertTrue(stored.hiddenAppsRevealCodeHash.isNotEmpty())
+        assertTrue(stored.hiddenAppsRevealCodeSalt.isNotEmpty())
+        assertTrue(LockSecurity.verifyRevealCode(stored, "#vault"))
+        assertFalse(LockSecurity.verifyRevealCode(stored, "#other"))
+        assertFalse(LockSecurity.verifyRevealCode(stored, ""))
+    }
+
+    @Test
+    fun `reveal code matching stays case insensitive and trimmed`() {
+        val stored = LockSecurity.applyRevealCode(LauncherConfig(), "  Secret  ")
+
+        assertTrue(LockSecurity.verifyRevealCode(stored, "secret"))
+        assertTrue(LockSecurity.verifyRevealCode(stored, "SECRET"))
+        assertTrue(LockSecurity.verifyRevealCode(stored, "  secret "))
+    }
+
+    @Test
+    fun `the same reveal code gets a different salt every time`() {
+        val first = LockSecurity.applyRevealCode(LauncherConfig(), "vault")
+        val second = LockSecurity.applyRevealCode(LauncherConfig(), "vault")
+
+        assertNotEquals(first.hiddenAppsRevealCodeSalt, second.hiddenAppsRevealCodeSalt)
+        assertNotEquals(first.hiddenAppsRevealCodeHash, second.hiddenAppsRevealCodeHash)
+    }
+
+    @Test
+    fun `a blank reveal code clears it`() {
+        val cleared = LockSecurity.applyRevealCode(
+            LockSecurity.applyRevealCode(LauncherConfig(), "vault"),
+            "   ",
+        )
+
+        assertFalse(LockSecurity.isRevealCodeSet(cleared))
+        assertFalse(LockSecurity.verifyRevealCode(cleared, "vault"))
+    }
+
+    @Test
+    fun `a config with no reveal code never matches`() {
+        assertFalse(LockSecurity.isRevealCodeSet(LauncherConfig()))
+        assertFalse(LockSecurity.verifyRevealCode(LauncherConfig(), "anything"))
+    }
 }

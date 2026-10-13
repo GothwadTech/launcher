@@ -1,0 +1,21 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Troubleshooting guide
+    url: https://github.com/GothwadTech/launcher/blob/main/docs/TROUBLESHOOTING.md
+    about: >
+      Boot ads, safe-mode toasts, wrong UI size, app lock not working from recents,
+      "Remote: unknown" in the dashboard, self-update install failures — read this first.
+  - name: Roadmap & known gaps
+    url: https://github.com/GothwadTech/launcher/blob/main/docs/ROADMAP.md
+    about: Already-planned work, why it has not landed, and the explicit non-goals.
+  - name: Configuration reference
+    url: https://github.com/GothwadTech/launcher/blob/main/docs/CONFIG.md
+    about: Every persisted setting — type, default, what reads it, which screen writes it.
+  - name: Security & privacy
+    url: https://github.com/GothwadTech/launcher/blob/main/docs/SECURITY.md
+    about: >
+      How locks and credentials work, what each permission is for, and what is NOT collected.
+      For a lock bypass or credential leak, do not open a public issue — contact the maintainers.
+  - name: Contributing guide
+    url: https://github.com/GothwadTech/launcher/blob/main/CONTRIBUTING.md
+    about: Ground rules (no Compose, no main-thread blocking), PR checklist, local build commands.

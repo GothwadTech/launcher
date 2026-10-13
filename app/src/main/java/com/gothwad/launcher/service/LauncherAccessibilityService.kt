@@ -2,17 +2,22 @@ package com.gothwad.launcher.service
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
+import android.app.AlarmManager
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.media.AudioManager
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.provider.Settings
 import android.util.Log
 import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
 import com.gothwad.launcher.Actions
 import com.gothwad.launcher.GothwadApplication
+import com.gothwad.launcher.R
 import com.gothwad.launcher.MainActivity
 import com.gothwad.launcher.data.BackgroundMediaTracker
 import com.gothwad.launcher.data.ButtonMappingManager
@@ -100,6 +105,19 @@ class LauncherAccessibilityService : AccessibilityService() {
     @Volatile
     private var cachedConfig: LauncherConfig = LauncherConfig()
 
+    /**
+     * False until the first config emission arrived. `cachedConfig` starts out as an *empty*
+     * default, in which no app is locked and nothing is hidden, so enforcing from it would
+     * fail open: a locked app opened in the first moments after the service binds would go
+     * straight through. Enforcement is parked until the real config lands (a few ms) instead.
+     */
+    @Volatile
+    private var configLoaded = false
+
+    /** Foreground package seen while [configLoaded] was still false; re-checked once it flips. */
+    @Volatile
+    private var pendingEnforcementPkg: String? = null
+
     // Overlay state for system-wide app lock
     private var currentLockOverlay: AppLockOverlayView? = null
     @Volatile
@@ -121,6 +139,17 @@ class LauncherAccessibilityService : AccessibilityService() {
             store.flow.collectLatest { cfg ->
                 cachedButtonMap = cfg.buttonMap
                 cachedConfig = cfg
+                val firstLoad = !configLoaded
+                configLoaded = true
+                if (firstLoad) {
+                    // Re-run the enforcement check that had to be parked while the config was
+                    // still unknown.
+                    val pkg = pendingEnforcementPkg
+                    pendingEnforcementPkg = null
+                    if (pkg != null) {
+                        mainHandler.post { checkAndEnforceAppLock(pkg) }
+                    }
+                }
             }
         }
     }
@@ -128,6 +157,8 @@ class LauncherAccessibilityService : AccessibilityService() {
     override fun onDestroy() {
         stopVolumeRepeat()
         dismissLockOverlay()
+        pendingEnforcementPkg = null
+        configLoaded = false
         serviceScope.cancel()
         super.onDestroy()
     }
@@ -186,6 +217,13 @@ class LauncherAccessibilityService : AccessibilityService() {
             return
         }
 
+        // Fail closed: with no config yet we cannot know what is locked or hidden, so park
+        // this package and decide as soon as the first emission lands (see [configLoaded]).
+        if (!configLoaded) {
+            pendingEnforcementPkg = pkg
+            return
+        }
+
         // Hidden apps are a vault: they must not be reachable from another launcher,
         // Android Settings, notifications or the recents switcher either. We only allow
         // them once this process has explicitly unlocked them (vault launch).
@@ -202,7 +240,7 @@ class LauncherAccessibilityService : AccessibilityService() {
                         pkg = pkg,
                         credential = config.hiddenAppsLock,
                         scope = LockSecurity.SCOPE_VAULT,
-                        title = "Hidden App",
+                        title = getString(R.string.lock_title_hidden),
                     )
                 }
             } else {
@@ -234,7 +272,7 @@ class LauncherAccessibilityService : AccessibilityService() {
                 pkg = pkg,
                 credential = config.appLock,
                 scope = LockSecurity.SCOPE_APP,
-                title = "App Locked",
+                title = getString(R.string.lock_title_app),
             )
         }
     }
@@ -262,7 +300,7 @@ class LauncherAccessibilityService : AccessibilityService() {
             context = this@LauncherAccessibilityService,
             credential = credential,
             title = title,
-            subtitle = "Enter credential to open $appName",
+            subtitle = getString(R.string.lock_subtitle_overlay, appName),
             lockScope = scope,
             onSuccess = {
                 // Mark package as unlocked for current session
@@ -401,8 +439,9 @@ class LauncherAccessibilityService : AccessibilityService() {
         fun isStockTvLauncher(context: Context, pkg: String): Boolean =
             StockLauncherDetector.isStockTvLauncher(context, pkg)
 
-        fun launchHome(context: Context) {
-            val intent = Intent(context, MainActivity::class.java).apply {
+        /** The HOME intent this launcher answers. Shared by every recovery path. */
+        fun homeIntent(context: Context): Intent =
+            Intent(context, MainActivity::class.java).apply {
                 action = Intent.ACTION_MAIN
                 addCategory(Intent.CATEGORY_HOME)
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or
@@ -411,15 +450,63 @@ class LauncherAccessibilityService : AccessibilityService() {
                     Intent.FLAG_ACTIVITY_CLEAR_TOP or
                     Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
             }
-            context.startActivity(intent)
+
+        fun launchHome(context: Context) {
+            context.startActivity(homeIntent(context))
+        }
+
+        /**
+         * Brings HOME to the front from a *background* component: the `:watchdog` process, the
+         * boot shield service, or the crash handler.
+         *
+         * Android 10+ blocks background activity starts, and it fails **silently** -
+         * `startActivity` returns normally while the system drops the start, so the old
+         * `runCatching { launchHome(...) }.isSuccess` reported success and the recovery path did
+         * nothing. Handing the same intent to AlarmManager makes the system fire it, which is
+         * one of the documented exemptions; the direct start is kept as the fast path for the
+         * case where the launcher is already allowed to start activities.
+         */
+        fun launchHomeCompat(context: Context): Boolean {
+            val intent = homeIntent(context)
+
+            val scheduled = runCatching {
+                val am = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager
+                    ?: return@runCatching false
+                val pending = PendingIntent.getActivity(
+                    context,
+                    HOME_REQUEST_CODE,
+                    intent,
+                    // FLAG_IMMUTABLE only exists from API 23 and minSdk is 21.
+                    PendingIntent.FLAG_UPDATE_CURRENT or
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                            PendingIntent.FLAG_IMMUTABLE
+                        } else {
+                            0
+                        },
+                )
+                am.set(
+                    AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                    SystemClock.elapsedRealtime() + HOME_ALARM_DELAY_MS,
+                    pending,
+                )
+                true
+            }.getOrDefault(false)
+
+            val direct = runCatching {
+                context.startActivity(intent)
+                true
+            }.getOrDefault(false)
+
+            if (!scheduled && !direct) {
+                Log.w(TAG, "Could not bring HOME to the front (background activity start blocked?)")
+            }
+            return scheduled || direct
         }
 
         suspend fun launchHomeWithRetry(context: Context, maxAttempts: Int = 5) {
             var delayMs = 150L
             for (attempt in 1..maxAttempts) {
-                val success = runCatching {
-                    launchHome(context)
-                }.isSuccess
+                val success = launchHomeCompat(context)
                 if (success) {
                     if (attempt > 1) {
                         android.util.Log.i("LauncherA11y", "launchHome succeeded on retry attempt $attempt")
@@ -446,5 +533,9 @@ class LauncherAccessibilityService : AccessibilityService() {
 
         /** In-memory set of unlocked packages for current foreground session */
         val unlockedPackagesSession: MutableSet<String> = java.util.Collections.synchronizedSet(mutableSetOf<String>())
+
+        private const val TAG = "LauncherA11y"
+        private const val HOME_REQUEST_CODE = 4402
+        private const val HOME_ALARM_DELAY_MS = 120L
     }
 }
