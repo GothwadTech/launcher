@@ -78,6 +78,17 @@ intentional (it makes the first frame after a cold start correct); `LauncherConf
 source of truth and `MainStatusBarController.applyDensityPolicy()` pushes it in. Keep the neutral
 default at `uiScale = 2` (1.0×) — index 2 *is* 1.0× in `UI_SCALES`.
 
+Two rules learned from the 1.0.79 release, both now enforced by `tools/ktcheck.py`:
+
+* **Never read anything through `context.applicationContext` inside `attachBaseContext()`** (or in
+  anything it calls). While an `Application` is being attached the framework has not registered it
+  yet — `LoadedApk.mApplication` is assigned only after `Instrumentation.newApplication()` returns
+  — so `applicationContext` is `null` and the call throws on **every** cold start. Use the context
+  you were handed.
+* **The density engine must never be able to stop the launcher.** `wrapContext`/`apply`/`init` are
+  best-effort: log the failure and fall back to the firmware density. A HOME app that cannot start
+  is a black TV.
+
 ### 11. Signing and versioning are Gradle's job
 No `jarsigner`/`apksigner sign` steps in workflows (AGP produces v1+v2+v3 for both APK and AAB).
 Signing config is read with `providers.environmentVariable(...)` — **not** `System.getenv` — because

@@ -17,6 +17,17 @@ val CORNER_RADII: List<Float> = listOf(0f, 4f, 10f, 18f, 28f)
 /** Manual whole-UI scale steps (config.uiScale indexes this, 0..4). <1 = more compact. */
 val UI_SCALES: List<Float> = listOf(0.75f, 0.9f, 1.0f, 1.15f, 1.3f)
 
+/** Index in [UI_SCALES] that means "no scaling" (1.0x). */
+const val UI_SCALE_NEUTRAL_INDEX = 2
+
+/**
+ * Version of the *meaning* of the stored config, bumped when a field changes semantics rather
+ * than name. `0` is what a config written before this marker decodes to.
+ *
+ * Version 1: `uiScale` (see [normalizeConfig]).
+ */
+const val CONFIG_VERSION = 1
+
 enum class LockCredentialType { NUMERIC, ALPHANUMERIC }
 
 @Serializable
@@ -113,7 +124,40 @@ data class LauncherConfig(
     // ----- Remote Button Mapping (Phase 5) -----
     val buttonMap: Map<Int, String> = emptyMap(),
     val buttonMapDefaultsApplied: Boolean = false,
+    // ----- migration -----
+    /**
+     * Marker for [normalizeConfig]: `0` means "written by a build that predates the marker".
+     * Never read for behaviour, only for migration - see `docs/CONFIG.md`.
+     */
+    val configVersion: Int = 0,
 )
+
+/**
+ * Brings [config] in line with the current meaning of its fields and stamps it with
+ * [CONFIG_VERSION].
+ *
+ * **Why this exists.** `uiScale` was stored, shown in Settings and read back since the earliest
+ * builds, but nothing ever *applied* it - the UI looked identical at 0.75x and 1.3x. The release
+ * that finally applies it (1.0.79) also moved the value's index base from `1..5` with
+ * `3 = 1.0x` to `0..4` with `2 = 1.0x`. A config written before that therefore holds a number
+ * the user never saw rendered, and interpreting it under the new meaning would silently resize
+ * the whole launcher by +/-15% for every existing install the moment it updates.
+ *
+ * So: a config without the marker is reset to [UI_SCALE_NEUTRAL_INDEX] (1.0x, i.e. exactly what
+ * those installs looked like until now). Anything the user picks *after* the update is stored
+ * with the marker (`ConfigStore.update` stamps it) and is honoured from then on.
+ *
+ * Called on every read (`ConfigStore.flow`) and on every write (`ConfigStore.update`), so a
+ * stored config that has not been rewritten yet is re-normalised each time it is read.
+ */
+fun normalizeConfig(config: LauncherConfig): LauncherConfig {
+    val migrated = if (config.configVersion < CONFIG_VERSION) {
+        config.copy(uiScale = UI_SCALE_NEUTRAL_INDEX)
+    } else {
+        config
+    }
+    return migrated.copy(configVersion = CONFIG_VERSION)
+}
 
 private val Context.dataStore by preferencesDataStore(name = "launcher_config")
 
@@ -127,7 +171,22 @@ class ConfigStore(private val context: Context) {
 
     val flow: Flow<LauncherConfig> = context.dataStore.data.map { prefs ->
         val stored = prefs[key] ?: return@map LauncherConfig()
-        runCatching { json.decodeFromString<LauncherConfig>(stored) }
+        normalizeConfig(decodeOrLog(stored))
+    }
+
+    suspend fun update(transform: (LauncherConfig) -> LauncherConfig) {
+        context.dataStore.edit { prefs ->
+            val current = prefs[key]?.let { normalizeConfig(decodeOrLog(it)) } ?: LauncherConfig()
+            // Normalise again after the transform so the write is always stamped with the
+            // current [CONFIG_VERSION] - that stamp is what tells the next read "these values
+            // already use today's semantics, do not migrate them".
+            val updated = normalizeConfig(transform(current))
+            prefs[key] = json.encodeToString(updated)
+        }
+    }
+
+    private fun decodeOrLog(raw: String): LauncherConfig =
+        runCatching { json.decodeFromString<LauncherConfig>(raw) }
             .onFailure { e ->
                 // A failed decode means the launcher silently comes up with factory defaults,
                 // which for a home screen looks like "all my settings and locks disappeared".
@@ -136,15 +195,4 @@ class ConfigStore(private val context: Context) {
                 android.util.Log.e(TAG, "Config decode failed - falling back to defaults", e)
             }
             .getOrDefault(LauncherConfig())
-    }
-
-    suspend fun update(transform: (LauncherConfig) -> LauncherConfig) {
-        context.dataStore.edit { prefs ->
-            val current = prefs[key]?.let {
-                runCatching { json.decodeFromString<LauncherConfig>(it) }.getOrNull()
-            } ?: LauncherConfig()
-            val updated = transform(current)
-            prefs[key] = json.encodeToString(updated)
-        }
-    }
 }

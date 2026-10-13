@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.Application
 import android.content.ComponentCallbacks
 import android.content.Context
+import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.content.res.Resources
 import android.os.Build
@@ -71,16 +72,47 @@ object DensityAdapter {
     const val MIN_UI_SCALE = 0.6f
     const val MAX_UI_SCALE = 1.6f
 
-    private fun prefs(context: Context) =
-        context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    /**
+     * Opens the persisted mirror of the density policy, or null when it cannot be opened.
+     *
+     * ## Do not read this through `applicationContext`
+     *
+     * [hydrate] also runs from `GothwadApplication.attachBaseContext` (see [wrapContext]), and
+     * while an `Application` is being attached the framework has **not registered it yet**:
+     * `LoadedApk.makeApplication()` assigns `mApplication = app` only *after*
+     * `Instrumentation.newApplication()` - which is what calls `attachBaseContext()` - returns,
+     * and `ContextImpl.getApplicationContext()` is literally
+     * `mPackageInfo.getApplication()`. So `context.applicationContext` is `null` in there, and
+     * `context.applicationContext.getSharedPreferences(...)` threw a `NullPointerException`
+     * before the launcher could draw its first frame - on every device, on every Android
+     * version (verified against AOSP 5.1 / 9 / 11 / 14). Because this app is normally the
+     * default HOME, the TV showed "Gothwad Launcher keeps stopping" over a black screen.
+     *
+     * The context we are handed is a perfectly usable package context of the same app, so use
+     * it directly.
+     *
+     * Reads that legitimately cannot work are handled too: from the `:watchdog` process before
+     * the user unlocks the device, credential-encrypted storage is not mounted yet and
+     * `getSharedPreferences` throws `IllegalStateException` (targetSdk >= 26). A missing UI
+     * preference must not kill a launcher, so a null return simply means "keep the values we
+     * already have".
+     */
+    private fun prefs(context: Context): SharedPreferences? = runCatching {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    }.onFailure { e ->
+        Log.w(TAG, "Density preferences unavailable (${e.javaClass.simpleName}: ${e.message})")
+    }.getOrNull()
 
     /**
      * Loads the persisted scale / font policy. Cheap after the first call (SharedPreferences
      * keeps the parsed map in memory); called from every entry point below so a value written
      * by another component is never ignored.
+     *
+     * Best-effort by design: when the mirror is unreadable the in-memory values (previous
+     * hydration, or the 1.0x default) stay in force.
      */
     fun hydrate(context: Context) {
-        val sp = prefs(context)
+        val sp = prefs(context) ?: return
         userUiScale = sp.getFloat(KEY_UI_SCALE, 1.0f).coerceIn(MIN_UI_SCALE, MAX_UI_SCALE)
         respectSystemFontScale = sp.getBoolean(KEY_RESPECT_FONT_SCALE, true)
     }
@@ -97,7 +129,7 @@ object DensityAdapter {
         val clamped = multiplier.coerceIn(MIN_UI_SCALE, MAX_UI_SCALE)
         val changed = kotlin.math.abs(clamped - userUiScale) > 0.001f
         userUiScale = clamped
-        prefs(context).edit().putFloat(KEY_UI_SCALE, clamped).apply()
+        prefs(context)?.edit()?.putFloat(KEY_UI_SCALE, clamped)?.apply()
         Log.i(TAG, "UI scale set to ${clamped}x")
         return changed
     }
@@ -106,7 +138,7 @@ object DensityAdapter {
     fun setRespectSystemFontScale(context: Context, enabled: Boolean): Boolean {
         val changed = respectSystemFontScale != enabled
         respectSystemFontScale = enabled
-        prefs(context).edit().putBoolean(KEY_RESPECT_FONT_SCALE, enabled).apply()
+        prefs(context)?.edit()?.putBoolean(KEY_RESPECT_FONT_SCALE, enabled)?.apply()
         return changed
     }
 
@@ -208,8 +240,14 @@ object DensityAdapter {
     /**
      * Wraps a base context with a Configuration that enforces our target DPI.
      * Ideal for [Activity.attachBaseContext].
+     *
+     * Best-effort: this runs *before* any of our code can catch a throw, in the
+     * `Application.attachBaseContext` / `Activity.attachBaseContext` window where an exception
+     * means the launcher never starts (and, as HOME, that the TV shows nothing). If the density
+     * engine cannot do its job the base context is returned untouched - the user gets the
+     * firmware's DPI instead of a dead home screen.
      */
-    fun wrapContext(baseContext: Context): Context {
+    fun wrapContext(baseContext: Context): Context = runCatching {
         hydrate(baseContext)
         val metrics = calculateMetrics(baseContext)
         val config = Configuration(baseContext.resources.configuration).apply {
@@ -222,47 +260,69 @@ object DensityAdapter {
 
         val wrapped = baseContext.createConfigurationContext(config)
         applyToResources(wrapped.resources, metrics)
-        return wrapped
+        wrapped
+    }.getOrElse { e ->
+        Log.e(TAG, "Could not apply the design-width density to this context", e)
+        baseContext
     }
 
     /**
      * Enforces the target DPI on the provided [Context] (Activity or Application).
+     *
+     * Best-effort - see [wrapContext]: a density mismatch is a cosmetic problem, a launcher
+     * that cannot start is a broken TV.
      */
     fun apply(context: Context) {
-        hydrate(context)
-        val metrics = calculateMetrics(context)
-        applyToResources(context.resources, metrics)
+        runCatching {
+            hydrate(context)
+            val metrics = calculateMetrics(context)
+            applyToResources(context.resources, metrics)
+        }.onFailure { e -> Log.e(TAG, "Could not enforce density on the context", e) }
     }
 
     /**
      * Enforces the target DPI on an [Activity], its Window decor, and Application resources.
+     *
+     * Called from the `ActivityLifecycleCallbacks` registered in [init], i.e. on every activity
+     * create/start/resume, so it must never throw either.
      */
     fun apply(activity: Activity) {
-        hydrate(activity)
-        val metrics = calculateMetrics(activity)
-        applyToResources(activity.resources, metrics)
-        activity.window?.decorView?.resources?.let { applyToResources(it, metrics) }
-        applyToResources(activity.applicationContext.resources, metrics)
+        runCatching {
+            hydrate(activity)
+            val metrics = calculateMetrics(activity)
+            applyToResources(activity.resources, metrics)
+            activity.window?.decorView?.resources?.let { applyToResources(it, metrics) }
+            applyToResources(activity.applicationContext.resources, metrics)
+        }.onFailure { e -> Log.e(TAG, "Could not enforce density on the activity", e) }
     }
 
     /**
      * Initializes the global density adapter on the [Application] instance.
      * Hooks into Activity lifecycle and system component configuration callbacks
      * so any system-level DPI change is immediately corrected.
+     *
+     * Best-effort for the actual density work (logged, never fatal): this runs inside
+     * `Application.onCreate()`, where a throw would leave the device without a home screen.
+     * The callbacks are registered regardless, so a transient failure is corrected on the next
+     * activity or configuration change.
      */
     fun init(application: Application) {
         if (isInitialized) return
         isInitialized = true
-        hydrate(application)
 
-        val metrics = calculateMetrics(application)
-        applyToResources(application.resources, metrics)
-        Log.i(
-            TAG,
-            "Initialized DensityAdapter: Physical ${metrics.screenWidthPx}x${metrics.screenHeightPx}px, " +
-                "Enforced DPI=${metrics.targetDensityDpi}, Density=${metrics.targetDensity}, " +
-                "Canvas=${metrics.screenWidthDp}x${metrics.screenHeightDp}dp (System DPI immune)"
-        )
+        runCatching {
+            hydrate(application)
+            val metrics = calculateMetrics(application)
+            applyToResources(application.resources, metrics)
+            Log.i(
+                TAG,
+                "Initialized DensityAdapter: Physical ${metrics.screenWidthPx}x${metrics.screenHeightPx}px, " +
+                    "Enforced DPI=${metrics.targetDensityDpi}, Density=${metrics.targetDensity}, " +
+                    "Canvas=${metrics.screenWidthDp}x${metrics.screenHeightDp}dp (System DPI immune)"
+            )
+        }.onFailure { e ->
+            Log.e(TAG, "Density engine could not initialise; keeping the system density", e)
+        }
 
         // Monitor activity lifecycle to ensure every activity and its decor are adapted
         application.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
