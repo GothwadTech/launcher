@@ -7,6 +7,7 @@ import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
 import java.io.File
+import java.util.concurrent.Executors
 
 /**
  * Cheap, dependency-free liveness heartbeat shared between the main process and the
@@ -61,6 +62,38 @@ object ProcessHeartbeat {
         }
     }.getOrDefault(context.filesDir)
 
+    /**
+     * Writes [file] atomically: write to a sibling temp file, then `rename` over it.
+     *
+     * A plain `writeText` truncates the file first, so a reader that arrives between the
+     * truncate and the write (the `:watchdog` polls every 15 s) sees an empty/partial file,
+     * parses `0`, and `isMainProcessStale()` then says "the launcher is dead" - which yanks
+     * the TV back to HOME mid-movie. `rename(2)` on the same filesystem is atomic, so
+     * readers only ever see the old or the new content, never a torn one.
+     */
+    internal fun writeAtomic(file: File, content: String) {
+        val tmp = File(file.parentFile, file.name + ".tmp")
+        tmp.writeText(content)
+        if (!tmp.renameTo(file)) {
+            // Rename failed (should not happen on same-dir internal storage): fall back to
+            // a direct write rather than losing the update entirely.
+            file.writeText(content)
+            runCatching { tmp.delete() }
+        }
+    }
+
+    /**
+     * Single daemon thread that owns every shared-file write.
+     *
+     * [touch] is called from the main looper (the beat runnable and the status-bar clock
+     * loop), and project rule #3 is "no blocking work on the main thread" - not even a
+     * "few bytes" of file I/O, which is still a syscall pair that can jank on a loaded
+     * eMMC. The single thread also serialises read-modify-write cycles against themselves.
+     */
+    private val ioExecutor = Executors.newSingleThreadExecutor { r ->
+        Thread(r, "gothwad-heartbeat").apply { isDaemon = true }
+    }
+
     private var handler: Handler? = null
 
     private val beatRunnable = object : Runnable {
@@ -93,19 +126,26 @@ object ProcessHeartbeat {
     }
 
     /**
-     * Writes the current timestamp. Never throws, never blocks meaningfully: the file
-     * is a few bytes on internal storage.
+     * Writes the current timestamp. Never throws and never runs on the caller's thread:
+     * the write is queued on [ioExecutor] (a few bytes on internal storage).
      */
     fun touch(context: Context, foreground: Boolean) {
         runCatching {
-            val now = SystemClock.elapsedRealtime()
-            val file = File(sharedDir(context), FILE_NAME)
-            val previous = readPair(file)
-            // A foreground beat must never wipe the process beat (keep the last known one,
-            // and publish `now` if we never had one).
-            val processTs = if (foreground) previous.first.takeIf { it > 0L } ?: now else now
-            val fgTs = if (foreground) now else previous.second
-            file.writeText("$processTs\n$fgTs")
+            // Use the application context when available so a queued task never pins an
+            // Activity. (Never called from attachBaseContext, so this is safe here.)
+            val app = context.applicationContext ?: context
+            ioExecutor.execute {
+                runCatching {
+                    val now = SystemClock.elapsedRealtime()
+                    val file = File(sharedDir(app), FILE_NAME)
+                    val previous = readPair(file)
+                    // A foreground beat must never wipe the process beat (keep the last known one,
+                    // and publish `now` if we never had one).
+                    val processTs = if (foreground) previous.first.takeIf { it > 0L } ?: now else now
+                    val fgTs = if (foreground) now else previous.second
+                    writeAtomic(file, "$processTs\n$fgTs")
+                }
+            }
         }
     }
 
@@ -124,7 +164,11 @@ object ProcessHeartbeat {
      */
     fun setRelaunchAllowed(context: Context, allowed: Boolean) {
         runCatching {
-            File(sharedDir(context), POLICY_FILE_NAME).writeText(if (allowed) "1" else "0")
+            val app = context.applicationContext ?: context
+            val content = if (allowed) "1" else "0"
+            ioExecutor.execute {
+                runCatching { writeAtomic(File(sharedDir(app), POLICY_FILE_NAME), content) }
+            }
         }
     }
 
@@ -194,7 +238,9 @@ object SelfHealGuard {
 
     private fun write(context: Context, count: Int, windowStart: Long, safeMode: Boolean) {
         runCatching {
-            file(context).writeText("$count\n$windowStart\n$safeMode")
+            // Atomic for the same reason as the heartbeat: the other process polls this
+            // file and must never parse a torn half-write as "safe mode" or "budget spent".
+            ProcessHeartbeat.writeAtomic(file(context), "$count\n$windowStart\n$safeMode")
         }
     }
 

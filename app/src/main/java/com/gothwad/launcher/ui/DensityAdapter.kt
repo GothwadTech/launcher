@@ -128,18 +128,23 @@ object DensityAdapter {
     fun setUiScale(context: Context, multiplier: Float): Boolean {
         val clamped = multiplier.coerceIn(MIN_UI_SCALE, MAX_UI_SCALE)
         val changed = kotlin.math.abs(clamped - userUiScale) > 0.001f
+        // Persist only on a real change: this is called on every config emission (any
+        // settings toggle), and re-writing the same float each time is pointless flash wear.
+        if (!changed) return false
         userUiScale = clamped
         prefs(context)?.edit()?.putFloat(KEY_UI_SCALE, clamped)?.apply()
         Log.i(TAG, "UI scale set to ${clamped}x")
-        return changed
+        return true
     }
 
     /** Persists + applies the "respect system font size" policy. */
     fun setRespectSystemFontScale(context: Context, enabled: Boolean): Boolean {
         val changed = respectSystemFontScale != enabled
+        // Same "only write real changes" rule as [setUiScale] - see the caller note there.
+        if (!changed) return false
         respectSystemFontScale = enabled
         prefs(context)?.edit()?.putBoolean(KEY_RESPECT_FONT_SCALE, enabled)?.apply()
-        return changed
+        return true
     }
 
     /** System font scale, clamped so a broken ROM value cannot render the UI unusable. */

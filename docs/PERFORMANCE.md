@@ -24,7 +24,7 @@ something measurable went wrong before.
 ```
 Application.onCreate
   ├─ DensityAdapter.init          (sync, cheap: one screen-metrics read + a SharedPreferences read)
-  ├─ ProcessHeartbeat.start       (writes a few bytes, then every 5 s)
+  ├─ ProcessHeartbeat.start       (queues a tiny write on the heartbeat thread, then every 5 s)
   ├─ crash handler install        (no IO)
   └─ LauncherWatchdogService.start (startService, returns immediately)
 
@@ -62,6 +62,11 @@ scrolling is not smooth yet". If you add a hot path, add it to the profile.
 * `validCacheNames` is a `Collections.synchronizedSet`: it is filled from concurrent
   `async(Dispatchers.IO)` blocks and then used to prune the cache directory. A plain `HashSet`
   there could corrupt and delete artwork that is still live.
+* Whole scans are serialised with a `Mutex`: `MainActivity` and `TvLauncherFragment` both scan
+  on a cold start, and two concurrent full passes doubled the PM + bitmap work while racing the
+  prune step. The second caller now waits and hits the memory-cache fast path.
+* Per-app decode/rasterise work is capped at **6 concurrent ops** (`Semaphore`); unbounded
+  `async(IO)` over every installed package used to inflate hundreds of drawables at once.
 
 Custom wallpapers are decoded **down-sampled to the physical screen size** and only when the
 source file actually changed (`appliedWallpaperKey`). Previously every config emission re-decoded
