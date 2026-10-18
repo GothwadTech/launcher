@@ -11,6 +11,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import java.io.File
 
@@ -38,6 +42,21 @@ object AppRepository {
     private var memoryCache: List<AppEntry>? = null
 
     /**
+     * Serialises whole scans. `MainActivity` and `TvLauncherFragment` both scan on a cold
+     * start; without this the two full PackageManager + bitmap passes ran concurrently
+     * (doubling the work on the exact path this project optimises) and raced each other's
+     * cache-prune step. The loser now waits and hits the memory-cache fast path instead.
+     */
+    private val scanMutex = Mutex()
+
+    /**
+     * Caps how many apps are decoded/rasterised at once. Unbounded `async(IO)` over ~200
+     * packages used to inflate hundreds of drawables concurrently - on a 2 GB box that is
+     * a needless memory spike during the scan.
+     */
+    private val decodeSemaphore = Semaphore(6)
+
+    /**
      * Scans launchable apps. Banners and icons are pre-rasterized and cached to
      * disk as LOSSLESS WebP so subsequent cold starts only do disk decodes, not
      * package-manager IPC + drawable inflations.
@@ -45,8 +64,10 @@ object AppRepository {
      * Returns the same List instance if the set of installed packages and their
      * timestamps didn't change, letting downstream collectors skip work.
      */
-    suspend fun scan(context: Context): List<AppEntry> = withContext(Dispatchers.IO) {
-        scanInternal(context)
+    suspend fun scan(context: Context): List<AppEntry> = scanMutex.withLock {
+        withContext(Dispatchers.IO) {
+            scanInternal(context)
+        }
     }
 
     private suspend fun scanInternal(context: Context): List<AppEntry> = coroutineScope {
@@ -96,50 +117,54 @@ object AppRepository {
 
         val entries = byPkg.values.map { ri ->
             async(Dispatchers.IO) {
-                val pkg = ri.activityInfo.packageName
-                val (stamp, firstInstall) = meta[pkg] ?: (0L to 0L)
-                val ai = ri.activityInfo
+                decodeSemaphore.withPermit {
+                    val pkg = ri.activityInfo.packageName
+                    val (stamp, firstInstall) = meta[pkg] ?: (0L to 0L)
+                    val ai = ri.activityInfo
 
-                // Leanback banner (16:9, fixed height 180px is plenty for 1080p/4K TV grids)
-                val bannerName = "${pkg}_b_$stamp.webp"
-                validCacheNames.add(bannerName)
-                val banner = cachedBitmap(cacheDir, bannerName, Bitmap.Config.RGB_565) {
-                    runCatching {
-                        val d = ai.loadBanner(pm) ?: ai.applicationInfo.loadBanner(pm)
-                        d?.let {
-                            val w = 320
-                            val h = 180
-                            val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.RGB_565)
-                            val canvas = android.graphics.Canvas(bmp)
-                            it.setBounds(0, 0, w, h)
-                            it.draw(canvas)
-                            bmp
-                        }
-                    }.getOrNull()
+                    // Leanback banner (16:9, fixed height 180px is plenty for 1080p/4K TV grids)
+                    val bannerName = "${pkg}_b_$stamp.webp"
+                    val banner = cachedBitmap(cacheDir, bannerName, Bitmap.Config.RGB_565) {
+                        runCatching {
+                            val d = ai.loadBanner(pm) ?: ai.applicationInfo.loadBanner(pm)
+                            d?.let {
+                                val w = 320
+                                val h = 180
+                                val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.RGB_565)
+                                val canvas = android.graphics.Canvas(bmp)
+                                it.setBounds(0, 0, w, h)
+                                it.draw(canvas)
+                                bmp
+                            }
+                        }.getOrNull()
+                    }
+                    // Only keep cache files that decoded/produced a bitmap: a stale corrupt
+                    // file must be prunable, not protected by a name that never loads.
+                    if (banner != null) validCacheNames.add(bannerName)
+
+                    // App icon (only decoded/saved if there's no banner, or as square fallback)
+                    val iconName = "${pkg}_i_$stamp.webp"
+                    val icon = cachedBitmap(cacheDir, iconName, Bitmap.Config.ARGB_8888) {
+                        runCatching {
+                            val d = ai.loadIcon(pm) ?: ai.applicationInfo.loadIcon(pm)
+                            d.toBitmap(width = 128, height = 128, config = Bitmap.Config.ARGB_8888)
+                        }.getOrNull()
+                    }
+                    if (icon != null) validCacheNames.add(iconName)
+                    // Upload textures ahead of first draw so the GPU never stalls mid-frame
+                    banner?.prepareToDraw()
+                    icon?.prepareToDraw()
+
+                    AppEntry(
+                        pkg = pkg,
+                        label = runCatching { ri.loadLabel(pm)?.toString() }.getOrNull() ?: pkg,
+                        banner = banner,
+                        icon = icon,
+                        tile = tileColor(pkg),
+                        stamp = stamp,
+                        firstInstall = firstInstall,
+                    )
                 }
-
-                // App icon (only decoded/saved if there's no banner, or as square fallback)
-                val iconName = "${pkg}_i_$stamp.webp"
-                val icon = cachedBitmap(cacheDir, iconName, Bitmap.Config.ARGB_8888) {
-                    runCatching {
-                        val d = ai.loadIcon(pm) ?: ai.applicationInfo.loadIcon(pm)
-                        d.toBitmap(width = 128, height = 128, config = Bitmap.Config.ARGB_8888)
-                    }.getOrNull()
-                }
-                if (icon != null) validCacheNames.add(iconName)
-                // Upload textures ahead of first draw so the GPU never stalls mid-frame
-                banner?.prepareToDraw()
-                icon?.prepareToDraw()
-
-                AppEntry(
-                    pkg = pkg,
-                    label = runCatching { ri.loadLabel(pm)?.toString() }.getOrNull() ?: pkg,
-                    banner = banner,
-                    icon = icon,
-                    tile = tileColor(pkg),
-                    stamp = stamp,
-                    firstInstall = firstInstall,
-                )
             }
         }.awaitAll()
 

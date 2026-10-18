@@ -73,7 +73,58 @@ data class LauncherConfig(
     /** Index into `WALLPAPERS` (ui/Theme.kt); see `DEFAULT_WALLPAPER_INDEX`. */
     val wallpaper: Int = 1,
     val useCustomWallpaper: Boolean = false,
+    /**
+     * Automatic wallpaper rotation interval in minutes. `0` = off. The presets
+     * ([WALLPAPERS]) rotate in order; a custom wallpaper is never auto-replaced.
+     */
+    val wallpaperAutoMinutes: Int = 0,
+    /** `System.currentTimeMillis()` of the last auto-rotation. */
+    val wallpaperAutoLastMs: Long = 0L,
     val accent: Int = 0,
+    // ----- theme -----
+    /** Index into `THEMES` (ui/Theme.kt). */
+    val themeIndex: Int = 0,
+    /** Derive the accent colour from the current wallpaper instead of [accent]. */
+    val followWallpaperPalette: Boolean = false,
+    // ----- header / clock -----
+    /** 0 = date + time, 1 = time only, 2 = greeting + time. */
+    val clockStyle: Int = 0,
+    /** 0 = "d MMM • EEE", 1 = "dd/MM/yyyy", 2 = "EEE, d MMM", 3 = hidden. */
+    val dateStyle: Int = 0,
+    val showGreeting: Boolean = true,
+    // ----- grid & icons -----
+    /** 0 = banner grid, 1 = compact grid, 2 = large tiles, 3 = square icon grid. */
+    val layoutMode: Int = 0,
+    /** Columns for grid modes, 3..8. */
+    val gridColumns: Int = 6,
+    /** App card size in percent of the layout mode's base size (60..160). */
+    val iconSizePct: Int = 100,
+    val showTileLabels: Boolean = true,
+    /** Tile label size in sp (10..16). */
+    val labelSizeSp: Int = 12,
+    /** Focus scale in percent (100..140; 108 = 1.08x). */
+    val focusScalePct: Int = 108,
+    /** Focus effect: 0 = scale, 1 = glow, 2 = outline, 3 = fill. */
+    val focusEffect: Int = 0,
+    /** App-open transition: 0 = none, 1 = fade, 2 = zoom, 3 = slide. */
+    val openAnimation: Int = 1,
+    /** UI animation speed: 0 = slow, 1 = normal, 2 = fast. */
+    val animSpeed: Int = 1,
+    val reduceMotion: Boolean = false,
+    // ----- rows -----
+    val showFavoritesRow: Boolean = false,
+    /** Package names shown in the favourites row, in user order. */
+    val favorites: List<String> = emptyList(),
+    val showRecentRow: Boolean = false,
+    // ----- system -----
+    /** 0 = name A-Z, 1 = install date, 2 = recently updated, 3 = manual (order map only). */
+    val appSort: Int = 0,
+    /** Warm-screen overlay for night viewing. */
+    val nightLight: Boolean = false,
+    /** Warm overlay strength in percent (10..80). */
+    val nightLightStrength: Int = 40,
+    /** 0 = lite, 1 = balanced, 2 = full (see `docs/PERFORMANCE.md`). */
+    val perfProfile: Int = 1,
     val h24: Boolean = false,
     val showHidden: Boolean = false,
     val setupDone: Boolean = false,

@@ -17,6 +17,7 @@ import com.gothwad.launcher.data.LauncherConfig
 import com.gothwad.launcher.data.NetStatus
 import com.gothwad.launcher.data.ProcessHeartbeat
 import com.gothwad.launcher.data.UI_SCALES
+import com.gothwad.launcher.data.WallpaperRotator
 import com.gothwad.launcher.data.bluetoothStatusFlow
 import com.gothwad.launcher.data.networkStatusFlow
 import com.gothwad.launcher.databinding.ActivityMainBinding
@@ -54,6 +55,8 @@ class MainStatusBarController(
     private var clockFormatter: SimpleDateFormat? = null
     private var clockPatternInUse: String? = null
     private val dateFormatter = SimpleDateFormat("d MMM yyyy • EEE", Locale.ENGLISH)
+    private val dateShortFormatter = SimpleDateFormat("dd/MM/yyyy", Locale.ENGLISH)
+    private val dateMediumFormatter = SimpleDateFormat("EEE, d MMM", Locale.ENGLISH)
 
     fun setup() {
         setupStatusBarClicks()
@@ -240,6 +243,11 @@ class MainStatusBarController(
                         if (heartbeatTick++ % 5 == 0) {
                             ProcessHeartbeat.touch(activity, foreground = true)
                         }
+                        // Once a minute: rotate the wallpaper when the auto-change interval
+                        // elapsed. Cheap no-op unless it is actually due (see WallpaperRotator).
+                        if (heartbeatTick % 60 == 0) {
+                            runCatching { WallpaperRotator.tick(configStore) }
+                        }
                         val now = Date()
                         val cfg = getCurrentConfig()
                         val timePattern = if (cfg.h24) "HH:mm:ss" else "hh:mm:ss a"
@@ -247,9 +255,34 @@ class MainStatusBarController(
                             clockFormatter = SimpleDateFormat(timePattern, Locale.ENGLISH)
                             clockPatternInUse = timePattern
                         }
-                        val dateFormatted = dateFormatter.format(now)
                         val timeFormatted = clockFormatter!!.format(now)
-                        binding.mainStatusBar.setClockTime("$dateFormatted • $timeFormatted")
+                        val dateFormatted = when (cfg.dateStyle.coerceIn(0, 3)) {
+                            1 -> dateShortFormatter.format(now)
+                            2 -> dateMediumFormatter.format(now)
+                            3 -> ""
+                            else -> dateFormatter.format(now)
+                        }
+                        val greeting = if (cfg.showGreeting || cfg.clockStyle == 2) {
+                            activity.getString(
+                                when (java.util.Calendar.getInstance()
+                                    .get(java.util.Calendar.HOUR_OF_DAY)) {
+                                    in 5..11 -> com.gothwad.launcher.R.string.greeting_morning
+                                    in 12..16 -> com.gothwad.launcher.R.string.greeting_afternoon
+                                    in 17..21 -> com.gothwad.launcher.R.string.greeting_evening
+                                    else -> com.gothwad.launcher.R.string.greeting_night
+                                }
+                            )
+                        } else {
+                            ""
+                        }
+                        val clockText = when (cfg.clockStyle.coerceIn(0, 2)) {
+                            1 -> timeFormatted
+                            2 -> listOf(greeting, timeFormatted)
+                                .filter { it.isNotEmpty() }.joinToString(" • ")
+                            else -> listOf(dateFormatted, timeFormatted)
+                                .filter { it.isNotEmpty() }.joinToString(" • ")
+                        }
+                        binding.mainStatusBar.setClockTime(clockText)
                         delay(1000)
                     }
                 }

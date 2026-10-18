@@ -79,21 +79,29 @@ class BootShieldService : Service() {
             delay(700L)
 
             val topPackage = getForegroundPackage(usm, hasUsageAccess)
-            if (topPackage != null &&
-                LauncherAccessibilityService.isStockTvLauncher(context, topPackage) &&
-                topPackage != packageName
-            ) {
+            val stockInFront = topPackage != null &&
+                topPackage != packageName &&
+                LauncherAccessibilityService.isStockTvLauncher(context, topPackage)
+            if (stockInFront) {
                 Log.w(TAG, "Stock launcher / boot ad tried to take the screen: $topPackage - suppressing")
                 BackgroundMediaTracker.silenceAudio(context)
                 LauncherAccessibilityService.launchHomeWithRetry(context, maxAttempts = 3)
             }
 
             // If an ad starts playing audio during the boot window, silence it - but only
-            // every couple of seconds instead of on every tick.
+            // every couple of seconds instead of on every tick, and NEVER while a known
+            // user app is in front: someone who opened Netflix or their music player
+            // within the window is using that app on purpose, and killing its audio every
+            // 2 s is exactly the issue-#34 class of destructive behaviour. Boot ads play
+            // under the stock launcher, under our own home screen, or with no identifiable
+            // foreground at all - those are the cases worth silencing.
             val now = System.currentTimeMillis()
             if (now - lastAudioCheck > 2_000L) {
                 lastAudioCheck = now
-                if (audioManager?.isMusicActive == true) {
+                val userAppInFront = topPackage != null &&
+                    topPackage != packageName &&
+                    !LauncherAccessibilityService.isStockTvLauncher(context, topPackage)
+                if (!userAppInFront && audioManager?.isMusicActive == true) {
                     BackgroundMediaTracker.silenceAudio(context)
                 }
             }

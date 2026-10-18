@@ -152,22 +152,47 @@ class GothwadApplication : Application() {
         }
     }
 
+    /**
+     * Dispatches the framework's memory-pressure levels onto the opt-in trim.
+     *
+     * The levels are **not** one monotonic "worse is higher" scale - they come in three
+     * groups (see `ComponentCallbacks2`):
+     *
+     *  - 5/10/15 (`RUNNING_*`): the system is low on memory while our UI is in front.
+     *  - 20 (`UI_HIDDEN`): our own UI just went away - the user is *using* other apps now.
+     *  - 40/60/80 (`BACKGROUND`/`MODERATE`/`COMPLETE`): we are in the background and the
+     *    system is reclaiming aggressively.
+     *
+     * The old code tested `level >= RUNNING_CRITICAL` first, so `UI_HIDDEN` (20) and every
+     * background level fell into the **critical** branch: with "aggressive trim" enabled,
+     * simply opening Netflix from the launcher killed all the user's other background apps
+     * (their music included) - issue #34 all over again. The `TRIM_MEMORY_COMPLETE` branch
+     * was also unreachable dead code for the same reason.
+     */
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
         when {
+            level >= ComponentCallbacks2.TRIM_MEMORY_BACKGROUND -> {
+                // 40/60/80: launcher itself is backgrounded and memory is short. Gentle trim.
+                Log.i(TAG, "onTrimMemory: background reclaim (level=$level), triggering background trim")
+                AppLaunchTracker.performMemoryTrim(this, isCritical = false)
+            }
+            level >= ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN -> {
+                // 20: our UI just disappeared. The user's other apps are exactly what they
+                // are using right now - never touch them here.
+                Log.d(TAG, "onTrimMemory: UI hidden (level=$level) - no trim")
+            }
             level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL -> {
+                // 15: genuine foreground memory crisis - the only case for a critical trim.
                 Log.w(TAG, "onTrimMemory: TRIM_MEMORY_RUNNING_CRITICAL (level=$level), triggering critical trim")
                 AppLaunchTracker.performMemoryTrim(this, isCritical = true)
             }
             level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW -> {
+                // 10: foreground pressure - gentle trim.
                 Log.i(TAG, "onTrimMemory: TRIM_MEMORY_RUNNING_LOW (level=$level), triggering background trim")
                 AppLaunchTracker.performMemoryTrim(this, isCritical = false)
             }
-            level >= ComponentCallbacks2.TRIM_MEMORY_COMPLETE -> {
-                // Background process cleanup when launcher itself is backgrounded
-                Log.d(TAG, "onTrimMemory: TRIM_MEMORY_COMPLETE (level=$level)")
-                AppLaunchTracker.performMemoryTrim(this, isCritical = false)
-            }
+            // 5 (RUNNING_MODERATE): plenty of headroom, do nothing.
         }
     }
 

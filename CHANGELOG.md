@@ -60,6 +60,42 @@ is cut.
   launcher silently.
 - **`BootReceiver` no longer runs the guard loop inside `goAsync()`** (ANR on every boot); it
   starts the service and returns.
+- **`onTrimMemory` dispatched nearly every level as a *critical* trim.** The framework's levels
+  are three groups, not one "higher is worse" scale: `UI_HIDDEN` (20) is "our UI just went away"
+  and `BACKGROUND/MODERATE/COMPLETE` (40/60/80) are "we are backgrounded", but the old
+  `level >= RUNNING_CRITICAL` (15) test caught them all first — so with aggressive trim enabled,
+  simply opening Netflix from the launcher killed the user's other background apps (their music
+  included). The `TRIM_MEMORY_COMPLETE` branch was unreachable dead code for the same reason.
+  Now: 15 = critical, 10 = gentle, 20 = no-op (the user is *using* other apps), 40/60/80 =
+  gentle trim while backgrounded.
+- **Heartbeat/policy/self-heal files are written atomically** (temp file + `rename`). A plain
+  `writeText` truncates first, so the `:watchdog` polling mid-write could read an empty file,
+  parse `0`, and conclude "the launcher is dead" — yanking the TV back to HOME mid-movie. The
+  shared-file writes also moved off the main thread onto a dedicated heartbeat thread
+  (project rule #3: no blocking work on the main thread, not even "a few bytes").
+- **The boot shield no longer silences user media.** The 45–90 s guard window silenced *any*
+  active audio every 2 s — including a Netflix stream or music the user deliberately started
+  after boot. It now stays silent unless the audio plausibly belongs to a boot ad (stock
+  launcher in front, our home screen in front, or no identifiable foreground).
+- **Cold start no longer runs two full app scans concurrently.** `MainActivity` and
+  `TvLauncherFragment` both scan; the scans are serialised now, so the second caller waits and
+  hits the memory-cache fast path instead of doubling PackageManager + bitmap work and racing
+  the cache-prune step. Per-app artwork decoding is capped at 6 concurrent ops (was unbounded
+  `async(IO)` over every installed package — a needless memory spike on 2 GB boxes).
+- **`PACKAGE_REMOVED` broadcasts no longer do PackageManager lookups** on the main thread for a
+  package that is already gone; corrupt app-art cache files are no longer protected from pruning
+  by a cache-name entry for a bitmap that never loaded.
+- **Settings: focus was invisible on most controls ("remote navigation pata hi nahi chalta").**
+  27 of 33 buttons hard-coded white text while the focused background is solid white — the
+  label disappeared exactly when the control received focus. All buttons now use the
+  `color_settings_btn_text` state list (dark on the white highlight). The chevron icons and the
+  back/close icons had the same bug (fixed-colour drawables that never flipped on focus — the
+  chevron state list was even being overwritten with a static-colour drawable), and the
+  selected state of a settings row used to look identical to the focused state. Selected now
+  draws as the accent-cyan chip, focused stays the white highlight.
+- **Settings: entering a sub-page left D-pad focus on the hidden row**, so the remote looked
+  dead until a direction key re-triggered focus search. Every page change now moves focus to
+  its first control.
 
 ### Fixed — security & privacy
 
@@ -85,6 +121,8 @@ is cut.
   configs still decode (`ignoreUnknownKeys`); a test locks that in.
 - `MainActivity` no longer wrote an auto-category assignment for every new install — a JSON encode
   plus a DataStore write per scan, for data no screen read.
+- Dead `MainActivity` code: a `dispatchKeyEvent` override that only called `super`, and an empty
+  `setupNavigation()` stub (NavHostFragment loads the start destination itself).
 - `CategoryAssigner` and its test, `layout_a11y_banner.xml`, 8 unused drawables, the orphaned
   `cd_vpn` content description and 4 banner strings.
 - Dead signing steps: `jarsigner` (produced v1-only signatures for the AAB) and `apksigner sign`
@@ -94,6 +132,8 @@ is cut.
 
 ### Changed
 
+- `DensityAdapter.setUiScale` / `setRespectSystemFontScale` persist only on a real change; both
+  run on every config emission, and re-writing the same value each time was pointless flash wear.
 - Wallpaper decoding is down-sampled to the physical screen size and only re-decodes when the
   source file changed; it used to re-decode the full-resolution JPEG on every config emission.
 - Status-bar clusters get focus/hover feedback via a `StateListDrawable` built from one helper.
@@ -109,11 +149,29 @@ is cut.
 
 ### Added
 
+- **Visual wallpaper picker:** the five name-only buttons (whose labels had drifted away from the
+  gradients they rendered) are now tiles that show the *actual* gradient, with a live preview box
+  above and a check badge on the committed choice — pick "this picture", not "a name".
+- **Auto-change wallpapers:** Off / 15 min / 1 hour / 6 hours / Daily. Rotates through the preset
+  gradients via the existing 1 Hz clock loop (no alarms, no services); a custom photo is never
+  auto-replaced, and a long process absence advances exactly one step.
+- **Theme & Style settings page** (the 100-feature customization wave, see
+  `docs/FEATURE_ROADMAP_100.md`): 10 full themes with visual tiles, 10 accent colours,
+  wallpaper-palette accent, 5 new wallpapers (10 total), 4 layout modes (banner / compact /
+  large / icon grid), 3–8 columns, app size 60–160%, tile label show + size, 4 focus effects
+  (scale / glow / outline / fill) with focus scale, animation speed + reduced-motion +
+  app-open transitions, performance profiles, clock styles + date formats + time-of-day
+  greeting, night-light warm overlay, 4 app sort modes, favourites + recents quick row,
+  long-press app quick menu (launch / info / uninstall / favourite / hide / lock), and
+  settings backup export/import as JSON through the system file picker.
 - **CI workflow** (`ci.yml`): every pull request and push to `main` builds debug **and release**
   (minified), runs unit tests and lint, and publishes the debug APK plus reports as artifacts.
 - Composite actions `resolve-version` (monotonic version code from the version name) and
   `prepare-signing` (keystore from secrets, alias auto-detection, always-cleaned temp file).
-- Unit tests: `ConfigSerializationTest` (5) and `LockSecurityTest` (10).
+- Unit tests: `ConfigSerializationTest` (5), `LockSecurityTest` (10),
+  `ProcessHeartbeatAtomicWriteTest` (3, locks in the atomic shared-file write),
+  `WallpaperRotatorTest` (6, auto-change rotation logic) and
+  `CustomizationConfigTest` (7, theme/wallpaper/accent registries + config round-trip).
 - Developer documentation under `docs/`: architecture, config reference, security, performance,
   CI & release, testing, troubleshooting, i18n, issue log, roadmap.
 - Issue and pull-request templates, `CONTRIBUTING.md`, and this changelog.

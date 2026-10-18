@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!--
+        Icon tint for ImageButton controls that sit on bg_settings_row: white glyph on the
+        dark pill, dark glyph when the white focused/pressed highlight is behind it. The old
+        code tinted these icons a fixed white, so the close/back icons vanished exactly when
+        they received focus.
+    -->
+    <item android:state_focused="true" android:color="#111215" />
+    <item android:state_pressed="true" android:color="#111215" />
+    <item android:state_selected="true" android:color="#111215" />
+    <item android:color="#FFFFFF" />
+</selector>

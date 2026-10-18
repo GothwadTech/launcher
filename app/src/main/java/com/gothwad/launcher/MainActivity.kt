@@ -9,7 +9,6 @@ import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
-import android.view.View
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -25,7 +24,6 @@ import com.gothwad.launcher.data.SelfHealGuard
 import com.gothwad.launcher.databinding.ActivityMainBinding
 import com.gothwad.launcher.ui.MainStatusBarController
 import com.gothwad.launcher.ui.tv.TvLauncherFragment
-import android.view.KeyEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -46,12 +44,17 @@ class MainActivity : AppCompatActivity() {
 
     private val packageReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            val pkg = intent.data?.schemeSpecificPart
-            val launchable = pkg != null && (
+            // Uninstall/update: no PM probe needed - the package is already gone or being
+            // replaced, and the rescan is what rebuilds the grid anyway.
+            if (intent.action == Intent.ACTION_PACKAGE_REMOVED) {
+                scheduleAppsRescan()
+                return
+            }
+            val pkg = intent.data?.schemeSpecificPart ?: return
+            val launchable =
                 packageManager.getLeanbackLaunchIntentForPackage(pkg) != null ||
                     packageManager.getLaunchIntentForPackage(pkg) != null
-                )
-            if (intent.action == Intent.ACTION_PACKAGE_REMOVED || launchable) {
+            if (launchable) {
                 scheduleAppsRescan()
             }
         }
@@ -155,8 +158,16 @@ class MainActivity : AppCompatActivity() {
             SelfHealGuard.markHealthy(this@MainActivity)
         }
 
+        // Night-light overlay follows the config flow for the activity's whole life.
+        lifecycleScope.launch {
+            ConfigStore(this@MainActivity).flow.collect { cfg ->
+                binding.viewNightLight.alpha =
+                    if (cfg.nightLight) cfg.nightLightStrength.coerceIn(10, 80) / 100f * 0.45f
+                    else 0f
+            }
+        }
+
         setupA11yWatchdogReceiver()
-        setupNavigation()
         statusBarController = MainStatusBarController(
             activity = this,
             binding = binding,
@@ -214,10 +225,6 @@ class MainActivity : AppCompatActivity() {
         statusBarController?.updateA11yStatus()
     }
 
-    private fun setupNavigation() {
-        // NavHostFragment loads tvLauncherFragment as startDestination from nav_graph.xml
-    }
-
     private fun handleAppLaunch(app: AppEntry) {
         // App lock & hidden vault gate
         AppLockGate.evaluate(
@@ -227,11 +234,18 @@ class MainActivity : AppCompatActivity() {
             config = currentConfig,
         ) {
             Actions.launchApp(this, app.pkg)
+            // App-open transition style (0 none / 1 fade / 2 zoom / 3 slide).
+            if (!currentConfig.reduceMotion && currentConfig.perfProfile != 0) {
+                @Suppress("DEPRECATION")
+                when (currentConfig.openAnimation.coerceIn(0, 3)) {
+                    1 -> overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+                    2 -> overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+                    3 -> overridePendingTransition(
+                        android.R.anim.slide_in_left, android.R.anim.slide_out_right
+                    )
+                }
+            }
         }
-    }
-
-    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        return super.dispatchKeyEvent(event)
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {

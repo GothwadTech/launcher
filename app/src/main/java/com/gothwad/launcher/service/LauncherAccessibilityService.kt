@@ -32,6 +32,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Accessibility Service to handle Home key capture, OEM launcher overrides,
@@ -131,8 +132,11 @@ class LauncherAccessibilityService : AccessibilityService() {
         super.onCreate()
         val store = ConfigStore(applicationContext)
         serviceScope.launch {
+            // PackageManager IPC - IO dispatcher, never the CPU pool (project rule #3).
             val installedPackages = runCatching {
-                packageManager.getInstalledPackages(0).map { it.packageName }.toSet()
+                withContext(Dispatchers.IO) {
+                    packageManager.getInstalledPackages(0).map { it.packageName }.toSet()
+                }
             }.getOrDefault(emptySet())
             ButtonMappingManager.seedDefaultMappings(store, installedPackages)
 
