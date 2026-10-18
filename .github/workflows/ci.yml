@@ -53,11 +53,30 @@ jobs:
           python3 tools/ktcheck.py
           python3 tools/check_resources.py
 
+      # gradlew is checked in without the exec bit on some checkouts.
+      # Gradle output is mirrored into check-run annotations (::error lines) because
+      # raw job logs are not reachable from every dev environment.
       - name: Assemble debug
-        run: ./gradlew assembleDebug --stacktrace
+        run: |
+          chmod +x ./gradlew
+          set -o pipefail
+          ./gradlew assembleDebug --stacktrace 2>&1 | tee /tmp/build.log || {
+            grep -E "^e: |error:|FAILED|What went wrong" -A 3 /tmp/build.log | head -60 | \
+              while IFS= read -r line; do echo "::error::${line}"; done
+            exit 1
+          }
 
       - name: Unit tests
-        run: ./gradlew testDebugUnitTest --stacktrace
+        run: |
+          set -o pipefail
+          ./gradlew testDebugUnitTest --stacktrace 2>&1 | tee /tmp/test.log || {
+            grep -E "^e: |FAILED|tests? (completed|failed)|What went wrong" -A 3 /tmp/test.log | head -60 | \
+              while IFS= read -r line; do echo "::error::${line}"; done
+            grep -rl "failure" app/build/test-results/testDebugUnitTest/*.xml 2>/dev/null | head -5 | \
+              while IFS= read -r f; do grep -o 'message="[^"]*"' "$f" | head -3; done | \
+              while IFS= read -r line; do echo "::error::${line}"; done
+            exit 1
+          }
 
       - name: Lint
         run: ./gradlew lintDebug --stacktrace
