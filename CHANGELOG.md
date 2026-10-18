@@ -155,13 +155,23 @@ is cut.
 - **Auto-change wallpapers:** Off / 15 min / 1 hour / 6 hours / Daily. Rotates through the preset
   gradients via the existing 1 Hz clock loop (no alarms, no services); a custom photo is never
   auto-replaced, and a long process absence advances exactly one step.
+- **Theme & Style settings page** (the 100-feature customization wave, see
+  `docs/FEATURE_ROADMAP_100.md`): 10 full themes with visual tiles, 10 accent colours,
+  wallpaper-palette accent, 5 new wallpapers (10 total), 4 layout modes (banner / compact /
+  large / icon grid), 3–8 columns, app size 60–160%, tile label show + size, 4 focus effects
+  (scale / glow / outline / fill) with focus scale, animation speed + reduced-motion +
+  app-open transitions, performance profiles, clock styles + date formats + time-of-day
+  greeting, night-light warm overlay, 4 app sort modes, favourites + recents quick row,
+  long-press app quick menu (launch / info / uninstall / favourite / hide / lock), and
+  settings backup export/import as JSON through the system file picker.
 - **CI workflow** (`ci.yml`): every pull request and push to `main` builds debug **and release**
   (minified), runs unit tests and lint, and publishes the debug APK plus reports as artifacts.
 - Composite actions `resolve-version` (monotonic version code from the version name) and
   `prepare-signing` (keystore from secrets, alias auto-detection, always-cleaned temp file).
 - Unit tests: `ConfigSerializationTest` (5), `LockSecurityTest` (10),
-  `ProcessHeartbeatAtomicWriteTest` (3, locks in the atomic shared-file write) and
-  `WallpaperRotatorTest` (6, auto-change rotation logic).
+  `ProcessHeartbeatAtomicWriteTest` (3, locks in the atomic shared-file write),
+  `WallpaperRotatorTest` (6, auto-change rotation logic) and
+  `CustomizationConfigTest` (7, theme/wallpaper/accent registries + config round-trip).
 - Developer documentation under `docs/`: architecture, config reference, security, performance,
   CI & release, testing, troubleshooting, i18n, issue log, roadmap.
 - Issue and pull-request templates, `CONTRIBUTING.md`, and this changelog.
