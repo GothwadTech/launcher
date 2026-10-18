@@ -55,6 +55,8 @@ class MainStatusBarController(
     private var clockFormatter: SimpleDateFormat? = null
     private var clockPatternInUse: String? = null
     private val dateFormatter = SimpleDateFormat("d MMM yyyy • EEE", Locale.ENGLISH)
+    private val dateShortFormatter = SimpleDateFormat("dd/MM/yyyy", Locale.ENGLISH)
+    private val dateMediumFormatter = SimpleDateFormat("EEE, d MMM", Locale.ENGLISH)
 
     fun setup() {
         setupStatusBarClicks()

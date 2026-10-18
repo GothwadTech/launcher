@@ -31,6 +31,7 @@ import com.gothwad.launcher.ui.AppLockGate
 import com.gothwad.launcher.ui.DEFAULT_WALLPAPER_INDEX
 import com.gothwad.launcher.ui.DensityAdapter
 import com.gothwad.launcher.ui.WALLPAPERS
+import com.gothwad.launcher.ui.dialogs.AppMenuDialogFragment
 import com.gothwad.launcher.ui.dialogs.SetupWizardDialogFragment
 import com.gothwad.launcher.ui.view.AppCardAdapter
 import kotlinx.coroutines.Dispatchers
@@ -107,7 +108,7 @@ class TvLauncherFragment : Fragment() {
         val baseHeight = when (mode) {
             2 -> (cardWidth * 9f / 16f * 1.25f) // large tiles
             1 -> (cardWidth * 4f / 3f * 0.62f)  // compact keeps tiles small
-            3 -> cardWidth                      // square
+            3 -> cardWidth.toFloat()            // square
             else -> (cardWidth * 9f / 16f)
         }
         val cardHeight = (baseHeight * sizePct).toInt().coerceAtLeast((48 * density).toInt())

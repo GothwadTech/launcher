@@ -60,7 +60,7 @@ class AppMenuDialogFragment : DialogFragment() {
 
         val store = ConfigStore(ctx)
         fun update(transform: (LauncherConfig) -> LauncherConfig) {
-            viewLifecycleOwnerLifecycleScope().launch { store.update(transform) }
+            lifecycleScope.launch { store.update(transform) }
         }
 
         // Text: dark when focused/selected/pressed - same contract as the settings sheet.
