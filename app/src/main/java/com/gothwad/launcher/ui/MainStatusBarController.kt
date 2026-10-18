@@ -253,9 +253,34 @@ class MainStatusBarController(
                             clockFormatter = SimpleDateFormat(timePattern, Locale.ENGLISH)
                             clockPatternInUse = timePattern
                         }
-                        val dateFormatted = dateFormatter.format(now)
                         val timeFormatted = clockFormatter!!.format(now)
-                        binding.mainStatusBar.setClockTime("$dateFormatted • $timeFormatted")
+                        val dateFormatted = when (cfg.dateStyle.coerceIn(0, 3)) {
+                            1 -> dateShortFormatter.format(now)
+                            2 -> dateMediumFormatter.format(now)
+                            3 -> ""
+                            else -> dateFormatter.format(now)
+                        }
+                        val greeting = if (cfg.showGreeting || cfg.clockStyle == 2) {
+                            activity.getString(
+                                when (java.util.Calendar.getInstance()
+                                    .get(java.util.Calendar.HOUR_OF_DAY)) {
+                                    in 5..11 -> com.gothwad.launcher.R.string.greeting_morning
+                                    in 12..16 -> com.gothwad.launcher.R.string.greeting_afternoon
+                                    in 17..21 -> com.gothwad.launcher.R.string.greeting_evening
+                                    else -> com.gothwad.launcher.R.string.greeting_night
+                                }
+                            )
+                        } else {
+                            ""
+                        }
+                        val clockText = when (cfg.clockStyle.coerceIn(0, 2)) {
+                            1 -> timeFormatted
+                            2 -> listOf(greeting, timeFormatted)
+                                .filter { it.isNotEmpty() }.joinToString(" • ")
+                            else -> listOf(dateFormatted, timeFormatted)
+                                .filter { it.isNotEmpty() }.joinToString(" • ")
+                        }
+                        binding.mainStatusBar.setClockTime(clockText)
                         delay(1000)
                     }
                 }

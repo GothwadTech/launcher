@@ -16,6 +16,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.gothwad.launcher.Actions
 import com.gothwad.launcher.data.AppEntry
@@ -48,6 +49,10 @@ class TvLauncherFragment : Fragment() {
     val binding get() = _binding!!
 
     private var appCardAdapter: AppCardAdapter? = null
+    private var quickRowAdapter: AppCardAdapter? = null
+
+    /** Accent sampled from the current wallpaper when `followWallpaperPalette` is on. */
+    private var wallpaperPaletteColor: Int? = null
 
     private var currentConfig: LauncherConfig = LauncherConfig()
     private var allApps: List<AppEntry> = emptyList()
@@ -90,32 +95,72 @@ class TvLauncherFragment : Fragment() {
         val horizontalPaddingPx = (48 * 2 * density).toInt() // 48dp on each side
         val availableWidthPx = screenWidthPx - horizontalPaddingPx - ((columns - 1) * gapPx)
         val cardWidth = (availableWidthPx / columns).coerceAtLeast((60 * density).toInt())
-        val cardHeight = (cardWidth * 9f / 16f).toInt()
+        val mode = currentConfig.layoutMode.coerceIn(0, 3)
+        val aspect = when (mode) {
+            1 -> 3f / 4f   // compact: slightly taller than wide
+            3 -> 1f        // square icon grid
+            else -> 9f / 16f
+        }
+        // Card width in grid mode is MATCH_PARENT (columns define it); height carries the
+        // layout mode's shape and the user's icon-size multiplier.
+        val sizePct = currentConfig.iconSizePct.coerceIn(60, 160) / 100f
+        val baseHeight = when (mode) {
+            2 -> (cardWidth * 9f / 16f * 1.25f) // large tiles
+            1 -> (cardWidth * 4f / 3f * 0.62f)  // compact keeps tiles small
+            3 -> cardWidth                      // square
+            else -> (cardWidth * 9f / 16f)
+        }
+        val cardHeight = (baseHeight * sizePct).toInt().coerceAtLeast((48 * density).toInt())
         return Pair(cardWidth, cardHeight)
+    }
+
+    /** Columns for the current layout mode (grid modes honour `config.gridColumns`). */
+    private fun gridSpanCount(): Int {
+        val base = currentConfig.gridColumns.coerceIn(3, 8)
+        return when (currentConfig.layoutMode.coerceIn(0, 3)) {
+            1 -> base + 2
+            2 -> minOf(base, 4)
+            3 -> base + 1
+            else -> base
+        }
+    }
+
+    /** Focus/hover animation duration from the anim-speed + reduced-motion settings. */
+    private fun animDurationMs(): Int = when {
+        currentConfig.reduceMotion || currentConfig.perfProfile == 0 -> 0
+        currentConfig.animSpeed == 0 -> 240
+        currentConfig.animSpeed == 2 -> 90
+        else -> 150
     }
 
     private fun setupRecyclerView() {
         val density = resources.displayMetrics.density
         val gapPx = (GAP_SIZES.getOrElse(currentConfig.spacing.coerceIn(0, GAP_SIZES.size - 1)) { GAP_SIZES[2] } * density).toInt()
-        val spanCount = 6
+        val spanCount = gridSpanCount()
         val (defaultWidthPx, defaultHeightPx) = calculateCardDimensions(gapPx, density, spanCount)
         val defaultRadiusPx = (CORNER_RADII.getOrElse(currentConfig.cornerRadius.coerceIn(0, CORNER_RADII.size - 1)) { CORNER_RADII[2] } * density)
-        val accentColor = ACCENTS.getOrElse(currentConfig.accent.coerceIn(0, ACCENTS.size - 1)) { ACCENTS[0] }
+        val accentColor = accentColor()
+        val theme = theme()
 
         appCardAdapter = AppCardAdapter(
             cardWidthPx = defaultWidthPx,
             cardHeightPx = defaultHeightPx,
             cornerRadiusPx = defaultRadiusPx,
             accentColor = accentColor,
-            showLabels = true,
+            showLabels = currentConfig.showTileLabels,
             isGridMode = true,
             lockedPackages = currentConfig.lockedApps,
             movingPackage = null,
+            themeSurface = theme.surface,
+            focusScalePct = currentConfig.focusScalePct.coerceIn(100, 140),
+            focusEffect = currentConfig.focusEffect.coerceIn(0, 3),
+            animDurationMs = animDurationMs(),
+            labelSizeSp = currentConfig.labelSizeSp.coerceIn(10, 16),
             onLaunchApp = { app ->
                 handleAppLaunch(app)
             },
             onAppMenu = { app ->
-                openAppDetails(app.pkg)
+                openAppMenu(app)
             }
         )
 
@@ -139,6 +184,50 @@ class TvLauncherFragment : Fragment() {
                 }
             })
         }
+
+        setupQuickRow()
+    }
+
+    /**
+     * The favourites + recents strip above the grid. One horizontal list, same card visuals
+     * as the grid (fixed card size), hidden entirely when both toggles are off.
+     */
+    private fun setupQuickRow() {
+        quickRowAdapter = AppCardAdapter(
+            cardWidthPx = (150 * resources.displayMetrics.density).toInt(),
+            cardHeightPx = (84 * resources.displayMetrics.density).toInt(),
+            cornerRadiusPx = (CORNER_RADII.getOrElse(currentConfig.cornerRadius.coerceIn(0, CORNER_RADII.size - 1)) { CORNER_RADII[2] } * resources.displayMetrics.density),
+            accentColor = accentColor(),
+            showLabels = true,
+            isGridMode = false,
+            lockedPackages = currentConfig.lockedApps,
+            movingPackage = null,
+            themeSurface = theme().surface,
+            focusScalePct = currentConfig.focusScalePct.coerceIn(100, 140),
+            focusEffect = currentConfig.focusEffect.coerceIn(0, 3),
+            animDurationMs = animDurationMs(),
+            labelSizeSp = currentConfig.labelSizeSp.coerceIn(10, 16),
+            onLaunchApp = { app -> handleAppLaunch(app) },
+            onAppMenu = { app -> openAppMenu(app) },
+        )
+        binding.recyclerQuickRow.apply {
+            layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+            adapter = quickRowAdapter
+            itemAnimator = null
+        }
+    }
+
+    private fun theme(): com.gothwad.launcher.ui.LauncherTheme =
+        com.gothwad.launcher.ui.THEMES.getOrElse(currentConfig.themeIndex.coerceIn(0, com.gothwad.launcher.ui.THEMES.size - 1)) {
+            com.gothwad.launcher.ui.THEMES[0]
+        }
+
+    /** Accent colour: theme accent, or the user's pick, or a wallpaper-derived palette colour. */
+    private fun accentColor(): Int {
+        if (currentConfig.followWallpaperPalette) {
+            wallpaperPaletteColor?.let { return it }
+        }
+        return ACCENTS.getOrElse(currentConfig.accent.coerceIn(0, ACCENTS.size - 1)) { ACCENTS[0] }
     }
 
     private fun handleAppLaunch(app: AppEntry) {
@@ -162,6 +251,14 @@ class TvLauncherFragment : Fragment() {
             }
             startActivity(intent)
         } catch (_: Exception) {}
+    }
+
+    /** Long-press / menu-key quick actions for an app tile. */
+    private fun openAppMenu(app: AppEntry) {
+        if (!isAdded) return
+        // The dialog writes ConfigStore directly; the config flow re-renders the grid.
+        AppMenuDialogFragment.newInstance(app = app, config = currentConfig)
+            .show(parentFragmentManager, AppMenuDialogFragment.TAG)
     }
 
     private fun observeData() {
@@ -230,6 +327,7 @@ class TvLauncherFragment : Fragment() {
                         viewBinding.imgWallpaper.setImageBitmap(bmp)
                         viewBinding.imgWallpaper.visibility = View.VISIBLE
                         appliedWallpaperKey = key
+                        updateWallpaperPalette(sampleBitmapColor(bmp))
                     }
                 } else {
                     // Also the fallback when a custom wallpaper is configured but its file is
@@ -245,6 +343,7 @@ class TvLauncherFragment : Fragment() {
                     )
                     viewBinding.imgWallpaper.visibility = View.VISIBLE
                     appliedWallpaperKey = key
+                    updateWallpaperPalette(averageColor(preset.colors))
                 }
             }
 
@@ -283,6 +382,39 @@ class TvLauncherFragment : Fragment() {
             )
         }.getOrNull()
 
+    /** Average colour of a gradient preset (cheap palette for palette-accent mode). */
+    private fun averageColor(colors: List<Int>): Int {
+        if (colors.isEmpty()) return ACCENTS[0]
+        var r = 0L; var g = 0L; var b = 0L
+        for (c in colors) {
+            r += (c shr 16 and 0xFF); g += (c shr 8 and 0xFF); b += (c and 0xFF)
+        }
+        val n = colors.size
+        return (0xFF shl 24) or ((r / n).toInt() shl 16) or ((g / n).toInt() shl 8) or (b / n).toInt()
+    }
+
+    /** Samples a 16x16 downscale of [bmp] and averages it — on the caller's (main) frame,
+        this is 256 getPixel calls, so it's only run when the wallpaper actually changes. */
+    private fun sampleBitmapColor(bmp: Bitmap): Int {
+        val small = Bitmap.createScaledBitmap(bmp, 16, 16, true)
+        var r = 0L; var g = 0L; var b = 0L
+        for (x in 0 until small.width) {
+            for (y in 0 until small.height) {
+                val p = small.getPixel(x, y)
+                r += (p shr 16 and 0xFF); g += (p shr 8 and 0xFF); b += (p and 0xFF)
+            }
+        }
+        val n = (small.width * small.height).coerceAtLeast(1)
+        if (small !== bmp) small.recycle()
+        return (0xFF shl 24) or ((r / n).toInt() shl 16) or ((g / n).toInt() shl 8) or (b / n).toInt()
+    }
+
+    private fun updateWallpaperPalette(color: Int) {
+        if (wallpaperPaletteColor == color) return
+        wallpaperPaletteColor = color
+        if (currentConfig.followWallpaperPalette) updateDimensionsAndStyling()
+    }
+
     fun onRescanRequested() {
         if (_binding == null || !isAdded) return
         viewLifecycleOwner.lifecycleScope.launch {
@@ -301,20 +433,48 @@ class TvLauncherFragment : Fragment() {
     private fun updateDimensionsAndStyling() {
         val density = resources.displayMetrics.density
         val gapPx = (GAP_SIZES.getOrElse(currentConfig.spacing.coerceIn(0, GAP_SIZES.size - 1)) { GAP_SIZES[2] } * density).toInt()
-        val spanCount = 6
+        val spanCount = gridSpanCount()
         val (widthPx, heightPx) = calculateCardDimensions(gapPx, density, spanCount)
         val radiusPx = (CORNER_RADII.getOrElse(currentConfig.cornerRadius.coerceIn(0, CORNER_RADII.size - 1)) { CORNER_RADII[2] } * density)
-        val accentColor = ACCENTS.getOrElse(currentConfig.accent.coerceIn(0, ACCENTS.size - 1)) { ACCENTS[0] }
+        val accentColor = accentColor()
+        val theme = theme()
+
+        // Column count can change (layout mode / gridColumns) - the decoration and the
+        // layout manager must be rebuilt, not just restyled.
+        val glm = binding.recyclerCategories.layoutManager as? GridLayoutManager
+        if (glm != null && glm.spanCount != spanCount) {
+            glm.spanCount = spanCount
+        }
 
         appCardAdapter?.updateConfig(
             widthPx = widthPx,
             heightPx = heightPx,
             radiusPx = radiusPx,
             accent = accentColor,
-            labels = true,
+            labels = currentConfig.showTileLabels,
             gridMode = true,
             locked = currentConfig.lockedApps,
-            moving = null
+            moving = null,
+            themeSurface = theme.surface,
+            focusScalePct = currentConfig.focusScalePct.coerceIn(100, 140),
+            focusEffect = currentConfig.focusEffect.coerceIn(0, 3),
+            animDurationMs = animDurationMs(),
+            labelSizeSp = currentConfig.labelSizeSp.coerceIn(10, 16),
+        )
+        quickRowAdapter?.updateConfig(
+            widthPx = (150 * density).toInt(),
+            heightPx = (84 * density).toInt(),
+            radiusPx = radiusPx,
+            accent = accentColor,
+            labels = true,
+            gridMode = false,
+            locked = currentConfig.lockedApps,
+            moving = null,
+            themeSurface = theme.surface,
+            focusScalePct = currentConfig.focusScalePct.coerceIn(100, 140),
+            focusEffect = currentConfig.focusEffect.coerceIn(0, 3),
+            animDurationMs = animDurationMs(),
+            labelSizeSp = currentConfig.labelSizeSp.coerceIn(10, 16),
         )
     }
 
@@ -325,20 +485,59 @@ class TvLauncherFragment : Fragment() {
         if (!hasLoadedApps) return
 
         val visible = if (currentConfig.showHidden) allApps else allApps.filter { it.pkg !in currentConfig.hidden }
+
+        // Sort mode (0 = name A-Z, 1 = install date, 2 = recently updated, 3 = manual).
+        val baseSorted = when (currentConfig.appSort.coerceIn(0, 3)) {
+            1 -> visible.sortedBy { it.firstInstall }
+            2 -> visible.sortedByDescending { it.stamp }
+            3 -> visible.sortedBy { it.firstInstall }
+            else -> visible.sortedBy { it.label.lowercase() }
+        }
+
         val ordered = if (currentConfig.order.isNotEmpty()) {
             val explicit = currentConfig.order.values.flatten()
             if (explicit.isNotEmpty()) {
-                val byPkg = visible.associateBy { it.pkg }
+                val byPkg = baseSorted.associateBy { it.pkg }
                 val orderedFirst = explicit.mapNotNull { byPkg[it] }
-                val remaining = visible.filter { it.pkg !in explicit.toSet() }
+                val remaining = baseSorted.filter { it.pkg !in explicit.toSet() }
                 orderedFirst + remaining
             } else {
-                visible
+                baseSorted
             }
         } else {
-            visible
+            baseSorted
         }
         appCardAdapter?.submitList(ordered)
+        rebuildQuickRow()
+    }
+
+    /** Favourites first, then recently launched apps (both honour their settings toggles). */
+    private fun rebuildQuickRow() {
+        val adapter = quickRowAdapter ?: return
+        val byPkg = allApps.associateBy { it.pkg }
+        val items = LinkedHashMap<String, AppEntry>()
+        if (currentConfig.showFavoritesRow) {
+            for (pkg in currentConfig.favorites) {
+                byPkg[pkg]?.let { items[pkg] = it }
+            }
+        }
+        if (currentConfig.showRecentRow) {
+            for (pkg in com.gothwad.launcher.data.AppLaunchTracker.recent()) {
+                if (items.size >= 12) break
+                if (pkg !in items) byPkg[pkg]?.let { items[pkg] = it }
+            }
+        }
+        val list = items.values.toList()
+        binding.recyclerQuickRow.visibility = if (list.isEmpty()) View.GONE else View.VISIBLE
+        // The grid slides down when the strip is visible so tiles never sit under it.
+        val density = resources.displayMetrics.density
+        binding.recyclerCategories.setPadding(
+            binding.recyclerCategories.paddingLeft,
+            if (list.isEmpty()) (84 * density).toInt() else (196 * density).toInt(),
+            binding.recyclerCategories.paddingRight,
+            binding.recyclerCategories.paddingBottom,
+        )
+        adapter.submitList(list)
     }
 
     fun scrollToTop() {

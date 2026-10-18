@@ -49,6 +49,11 @@ object AppLaunchTracker {
         }
     }
 
+    /** Snapshot of recently launched packages, most recent first (for the quick row). */
+    fun recent(limit: Int = 8): List<String> = synchronized(lock) {
+        lruList.take(limit)
+    }
+
     /**
      * Executes memory trimming on a background thread.
      *

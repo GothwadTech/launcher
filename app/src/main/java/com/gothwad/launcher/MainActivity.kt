@@ -158,6 +158,15 @@ class MainActivity : AppCompatActivity() {
             SelfHealGuard.markHealthy(this@MainActivity)
         }
 
+        // Night-light overlay follows the config flow for the activity's whole life.
+        lifecycleScope.launch {
+            ConfigStore(this@MainActivity).flow.collect { cfg ->
+                binding.viewNightLight.alpha =
+                    if (cfg.nightLight) cfg.nightLightStrength.coerceIn(10, 80) / 100f * 0.45f
+                    else 0f
+            }
+        }
+
         setupA11yWatchdogReceiver()
         statusBarController = MainStatusBarController(
             activity = this,
@@ -225,6 +234,17 @@ class MainActivity : AppCompatActivity() {
             config = currentConfig,
         ) {
             Actions.launchApp(this, app.pkg)
+            // App-open transition style (0 none / 1 fade / 2 zoom / 3 slide).
+            if (!currentConfig.reduceMotion && currentConfig.perfProfile != 0) {
+                @Suppress("DEPRECATION")
+                when (currentConfig.openAnimation.coerceIn(0, 3)) {
+                    1 -> overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+                    2 -> overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+                    3 -> overridePendingTransition(
+                        android.R.anim.slide_in_left, android.R.anim.slide_out_right
+                    )
+                }
+            }
         }
     }
 

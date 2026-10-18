@@ -48,11 +48,72 @@ class SettingsBottomSheetFragment : DialogFragment() {
     private var currentSubPage: View? = null
 
     private lateinit var wallpaperDelegate: SettingsWallpaperDelegate
+    private lateinit var themeDelegate: SettingsThemeDelegate
     private lateinit var displayDelegate: SettingsDisplayDelegate
     private lateinit var statusBarDelegate: SettingsStatusBarDelegate
     private lateinit var appsDelegate: SettingsAppsDelegate
     private lateinit var securityDelegate: SettingsSecurityDelegate
     private lateinit var buttonMappingDelegate: SettingsButtonMappingDelegate
+
+    private val backupJson = kotlinx.serialization.json.Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+        prettyPrint = true
+    }
+
+    private val exportBackup = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri != null && _binding != null && isAdded) {
+            val context = requireContext()
+            viewLifecycleOwner.lifecycleScope.launch {
+                val ok = withContext(Dispatchers.IO) {
+                    runCatching {
+                        val text = backupJson.encodeToString(
+                            LauncherConfig.serializer(), config
+                        )
+                        context.contentResolver.openOutputStream(uri)?.use {
+                            it.write(text.toByteArray(Charsets.UTF_8))
+                        } ?: error("no output stream")
+                    }.isSuccess
+                }
+                Actions.toast(
+                    context,
+                    context.getString(
+                        if (ok) R.string.backup_exported else R.string.backup_failed
+                    )
+                )
+            }
+        }
+    }
+
+    private val importBackup = registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null && _binding != null && isAdded) {
+            val context = requireContext()
+            viewLifecycleOwner.lifecycleScope.launch {
+                val imported = withContext(Dispatchers.IO) {
+                    runCatching {
+                        val text = context.contentResolver.openInputStream(uri)?.use {
+                            it.readBytes().toString(Charsets.UTF_8)
+                        } ?: error("no input stream")
+                        backupJson.decodeFromString(LauncherConfig.serializer(), text)
+                    }.getOrNull()
+                }
+                if (imported != null) {
+                    store.update { imported }
+                    config = imported
+                    themeDelegate.syncThemeSelection()
+                    wallpaperDelegate.syncSelection()
+                    updateSubtitles()
+                    Actions.toast(context, context.getString(R.string.backup_imported))
+                } else {
+                    Actions.toast(context, context.getString(R.string.backup_failed))
+                }
+            }
+        }
+    }
 
     private val photoPicker = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
@@ -131,6 +192,17 @@ class SettingsBottomSheetFragment : DialogFragment() {
             onWallpaperChanged = onWallpaperChanged,
             openPhotoPicker = { photoPicker.launch(arrayOf("image/*")) },
             updateSubtitles = { updateSubtitles() }
+        ).also { it.bind() }
+
+        themeDelegate = SettingsThemeDelegate(
+            fragment = this,
+            binding = binding,
+            store = store,
+            getConfig = { config },
+            updateConfig = { config = it },
+            updateSubtitles = { updateSubtitles() },
+            onExportBackup = { exportBackup.launch("gothwad-settings.json") },
+            onImportBackup = { importBackup.launch(arrayOf("application/json")) },
         ).also { it.bind() }
 
         displayDelegate = SettingsDisplayDelegate(
@@ -224,6 +296,7 @@ class SettingsBottomSheetFragment : DialogFragment() {
 
         // Sub-page clicks within categories
         binding.rowWallpaper.setOnClickListener { navigateToSubPage(binding.pageWallpaper, getString(R.string.page_title_wallpaper)) }
+        binding.rowTheme.setOnClickListener { navigateToSubPage(binding.pageTheme, getString(R.string.page_title_theme)) }
         binding.rowDisplay.setOnClickListener { navigateToSubPage(binding.pageDisplay, getString(R.string.page_title_display)) }
         binding.rowStatusbar.setOnClickListener { navigateToSubPage(binding.pageStatusbar, getString(R.string.page_title_statusbar)) }
         binding.rowApps.setOnClickListener { navigateToSubPage(binding.pageApps, getString(R.string.page_title_apps_vault)) }
@@ -250,6 +323,9 @@ class SettingsBottomSheetFragment : DialogFragment() {
 
         binding.rowWallpaper.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus) binding.txtHeroSubtitle.setText(R.string.focus_desc_wallpaper)
+        }
+        binding.rowTheme.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) binding.txtHeroSubtitle.setText(R.string.focus_desc_theme)
         }
         binding.rowDisplay.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus) binding.txtHeroSubtitle.setText(R.string.focus_desc_display)
@@ -551,6 +627,7 @@ class SettingsBottomSheetFragment : DialogFragment() {
             binding.pageCatDevice -> "Manage Wi-Fi, Ethernet, system permissions, and full Android TV settings."
             binding.pageWallpaper -> "Select from dynamic background gradients, solid hues, or upload a custom TV wallpaper."
             binding.pageDisplay -> "Fine-tune app icon sizing, UI scale density, and layout geometry for your display."
+            binding.pageTheme -> getString(R.string.focus_desc_theme)
             binding.pageStatusbar -> "Customize clock time format, network indicators, Bluetooth controls, and VPN shortcuts."
             binding.pageApps -> "Reorder apps, manage auto-categorization, or hide private apps in the secret vault."
             binding.pageSecurity -> "Configure lock types, PIN entry codes, biometric access, and secure application protection."

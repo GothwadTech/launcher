@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.gothwad.launcher.data.AppEntry
 import com.gothwad.launcher.databinding.ItemAppCardBinding
 import com.gothwad.launcher.ui.AppIcons
+import com.gothwad.launcher.ui.blendColors
 
 class AppCardAdapter(
     private var cardWidthPx: Int,
@@ -24,6 +25,16 @@ class AppCardAdapter(
     private var isGridMode: Boolean = true,
     private var lockedPackages: Set<String> = emptySet(),
     private var movingPackage: String? = null,
+    /** Theme tile fill (behind art / banner-less cards). */
+    private var themeSurface: Int = 0xFF141720.toInt(),
+    /** Focus scale in percent (100..140). */
+    private var focusScalePct: Int = 108,
+    /** 0 = scale, 1 = glow, 2 = outline, 3 = fill. */
+    private var focusEffect: Int = 0,
+    /** Focus/hover animation duration in ms (0 = instant). */
+    private var animDurationMs: Int = 150,
+    /** Tile label size in sp. */
+    private var labelSizeSp: Int = 12,
     private val onLaunchApp: (AppEntry) -> Unit,
     private val onAppMenu: (AppEntry) -> Unit,
 ) : ListAdapter<AppEntry, AppCardAdapter.AppCardViewHolder>(AppCardDiffCallback()) {
@@ -46,9 +57,17 @@ class AppCardAdapter(
         gridMode: Boolean = true,
         locked: Set<String>,
         moving: String?,
+        themeSurface: Int = 0xFF141720.toInt(),
+        focusScalePct: Int = 108,
+        focusEffect: Int = 0,
+        animDurationMs: Int = 150,
+        labelSizeSp: Int = 12,
     ) {
         val sizeChanged = cardWidthPx != widthPx || cardHeightPx != heightPx || isGridMode != gridMode
-        val visualChanged = cornerRadiusPx != radiusPx || accentColor != accent || showLabels != labels
+        val visualChanged = cornerRadiusPx != radiusPx || accentColor != accent || showLabels != labels ||
+            this.themeSurface != themeSurface || this.focusScalePct != focusScalePct ||
+            this.focusEffect != focusEffect || this.animDurationMs != animDurationMs ||
+            this.labelSizeSp != labelSizeSp
         cardWidthPx = widthPx
         cardHeightPx = heightPx
         cornerRadiusPx = radiusPx
@@ -57,6 +76,11 @@ class AppCardAdapter(
         isGridMode = gridMode
         lockedPackages = locked
         movingPackage = moving
+        this.themeSurface = themeSurface
+        this.focusScalePct = focusScalePct
+        this.focusEffect = focusEffect
+        this.animDurationMs = animDurationMs
+        this.labelSizeSp = labelSizeSp
         if (!sizeChanged && !visualChanged) return
 
         // Never notify while RecyclerView is mid-layout/scroll: that throws
@@ -221,15 +245,19 @@ class AppCardAdapter(
 
         private fun applyVisualState(hasFocus: Boolean, hovered: Boolean, app: AppEntry?) {
             val isMoving = app != null && app.pkg == movingPackage
+            val scaleEffect = focusEffect == 0 || focusEffect == 1
+            val focusScale = 1f + (focusScalePct - 100) / 100f
             val targetScale = when {
-                isMoving -> 1.05f
-                hasFocus -> 1.08f
+                isMoving -> focusScale
+                hasFocus && scaleEffect -> focusScale
+                hasFocus -> 1.03f
                 hovered -> 1.03f
                 else -> 1.0f
             }
 
+            val glowBoost = if (focusEffect == 1) 1.8f else 1f
             val targetElevation = when {
-                hasFocus -> 12f * itemView.resources.displayMetrics.density
+                hasFocus -> 12f * glowBoost * itemView.resources.displayMetrics.density
                 hovered -> 6f * itemView.resources.displayMetrics.density
                 else -> 0f
             }
@@ -238,7 +266,7 @@ class AppCardAdapter(
                 .scaleX(targetScale)
                 .scaleY(targetScale)
                 .translationZ(targetElevation)
-                .setDuration(150)
+                .setDuration(animDurationMs.toLong())
                 .setInterpolator(DecelerateInterpolator())
                 .withLayer()
                 .start()
@@ -252,28 +280,54 @@ class AppCardAdapter(
             hovered: Boolean,
             isMoving: Boolean
         ) {
-            val tileColor = if (app != null) {
-                if (app.banner != null) 0xFF141720.toInt() else 0xFF181B26.toInt()
-            } else 0xFF212638.toInt()
+            val baseFill = when {
+                app != null && app.banner != null -> blendColors(themeSurface, 0xFF000000.toInt(), 60)
+                app != null -> blendColors(themeSurface, 0xFFFFFFFF.toInt(), 16)
+                else -> blendColors(themeSurface, 0xFFFFFFFF.toInt(), 30)
+            }
 
             val density = itemView.resources.displayMetrics.density
-            val strokeWidth = when {
-                isMoving -> 3.5f * density
-                hasFocus -> 2.5f * density
-                hovered -> 1.5f * density
-                else -> 0f
+            val strokeWidth: Float
+            val strokeColor: Int
+            val fillColor: Int = when {
+                // Fill effect: the whole card tints toward the accent while focused.
+                focusEffect == 3 && (hasFocus || isMoving) -> blendColors(baseFill, accentColor, 70)
+                else -> baseFill
             }
-            val strokeColor = when {
-                isMoving || hasFocus -> accentColor
-                hovered -> (accentColor and 0x00FFFFFF) or 0xCC000000.toInt()
-                else -> 0
+            when {
+                isMoving -> {
+                    strokeWidth = 3.5f * density
+                    strokeColor = accentColor
+                }
+                hasFocus && focusEffect == 1 -> {
+                    // Glow: thin bright edge; the elevated translationZ does the rest.
+                    strokeWidth = 1.5f * density
+                    strokeColor = 0xFFFFFFFF.toInt()
+                }
+                hasFocus && focusEffect == 3 -> {
+                    strokeWidth = 1.5f * density
+                    strokeColor = accentColor
+                }
+                hasFocus -> {
+                    // 0 (scale) and 2 (outline) share the accent outline.
+                    strokeWidth = if (focusEffect == 2) 3.5f * density else 2.5f * density
+                    strokeColor = accentColor
+                }
+                hovered -> {
+                    strokeWidth = 1.5f * density
+                    strokeColor = (accentColor and 0x00FFFFFF) or 0xCC000000.toInt()
+                }
+                else -> {
+                    strokeWidth = 0f
+                    strokeColor = 0
+                }
             }
 
             var drawable = cardDrawable
             if (drawable == null) {
                 drawable = SmoothCornerDrawable(
                     cornerRadiusPx = cornerRadiusPx,
-                    fillColor = tileColor,
+                    fillColor = fillColor,
                     strokeColor = strokeColor,
                     strokeWidthPx = strokeWidth,
                 )
@@ -281,7 +335,7 @@ class AppCardAdapter(
                 binding.cardInner.background = drawable
             } else {
                 drawable.cornerRadiusPx = cornerRadiusPx
-                drawable.fillColor = tileColor
+                drawable.fillColor = fillColor
                 drawable.strokeColor = strokeColor
                 drawable.strokeWidthPx = strokeWidth
             }
@@ -306,8 +360,17 @@ class AppCardAdapter(
             updateCardBackground(app, itemView.isFocused, isHovered, app != null && app.pkg == movingPackage)
             if (app != null && app.banner == null) {
                 binding.txtLabel.text = app.label
-                binding.txtLabel.visibility = View.VISIBLE
             }
+            applyLabelStyle()
+        }
+
+        private fun applyLabelStyle() {
+            binding.txtLabel.setTextSize(
+                android.util.TypedValue.COMPLEX_UNIT_SP,
+                labelSizeSp.toFloat(),
+            )
+            binding.txtLabel.visibility =
+                if (showLabels) View.VISIBLE else View.GONE
         }
 
         private fun applyDimensions() {
@@ -343,8 +406,8 @@ class AppCardAdapter(
                     binding.imgIcon.visibility = View.GONE
                 }
                 binding.txtLabel.text = app.label
-                binding.txtLabel.visibility = View.VISIBLE
             }
+            applyLabelStyle()
         }
     }
 
