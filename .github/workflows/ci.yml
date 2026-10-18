@@ -61,8 +61,10 @@ jobs:
           chmod +x ./gradlew
           set -o pipefail
           ./gradlew assembleDebug --stacktrace 2>&1 | tee /tmp/build.log || {
-            { grep -E "data binding error" -A 25 /tmp/build.log | head -40;
-              grep -E "^e: |error:|FAILED|What went wrong" -A 3 /tmp/build.log | head -60; } | \
+            { grep -n -i -E "error|failed|exception|what went wrong" /tmp/build.log | head -25;
+              echo "----- log tail -----";
+              tail -25 /tmp/build.log; } | \
+              sed 's/%/%25/g; s/\r//g' | \
               while IFS= read -r line; do echo "::error::${line}"; done
             exit 1
           }
