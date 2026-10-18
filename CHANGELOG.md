@@ -85,6 +85,17 @@ is cut.
 - **`PACKAGE_REMOVED` broadcasts no longer do PackageManager lookups** on the main thread for a
   package that is already gone; corrupt app-art cache files are no longer protected from pruning
   by a cache-name entry for a bitmap that never loaded.
+- **Settings: focus was invisible on most controls ("remote navigation pata hi nahi chalta").**
+  27 of 33 buttons hard-coded white text while the focused background is solid white — the
+  label disappeared exactly when the control received focus. All buttons now use the
+  `color_settings_btn_text` state list (dark on the white highlight). The chevron icons and the
+  back/close icons had the same bug (fixed-colour drawables that never flipped on focus — the
+  chevron state list was even being overwritten with a static-colour drawable), and the
+  selected state of a settings row used to look identical to the focused state. Selected now
+  draws as the accent-cyan chip, focused stays the white highlight.
+- **Settings: entering a sub-page left D-pad focus on the hidden row**, so the remote looked
+  dead until a direction key re-triggered focus search. Every page change now moves focus to
+  its first control.
 
 ### Fixed — security & privacy
 
@@ -138,12 +149,19 @@ is cut.
 
 ### Added
 
+- **Visual wallpaper picker:** the five name-only buttons (whose labels had drifted away from the
+  gradients they rendered) are now tiles that show the *actual* gradient, with a live preview box
+  above and a check badge on the committed choice — pick "this picture", not "a name".
+- **Auto-change wallpapers:** Off / 15 min / 1 hour / 6 hours / Daily. Rotates through the preset
+  gradients via the existing 1 Hz clock loop (no alarms, no services); a custom photo is never
+  auto-replaced, and a long process absence advances exactly one step.
 - **CI workflow** (`ci.yml`): every pull request and push to `main` builds debug **and release**
   (minified), runs unit tests and lint, and publishes the debug APK plus reports as artifacts.
 - Composite actions `resolve-version` (monotonic version code from the version name) and
   `prepare-signing` (keystore from secrets, alias auto-detection, always-cleaned temp file).
-- Unit tests: `ConfigSerializationTest` (5), `LockSecurityTest` (10) and
-  `ProcessHeartbeatAtomicWriteTest` (3, locks in the atomic shared-file write).
+- Unit tests: `ConfigSerializationTest` (5), `LockSecurityTest` (10),
+  `ProcessHeartbeatAtomicWriteTest` (3, locks in the atomic shared-file write) and
+  `WallpaperRotatorTest` (6, auto-change rotation logic).
 - Developer documentation under `docs/`: architecture, config reference, security, performance,
   CI & release, testing, troubleshooting, i18n, issue log, roadmap.
 - Issue and pull-request templates, `CONTRIBUTING.md`, and this changelog.

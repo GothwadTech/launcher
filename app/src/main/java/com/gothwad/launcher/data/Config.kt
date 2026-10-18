@@ -73,6 +73,13 @@ data class LauncherConfig(
     /** Index into `WALLPAPERS` (ui/Theme.kt); see `DEFAULT_WALLPAPER_INDEX`. */
     val wallpaper: Int = 1,
     val useCustomWallpaper: Boolean = false,
+    /**
+     * Automatic wallpaper rotation interval in minutes. `0` = off. The presets
+     * ([WALLPAPERS]) rotate in order; a custom wallpaper is never auto-replaced.
+     */
+    val wallpaperAutoMinutes: Int = 0,
+    /** `System.currentTimeMillis()` of the last auto-rotation. */
+    val wallpaperAutoLastMs: Long = 0L,
     val accent: Int = 0,
     val h24: Boolean = false,
     val showHidden: Boolean = false,

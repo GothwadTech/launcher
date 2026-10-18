@@ -17,6 +17,7 @@ import com.gothwad.launcher.data.LauncherConfig
 import com.gothwad.launcher.data.NetStatus
 import com.gothwad.launcher.data.ProcessHeartbeat
 import com.gothwad.launcher.data.UI_SCALES
+import com.gothwad.launcher.data.WallpaperRotator
 import com.gothwad.launcher.data.bluetoothStatusFlow
 import com.gothwad.launcher.data.networkStatusFlow
 import com.gothwad.launcher.databinding.ActivityMainBinding
@@ -239,6 +240,11 @@ class MainStatusBarController(
                     while (isActive) {
                         if (heartbeatTick++ % 5 == 0) {
                             ProcessHeartbeat.touch(activity, foreground = true)
+                        }
+                        // Once a minute: rotate the wallpaper when the auto-change interval
+                        // elapsed. Cheap no-op unless it is actually due (see WallpaperRotator).
+                        if (heartbeatTick % 60 == 0) {
+                            runCatching { WallpaperRotator.tick(configStore) }
                         }
                         val now = Date()
                         val cfg = getCurrentConfig()

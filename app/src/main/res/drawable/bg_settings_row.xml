@@ -14,10 +14,16 @@
             <corners android:radius="12dp" />
         </shape>
     </item>
-    <!-- Selected state -->
+    <!--
+        Selected state: the accent cyan chip. This used to be the same solid white as the
+        focused state, which made "chosen option" and "currently focused" indistinguishable -
+        and combined with the old hard-coded white button text it made the focus highlight
+        look like a blank white pill (white text on white background). Selected = cyan with
+        dark text (color_settings_btn_text), focused = white with dark text.
+    -->
     <item android:state_selected="true">
         <shape android:shape="rectangle">
-            <solid android:color="#FFFFFF" />
+            <solid android:color="#4DD0E1" />
             <corners android:radius="12dp" />
         </shape>
     </item>
@@ -29,4 +35,3 @@
         </shape>
     </item>
 </selector>
-

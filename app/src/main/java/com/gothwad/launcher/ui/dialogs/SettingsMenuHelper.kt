@@ -1,38 +1,28 @@
 package com.gothwad.launcher.ui.dialogs
 
 import android.content.Context
-import android.graphics.Color
 import android.net.wifi.WifiManager
 import android.os.Build
 import com.gothwad.launcher.R
 import com.gothwad.launcher.data.LauncherConfig
 import com.gothwad.launcher.data.UI_SCALES
 import com.gothwad.launcher.databinding.SheetSettingsBinding
-import com.gothwad.launcher.ui.AppIcons
 import com.gothwad.launcher.ui.WALLPAPERS
 
 object SettingsMenuHelper {
 
-    fun setupMenuIcons(binding: SheetSettingsBinding) {
-        val chevronColor = Color.parseColor("#94A3B8")
-        val chevronDrawable = AppIcons.createDrawable(AppIcons.PATH_CHEVRON_RIGHT, chevronColor)
-
-        // 4 Main Categories
-        binding.chevronCatAppearance.setImageDrawable(chevronDrawable)
-        binding.chevronCatApps.setImageDrawable(chevronDrawable)
-        binding.chevronCatRemote.setImageDrawable(chevronDrawable)
-        binding.chevronCatDevice.setImageDrawable(chevronDrawable)
-
-        // Sub-page items
-        binding.chevronWallpaper.setImageDrawable(chevronDrawable)
-        binding.chevronDisplay.setImageDrawable(chevronDrawable)
-        binding.chevronStatusbar.setImageDrawable(chevronDrawable)
-        binding.chevronApps.setImageDrawable(chevronDrawable)
-        binding.chevronSecurity.setImageDrawable(chevronDrawable)
-        binding.chevronNetwork.setImageDrawable(chevronDrawable)
-        binding.chevronDevicePrefs.setImageDrawable(chevronDrawable)
-        binding.chevronPermissions.setImageDrawable(chevronDrawable)
-        binding.chevronCatAbout.setImageDrawable(chevronDrawable)
+    /**
+     * Chevrons are intentionally NOT replaced here any more.
+     *
+     * This used to overwrite every `ic_settings_chevron` ImageView with a static-colour
+     * `AppIcons` drawable (`#94A3B8`), which killed the state-list tint
+     * (`@color/color_settings_chevron`) the XML vector carries. Combined with the white
+     * focused row background, the chevron stayed pale grey exactly when the row was
+     * focused. The XML `android:src` + `android:tint` (with `duplicateParentState`)
+     * already tracks focus/pressed/selected correctly.
+     */
+    fun setupMenuIcons(@Suppress("UNUSED_PARAMETER") binding: SheetSettingsBinding) {
+        // no-op on purpose - see kdoc
     }
 
     fun updateSubtitles(binding: SheetSettingsBinding, config: LauncherConfig, context: Context) {
@@ -54,7 +44,18 @@ object SettingsMenuHelper {
                 else -> R.string.scrim_full
             }
         )
-        binding.txtWallpaperSubtitle.text = "$wpName • $scrimName"
+        val autoLabel = when (config.wallpaperAutoMinutes) {
+            15 -> context.getString(R.string.wallpaper_auto_15min)
+            60 -> context.getString(R.string.wallpaper_auto_hour)
+            360 -> context.getString(R.string.wallpaper_auto_6h)
+            1440 -> context.getString(R.string.wallpaper_auto_daily)
+            else -> null
+        }
+        binding.txtWallpaperSubtitle.text = if (autoLabel != null) {
+            "$wpName • $scrimName • " + context.getString(R.string.wallpaper_auto_badge, autoLabel)
+        } else {
+            "$wpName • $scrimName"
+        }
 
         val uiScaleName = UI_SCALES.getOrElse(config.uiScale.coerceIn(0, UI_SCALES.size - 1)) { 1.0f }
         binding.txtDisplaySubtitle.text = "6-Column Grid • UI ${uiScaleName}x"

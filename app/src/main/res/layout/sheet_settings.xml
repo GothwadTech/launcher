@@ -787,65 +787,50 @@
                         android:textSize="12sp"
                         android:textStyle="bold" />
 
-                    <Button
-                        android:id="@+id/btn_wp_0"
+                    <!-- Live preview box: shows exactly what the focused/selected preset
+                         looks like - picking a wallpaper must not be guessing from names. -->
+                    <androidx.cardview.widget.CardView
+                        android:id="@+id/card_wallpaper_preview"
                         android:layout_width="match_parent"
-                        android:layout_height="52dp"
-                        android:layout_marginBottom="0dp"
-                        android:background="@drawable/bg_settings_row"
-                        android:gravity="start|center_vertical"
-                        android:paddingHorizontal="24dp"
-                        android:text="🌌 Deep Space (Default)"
-                        android:textColor="#FFFFFF"
-                        android:textSize="14sp" />
-
-                    <Button
-                        android:id="@+id/btn_wp_1"
-                        android:layout_width="match_parent"
-                        android:layout_height="52dp"
-                        android:layout_marginBottom="0dp"
-                        android:background="@drawable/bg_settings_row"
-                        android:gravity="start|center_vertical"
-                        android:paddingHorizontal="24dp"
-                        android:text="✨ Aurora Borealis"
-                        android:textColor="#FFFFFF"
-                        android:textSize="14sp" />
-
-                    <Button
-                        android:id="@+id/btn_wp_2"
-                        android:layout_width="match_parent"
-                        android:layout_height="52dp"
-                        android:layout_marginBottom="0dp"
-                        android:background="@drawable/bg_settings_row"
-                        android:gravity="start|center_vertical"
-                        android:paddingHorizontal="24dp"
-                        android:text="⚡ Cyberpunk Neon"
-                        android:textColor="#FFFFFF"
-                        android:textSize="14sp" />
-
-                    <Button
-                        android:id="@+id/btn_wp_3"
-                        android:layout_width="match_parent"
-                        android:layout_height="52dp"
-                        android:layout_marginBottom="0dp"
-                        android:background="@drawable/bg_settings_row"
-                        android:gravity="start|center_vertical"
-                        android:paddingHorizontal="24dp"
-                        android:text="🌅 Sunset Glow"
-                        android:textColor="#FFFFFF"
-                        android:textSize="14sp" />
-
-                    <Button
-                        android:id="@+id/btn_wp_4"
-                        android:layout_width="match_parent"
-                        android:layout_height="52dp"
+                        android:layout_height="120dp"
+                        android:layout_marginHorizontal="24dp"
                         android:layout_marginBottom="12dp"
-                        android:background="@drawable/bg_settings_row"
-                        android:gravity="start|center_vertical"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="6dp"
+                        app:cardBackgroundColor="#181B22">
+
+                        <ImageView
+                            android:id="@+id/img_wallpaper_preview"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="centerCrop"
+                            android:contentDescription="@string/wallpaper_preview_desc" />
+
+                        <TextView
+                            android:id="@+id/txt_wallpaper_preview_name"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="bottom|start"
+                            android:layout_margin="12dp"
+                            android:background="#66000000"
+                            android:paddingHorizontal="10dp"
+                            android:paddingVertical="4dp"
+                            android:textColor="#FFFFFF"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            tools:text="Aurora" />
+                    </androidx.cardview.widget.CardView>
+
+                    <!-- Preset tiles: visual gradient thumbnails navigated with D-pad -->
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/recycler_wallpapers"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:clipToPadding="false"
+                        android:orientation="horizontal"
                         android:paddingHorizontal="24dp"
-                        android:text="🖤 Obsidian Minimal"
-                        android:textColor="#FFFFFF"
-                        android:textSize="14sp" />
+                        tools:listitem="@layout/item_wallpaper_tile" />
 
                     <TextView
                         android:layout_width="match_parent"
@@ -869,7 +854,7 @@
                         android:gravity="start|center_vertical"
                         android:paddingHorizontal="24dp"
                         android:text="🖼️ Choose Image from Device..."
-                        android:textColor="#FFFFFF"
+                        android:textColor="@color/color_settings_btn_text"
                         android:textSize="14sp" />
 
                     <TextView
@@ -899,7 +884,7 @@
                             android:gravity="start|center_vertical"
                             android:paddingHorizontal="24dp"
                             android:text="Full Screen Scrim (Recommended)"
-                            android:textColor="#FFFFFF"
+                            android:textColor="@color/color_settings_btn_text"
                             android:textSize="13sp" />
 
                         <Button
@@ -911,7 +896,7 @@
                             android:gravity="start|center_vertical"
                             android:paddingHorizontal="24dp"
                             android:text="Top Only Scrim"
-                            android:textColor="#FFFFFF"
+                            android:textColor="@color/color_settings_btn_text"
                             android:textSize="13sp" />
 
                         <Button
@@ -923,7 +908,7 @@
                             android:gravity="start|center_vertical"
                             android:paddingHorizontal="24dp"
                             android:text="Bottom Only Scrim"
-                            android:textColor="#FFFFFF"
+                            android:textColor="@color/color_settings_btn_text"
                             android:textSize="13sp" />
 
                         <Button
@@ -935,7 +920,7 @@
                             android:gravity="start|center_vertical"
                             android:paddingHorizontal="24dp"
                             android:text="Both Edges Scrim"
-                            android:textColor="#FFFFFF"
+                            android:textColor="@color/color_settings_btn_text"
                             android:textSize="13sp" />
 
                         <Button
@@ -947,8 +932,84 @@
                             android:gravity="start|center_vertical"
                             android:paddingHorizontal="24dp"
                             android:text="No Scrim (Clean Wallpaper)"
-                            android:textColor="#FFFFFF"
+                            android:textColor="@color/color_settings_btn_text"
                             android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingStart="24dp"
+                        android:paddingEnd="24dp"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="@string/wallpaper_auto_title"
+                        android:textAllCaps="true"
+                        android:textColor="#4DD0E1"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:id="@+id/layout_auto_wallpaper"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:orientation="horizontal">
+
+                        <Button
+                            android:id="@+id/btn_auto_wp_0"
+                            android:layout_width="0dp"
+                            android:layout_height="44dp"
+                            android:layout_marginEnd="2dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_settings_row"
+                            android:text="@string/wallpaper_auto_off"
+                            android:textColor="@color/color_settings_btn_text"
+                            android:textSize="11sp" />
+
+                        <Button
+                            android:id="@+id/btn_auto_wp_1"
+                            android:layout_width="0dp"
+                            android:layout_height="44dp"
+                            android:layout_marginHorizontal="2dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_settings_row"
+                            android:text="@string/wallpaper_auto_15min"
+                            android:textColor="@color/color_settings_btn_text"
+                            android:textSize="11sp" />
+
+                        <Button
+                            android:id="@+id/btn_auto_wp_2"
+                            android:layout_width="0dp"
+                            android:layout_height="44dp"
+                            android:layout_marginHorizontal="2dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_settings_row"
+                            android:text="@string/wallpaper_auto_hour"
+                            android:textColor="@color/color_settings_btn_text"
+                            android:textSize="11sp" />
+
+                        <Button
+                            android:id="@+id/btn_auto_wp_3"
+                            android:layout_width="0dp"
+                            android:layout_height="44dp"
+                            android:layout_marginHorizontal="2dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_settings_row"
+                            android:text="@string/wallpaper_auto_6h"
+                            android:textColor="@color/color_settings_btn_text"
+                            android:textSize="11sp" />
+
+                        <Button
+                            android:id="@+id/btn_auto_wp_4"
+                            android:layout_width="0dp"
+                            android:layout_height="44dp"
+                            android:layout_marginStart="2dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_settings_row"
+                            android:text="@string/wallpaper_auto_daily"
+                            android:textColor="@color/color_settings_btn_text"
+                            android:textSize="11sp" />
                     </LinearLayout>
                 </LinearLayout>
 
@@ -1010,7 +1071,7 @@
                             android:layout_weight="1"
                             android:background="@drawable/bg_settings_row"
                             android:text="Sharp"
-                            android:textColor="#FFFFFF"
+                            android:textColor="@color/color_settings_btn_text"
                             android:textSize="11sp" />
 
                         <Button
@@ -1021,7 +1082,7 @@
                             android:layout_weight="1"
                             android:background="@drawable/bg_settings_row"
                             android:text="Subtle"
-                            android:textColor="#FFFFFF"
+                            android:textColor="@color/color_settings_btn_text"
                             android:textSize="11sp" />
 
                         <Button
@@ -1032,7 +1093,7 @@
                             android:layout_weight="1"
                             android:background="@drawable/bg_settings_row"
                             android:text="Squircle"
-                            android:textColor="#FFFFFF"
+                            android:textColor="@color/color_settings_btn_text"
                             android:textSize="11sp" />
 
                         <Button
@@ -1043,7 +1104,7 @@
                             android:layout_weight="1"
                             android:background="@drawable/bg_settings_row"
                             android:text="Round"
-                            android:textColor="#FFFFFF"
+                            android:textColor="@color/color_settings_btn_text"
                             android:textSize="11sp" />
 
                         <Button
@@ -1054,7 +1115,7 @@
                             android:layout_weight="1"
                             android:background="@drawable/bg_settings_row"
                             android:text="Pill"
-                            android:textColor="#FFFFFF"
+                            android:textColor="@color/color_settings_btn_text"
                             android:textSize="11sp" />
                     </LinearLayout>
 
@@ -1085,7 +1146,7 @@
                             android:layout_weight="1"
                             android:background="@drawable/bg_settings_row"
                             android:text="0.75x"
-                            android:textColor="#FFFFFF"
+                            android:textColor="@color/color_settings_btn_text"
                             android:textSize="11sp" />
 
                         <Button
@@ -1096,7 +1157,7 @@
                             android:layout_weight="1"
                             android:background="@drawable/bg_settings_row"
                             android:text="0.9x"
-                            android:textColor="#FFFFFF"
+                            android:textColor="@color/color_settings_btn_text"
                             android:textSize="11sp" />
 
                         <Button
@@ -1107,7 +1168,7 @@
                             android:layout_weight="1"
                             android:background="@drawable/bg_settings_row"
                             android:text="1.0x"
-                            android:textColor="#FFFFFF"
+                            android:textColor="@color/color_settings_btn_text"
                             android:textSize="11sp" />
 
                         <Button
@@ -1118,7 +1179,7 @@
                             android:layout_weight="1"
                             android:background="@drawable/bg_settings_row"
                             android:text="1.15x"
-                            android:textColor="#FFFFFF"
+                            android:textColor="@color/color_settings_btn_text"
                             android:textSize="11sp" />
 
                         <Button
@@ -1129,7 +1190,7 @@
                             android:layout_weight="1"
                             android:background="@drawable/bg_settings_row"
                             android:text="1.3x"
-                            android:textColor="#FFFFFF"
+                            android:textColor="@color/color_settings_btn_text"
                             android:textSize="11sp" />
                     </LinearLayout>
 
@@ -1393,7 +1454,7 @@
                         android:gravity="start|center_vertical"
                         android:paddingHorizontal="24dp"
                         android:text="👁️ Unhide All Apps"
-                        android:textColor="#FFFFFF"
+                        android:textColor="@color/color_settings_btn_text"
                         android:textSize="13sp" />
 
                     <LinearLayout
@@ -1568,7 +1629,7 @@
                         android:gravity="start|center_vertical"
                         android:paddingHorizontal="24dp"
                         android:text="🔐 Set / Change App Lock Credential"
-                        android:textColor="#FFFFFF"
+                        android:textColor="@color/color_settings_btn_text"
                         android:textSize="13sp" />
 
                     <Button
@@ -1580,7 +1641,7 @@
                         android:gravity="start|center_vertical"
                         android:paddingHorizontal="24dp"
                         android:text="📱 Choose Which Apps are Locked"
-                        android:textColor="#FFFFFF"
+                        android:textColor="@color/color_settings_btn_text"
                         android:textSize="13sp" />
 
                     <!-- SECTION 2: HIDDEN APPS VAULT -->
@@ -1680,7 +1741,7 @@
                         android:gravity="start|center_vertical"
                         android:paddingHorizontal="24dp"
                         android:text="🔑 Set / Change 2nd Layer Credential"
-                        android:textColor="#FFFFFF"
+                        android:textColor="@color/color_settings_btn_text"
                         android:textSize="13sp" />
 
                     <Button
@@ -1692,7 +1753,7 @@
                         android:gravity="start|center_vertical"
                         android:paddingHorizontal="24dp"
                         android:text="👁️ Choose Which Apps are Hidden"
-                        android:textColor="#FFFFFF"
+                        android:textColor="@color/color_settings_btn_text"
                         android:textSize="13sp" />
                 </LinearLayout>
 
@@ -1995,7 +2056,7 @@
                             android:layout_marginTop="12dp"
                             android:background="@drawable/bg_dialog_button"
                             android:text="Cancel"
-                            android:textColor="#FFFFFF"
+                            android:textColor="@color/color_settings_btn_text"
                             android:textSize="12sp" />
                     </LinearLayout>
 

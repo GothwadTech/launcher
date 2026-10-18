@@ -154,4 +154,15 @@
     <string name="button_mapping_reserved_error">This key is reserved for TV navigation (%1$s) and cannot be remapped.</string>
     <string name="button_mapping_deleted">Mapping removed</string>
     <string name="button_mapping_saved">Mapped %1$s to %2$s</string>
+
+    <!-- Wallpaper picker (visual tiles + auto-change) -->
+    <string name="wallpaper_preview_desc">Preview of the highlighted wallpaper</string>
+    <string name="wallpaper_tile_custom">Custom photo</string>
+    <string name="wallpaper_auto_title">Auto-Change Wallpaper</string>
+    <string name="wallpaper_auto_off">Off</string>
+    <string name="wallpaper_auto_15min">15 min</string>
+    <string name="wallpaper_auto_hour">1 hour</string>
+    <string name="wallpaper_auto_6h">6 hours</string>
+    <string name="wallpaper_auto_daily">Daily</string>
+    <string name="wallpaper_auto_badge">Auto: %1$s</string>
 </resources>

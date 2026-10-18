@@ -6,7 +6,8 @@
 app/src/test/java/com/gothwad/launcher/data/
 ├── ConfigSerializationTest.kt          5 tests
 ├── LockSecurityTest.kt                 10 tests
-└── ProcessHeartbeatAtomicWriteTest.kt  3 tests
+├── ProcessHeartbeatAtomicWriteTest.kt  3 tests
+└── WallpaperRotatorTest.kt             6 tests
 ```
 
 JVM only (`testDebugUnitTest`), JUnit 4.13.2 — no Android runtime, no Robolectric, no Espresso.
@@ -62,6 +63,15 @@ The shared cross-process files (`gothwad_heartbeat`, `gothwad_relaunch_policy`,
 `gothwad_selfheal`) must be written through `ProcessHeartbeat.writeAtomic` only: a plain
 `writeText` truncates first, and the `:watchdog` reading in that window would parse an empty
 file as "the launcher is dead" and yank the screen back to HOME.
+
+**WallpaperRotatorTest**
+
+* auto-change off / custom wallpaper never rotates;
+* no rotation before the interval elapses, one preset forward (with wrap-around) after it;
+* a long process absence advances exactly one step (no catch-up burst).
+
+`WallpaperRotator.rotateIfDue` is deliberately pure (config + timestamp in, config out) so the
+scheduling rule stays testable; `tick()` is the thin DataStore shell around it.
 
 ## What to add when you change something
 

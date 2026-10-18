@@ -11,6 +11,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.lifecycleScope
 import com.gothwad.launcher.Actions
@@ -68,6 +69,7 @@ class SettingsBottomSheetFragment : DialogFragment() {
                 }
                 store.update { it.copy(useCustomWallpaper = true) }
                 config = config.copy(useCustomWallpaper = true)
+                wallpaperDelegate.syncSelection()
                 updateSubtitles()
                 onWallpaperChanged?.invoke()
                 Actions.toast(context, "Custom wallpaper applied")
@@ -186,14 +188,20 @@ class SettingsBottomSheetFragment : DialogFragment() {
     private fun setupBackdropAndHeader() {
         binding.scrimBackdrop.setOnClickListener { dismiss() }
 
+        // White base glyph + state-list tint: the close/back icons must turn dark when the
+        // white focus highlight of bg_settings_row lands on them (a fixed white icon
+        // vanished exactly while focused).
+        val iconTint = ContextCompat.getColorStateList(requireContext(), R.color.color_settings_icon)
         binding.btnCloseSettings.setImageDrawable(
             AppIcons.createDrawable(AppIcons.PATH_CLOSE, Color.WHITE)
         )
+        binding.btnCloseSettings.imageTintList = iconTint
         binding.btnCloseSettings.setOnClickListener { dismiss() }
 
         binding.btnBack.setImageDrawable(
             AppIcons.createDrawable(AppIcons.PATH_BACK, Color.WHITE)
         )
+        binding.btnBack.imageTintList = iconTint
         binding.btnBack.setOnClickListener {
             handleBackPress()
         }
@@ -552,6 +560,25 @@ class SettingsBottomSheetFragment : DialogFragment() {
         }
         binding.txtHeroSubtitle.text = heroDesc
         binding.scrollContainer.smoothScrollTo(0, 0)
+
+        // Put D-pad focus on the page's first control. Before this, entering a sub-page
+        // left focus on the now-GONE row; on many TV firmwares the remote then appears
+        // dead until a direction key happens to re-trigger focus search.
+        binding.scrollContainer.post { focusFirstDescendant(subPage) }
+    }
+
+    /** Requests focus on the first visible, focusable descendant of [root]. */
+    private fun focusFirstDescendant(root: View): Boolean {
+        if (root is ViewGroup) {
+            for (i in 0 until root.childCount) {
+                val child = root.getChildAt(i)
+                if (child.visibility != View.VISIBLE) continue
+                if (child.isFocusable && child.isEnabled && child.requestFocus()) return true
+                if (child is ViewGroup && focusFirstDescendant(child)) return true
+            }
+            return false
+        }
+        return root.isFocusable && root.isEnabled && root.requestFocus()
     }
 
     private fun navigateToRoot() {
@@ -567,6 +594,7 @@ class SettingsBottomSheetFragment : DialogFragment() {
         binding.txtSettingsTitle.setText(R.string.settings_root_title)
         binding.txtHeroSubtitle.setText(R.string.settings_root_subtitle)
         binding.scrollContainer.smoothScrollTo(0, 0)
+        binding.scrollContainer.post { focusFirstDescendant(binding.layoutRootMenu) }
     }
 
     private fun safeStartActivity(action: String, fallbackAction: String? = null) {

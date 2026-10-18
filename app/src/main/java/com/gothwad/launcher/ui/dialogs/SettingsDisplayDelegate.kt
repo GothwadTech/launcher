@@ -1,6 +1,5 @@
 package com.gothwad.launcher.ui.dialogs
 
-import android.graphics.Color
 import androidx.lifecycle.lifecycleScope
 import com.gothwad.launcher.Actions
 import com.gothwad.launcher.R
@@ -38,14 +37,17 @@ class SettingsDisplayDelegate(
             binding.btnCorner4 to 4
         )
 
+        /**
+         * Selection is drawn with `isSelected` + the shared state lists
+         * (`bg_settings_row` cyan chip, `color_settings_btn_text` dark label).
+         * The old code force-set static text colours (`#4DD0E1` / `#FFFFFF`), which
+         * overrode the focus-aware state list and made the label invisible on the white
+         * focus highlight - "focus pata hi nahi chalta".
+         */
         fun highlightSelectedCorner(selectedIdx: Int) {
             updateCornerPreview(selectedIdx)
             for ((btn, idx) in cornerButtons) {
-                if (idx == selectedIdx) {
-                    btn.setTextColor(Color.parseColor("#4DD0E1"))
-                } else {
-                    btn.setTextColor(Color.parseColor("#FFFFFF"))
-                }
+                btn.isSelected = idx == selectedIdx
             }
         }
 
@@ -79,11 +81,7 @@ class SettingsDisplayDelegate(
         )
         fun highlightSelectedScale(selectedIdx: Int) {
             for ((btn, idx) in uiScaleButtons) {
-                if (idx == selectedIdx) {
-                    btn.setTextColor(Color.parseColor("#4DD0E1"))
-                } else {
-                    btn.setTextColor(Color.parseColor("#FFFFFF"))
-                }
+                btn.isSelected = idx == selectedIdx
             }
         }
         highlightSelectedScale(getConfig().uiScale)
